@@ -154,6 +154,7 @@
       <button class="tile" data-game="daifugo"><div class="emo">👑</div><h2>大富豪</h2><p>8切り・革命・縛り・スペ3返しなどローカルルール対応。貧民から大富豪を目指せ！</p><div class="meta">4人（あなた＋COM×3）・ルール設定つき</div></button>
     </div>
     <p class="note" style="color:#9fc7ab; margin-top:16px;">遊び方：ゲームを選ぶだけ。あとは画面の指示どおりにタップしてください。</p>
+    <p id="verLabel" style="color:#7fae8d; font-size:11px; margin-top:6px;"></p>
   </div>
 
   <div id="gameScreen" class="hidden">
@@ -459,9 +460,10 @@ function botDaifugo(st, p) {
 const G = { mulberry32, SUITS, SUIT_NAMES, cardId, makeDeck, shuffle, sortHand, removePairs, createBabanuki, babanukiNextWithCards, babanukiDraw, botBabanuki, createShichinarabe, shichinarabeLegal, shichinarabePlay, shichinarabePass, botShichinarabe, createShinkei, shinkeiObserve, shinkeiFlip, botShinkei, DAIFUGO_DEFAULTS, rankValue, createDaifugo, comboInfo, daifugoLegalMoves, daifugoPlay, daifugoPass, daifugoNext, botDaifugo };
 
 const $ = id => document.getElementById(id);
+const TC_VERSION = '1.4.0';
 const NAMES = ['あなた', '🐰 COM1', '🐱 COM2', '🐶 COM3'];
 const RANK_TXT = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-let game = null, st = null, selected = new Set(), busy = false, dealAnim = false, session = 0, justTaken = new Set(), prevFieldCards = null, daifugoPrevRanks = null, daifugoCfg = { ...G.DAIFUGO_DEFAULTS }, shinkeiDiff = 1, holdPair = null;
+let game = null, st = null, selected = new Set(), busy = false, dealAnim = false, session = 0, justTaken = new Set(), prevFieldCards = null, botWait = 780, daifugoPrevRanks = null, daifugoCfg = { ...G.DAIFUGO_DEFAULTS }, shinkeiDiff = 1, holdPair = null;
 
 const PIPS = {
   2: [[50,20,0],[50,79,1]], 3: [[50,20,0],[50,50,0],[50,79,1]],
@@ -624,7 +626,7 @@ async function driveBots() {
   const my = session;
   try {
     while (st && session === my && st.phase === 'play' && st.turn !== 0) {
-      await sleep(780);
+      await sleep(botWait);
       if (!st || session !== my || st.phase !== 'play') break;
       if (game === 'daifugo') { // 出す前に、相手の手元から裏向きカードを飛ばす
         const mv = G.botDaifugo(st, st.turn);
@@ -860,6 +862,38 @@ function renderDaifugo() {
   ] : []);
   if (st.phase === 'end') showResult();
 }
+$('verLabel').textContent = 'v' + TC_VERSION;
+// ===== テスト/検証用フック（画面の見た目に依存せず状態と操作を直接扱う） =====
+window.TC = {
+  version: TC_VERSION,
+  setFast(on) { botWait = on ? 110 : 780; },
+  get state() { return st; },
+  get game() { return game; },
+  start(g) { startGame(g); const b = $('mStart'); if (b) b.click(); },
+  legal() {
+    if (!st || st.phase !== 'play' || st.turn !== 0) return [];
+    if (game === 'daifugo') return G.daifugoLegalMoves(st, 0).map(m => m.map(G.cardId));
+    if (game === 'shichinarabe') return G.shichinarabeLegal(st.hands[0], st.placed).map(c => [G.cardId(c)]);
+    if (game === 'babanuki') return [['draw']];
+    if (game === 'shinkei') return st.board.map((b, i) => i).filter(i => !st.board[i].taken && !st.flipped.includes(i)).map(i => [i]);
+    return [];
+  },
+  act(a) {
+    if (!st) return false;
+    if (game === 'daifugo') {
+      if (a.type === 'pass') { G.daifugoPass(st, 0); }
+      else { const cs = st.hands[0].filter(cd => a.ids.includes(G.cardId(cd))); G.daifugoPlay(st, 0, cs); checkFx(); }
+      render(); if (st.phase === 'end') showResult(); else driveBots(); return true;
+    }
+    if (game === 'shichinarabe') {
+      if (a.type === 'pass') G.shichinarabePass(st); else G.shichinarabePlay(st, a.ids[0]);
+      render(); if (st.phase === 'end') showResult(); else driveBots(); return true;
+    }
+    if (game === 'babanuki') { G.babanukiDraw(st, a.index || 0); render(); if (st.phase === 'end') showResult(); else driveBots(); return true; }
+    if (game === 'shinkei') { shinkeiPlayerFlip(a.pos); return true; }
+    return false;
+  },
+};
 showMenu();
 </script>
 </body>
