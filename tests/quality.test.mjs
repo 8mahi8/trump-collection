@@ -74,3 +74,12 @@ test('大富豪: 多様な配牌でもCOM 120試合が決着', () => {
     assert.deepEqual(Object.values(st.ranks).sort(), [1, 2, 3, 4], 'seed=' + seed);
   }
 });
+
+test('大富豪: 縛り中はジョーカーが不足スートを代用できる', () => {
+  const st = G.createDaifugo(6);
+  st.hands[1] = [card(0, 10), card(3, 10), { joker: true }]; st.turn = 1;
+  st.field = { cards: [card(0, 9), card(1, 9)], count: 2, value: G.rankValue(card(0, 9)), suits: new Set([0, 1]), lockSuits: new Set([0, 1]), lastPlayer: 0 };
+  const options = new Set(G.daifugoLegalMoves(st, 1).map(ids));
+  assert.ok(options.has(ids([card(0, 10), { joker: true }])), 'ジョーカーがハートを補える');
+  assert.ok(!options.has(ids([card(0, 10), card(3, 10)])), 'クラブは縛りに反する');
+});
