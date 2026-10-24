@@ -127,7 +127,7 @@ export function createShinkei(seed, difficulty = 1) {
 }
 export function shinkeiObserve(st, pos) { const c = st.board[pos].card; st.memory.set(pos, c.suit + '-' + c.rank); if (st.difficulty === 0 && st.memory.size > 6) { const k = st.memory.keys().next().value; st.memory.delete(k); } if (st.difficulty === 1 && st.memory.size > 14) { const k = st.memory.keys().next().value; st.memory.delete(k); } }
 export function shinkeiFlip(st, pos) {
-  if (st.phase !== 'play' || st.board[pos].taken || st.flipped.includes(pos) || st.flipped.length >= 2) return st;
+  if (st.phase !== 'play' || !Number.isInteger(pos) || pos < 0 || pos >= st.board.length || st.board[pos].taken || st.flipped.includes(pos) || st.flipped.length >= 2) return st;
   st.flipped.push(pos); shinkeiObserve(st, pos);
   if (st.flipped.length === 2) {
     const [a, b] = st.flipped, ca = st.board[a].card, cb = st.board[b].card;
@@ -173,12 +173,19 @@ export function createDaifugo(seed, cfg = DAIFUGO_DEFAULTS, prevRanks = null) {
   st.hands = st.hands.map(sortHand);
   return st;
 }
-function combosOf(hand) { // 同じ数字の組（ジョーカーはワイルドとして各組に合流可能）
+function combosOf(hand) { // 同じ数字のあらゆるスートの組み合わせを列挙
   const groups = new Map(); let joker = null;
   for (const c of hand) { if (c.joker) { joker = c; continue; } if (!groups.has(c.rank)) groups.set(c.rank, []); groups.get(c.rank).push(c); }
   const out = [];
-  for (const [, cs] of groups) for (let n = 1; n <= cs.length; n++) out.push(cs.slice(0, n));
-  if (joker) { out.push([joker]); for (const [, cs] of groups) for (let n = 1; n <= cs.length; n++) out.push([...cs.slice(0, n), joker]); }
+  if (joker) out.push([joker]);
+  for (const [, cs] of groups) {
+    // 接頭辞だけを列挙すると「♥5のみ」など合法手が消えるため、全ての非空部分集合を生成
+    for (let mask = 1; mask < (1 << cs.length); mask++) {
+      const subset = cs.filter((_, i) => (mask & (1 << i)) !== 0);
+      out.push(subset);
+      if (joker) out.push([...subset, joker]);
+    }
+  }
   return out;
 }
 export function comboInfo(cards, st) {
@@ -212,6 +219,7 @@ export function daifugoPlay(st, p, cards) {
   if (!ok) return st;
   const info = comboInfo(cards, st);
   const prevField = st.field;
+  const spade3Clear = !!(st.cfg.spade3 && prevField?.isJokerSingle && cards.length === 1 && !cards[0].joker && cards[0].suit === 0 && cards[0].rank === 3);
   for (const c of cards) { const i = st.hands[p].findIndex(h => cardId(h) === cardId(c)); st.hands[p].splice(i, 1); }
   let lockSuits = prevField?.lockSuits || null;
   if (st.cfg.suitLock && prevField && !prevField.lockSuits && prevField.suits && info.suits.size === prevField.suits.size && [...info.suits].every(s => prevField.suits.has(s)) && info.count === prevField.count) lockSuits = new Set(info.suits);
@@ -236,7 +244,7 @@ export function daifugoPlay(st, p, cards) {
     if (st.finished.length === 2) { /* 残り2人のうち場のリード権は次へ */ }
   }
   // 8切り
-  if (st.cfg.eightCut && info.has8 && st.phase === 'play') { st.field = null; st.lastEvent = (events.join('／') + ' 8切り！続けて出せる').trim(); if (!st.finished.includes(p)) { st.turn = p; st.leader = p; } else { st.turn = daifugoNext(st, p); st.leader = st.turn; } return st; }
+  if (st.phase === 'play' && (spade3Clear || (st.cfg.eightCut && info.has8))) { st.field = null; st.lastEvent = (events.join('／') + (spade3Clear ? ' スペ3返し！続けて出せる' : ' 8切り！続けて出せる')).trim(); if (!st.finished.includes(p)) { st.turn = p; st.leader = p; } else { st.turn = daifugoNext(st, p); st.leader = st.turn; } return st; }
   st.lastEvent = events.join('／');
   st.turn = daifugoNext(st, p);
   return st;
@@ -245,7 +253,8 @@ export function daifugoPass(st, p) {
   if (st.phase !== 'play' || st.turn !== p || !st.field) return st;
   st.passStreak++;
   const activeCount = [0, 1, 2, 3].filter(i => !st.finished.includes(i)).length;
-  if (st.passStreak >= activeCount - 1) { // 全員パスで流れる
+  const requiredPasses = activeCount - (st.finished.includes(st.field.lastPlayer) ? 0 : 1);
+  if (st.passStreak >= requiredPasses) { // 最後に出した人が上がっている場合も、生存者全員のパスを待つ
     const leader = st.field.lastPlayer;
     st.field = null; st.passStreak = 0;
     st.turn = st.finished.includes(leader) ? daifugoNext(st, leader) : leader;
