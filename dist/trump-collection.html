@@ -128,7 +128,7 @@
   .confetti { position:absolute; top:0; width:10px; height:15px; z-index:50; pointer-events:none; animation:confettiFall 2.6s ease-in forwards; }
 
   /* ===== 選択表示（調査に基づく複合表現） ===== */
-  #hand .card.sel { transform:translateY(-38px) scale(1.07); outline:4px solid #ffd94a; box-shadow:0 0 18px 4px rgba(255,217,74,.75), 0 18px 24px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.95); z-index:6; }
+  #hand .card.sel { overflow:visible; transform:translateY(-38px) scale(1.07); outline:4px solid #ffd94a; box-shadow:0 0 18px 4px rgba(255,217,74,.75), 0 18px 24px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.95); z-index:6; }
   .selbadge { position:absolute; top:-11px; left:50%; transform:translateX(-50%); width:24px; height:24px; border-radius:50%; background:#2fbf4f; color:#fff; font-size:15px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,.4); z-index:7; }
   #hand.hasSel .card:not(.sel) { filter:brightness(.74) saturate(.85); }
   .card.dim { filter:brightness(.6) saturate(.7); }
@@ -517,7 +517,7 @@ function botDaifugo(st, p) {
 const G = { mulberry32, SUITS, SUIT_NAMES, cardId, makeDeck, shuffle, sortHand, removePairs, createBabanuki, babanukiNextWithCards, babanukiDraw, botBabanuki, createShichinarabe, shichinarabeLegal, shichinarabePlay, shichinarabePass, botShichinarabe, createShinkei, shinkeiObserve, shinkeiFlip, botShinkei, DAIFUGO_DEFAULTS, rankValue, createDaifugo, comboInfo, daifugoLegalMoves, daifugoPlay, daifugoPass, daifugoNext, botDaifugo };
 
 const $ = id => document.getElementById(id);
-const TC_VERSION = '1.5.1';
+const TC_VERSION = '1.5.2';
 const NAMES = ['あなた', '🐰 COM1', '🐱 COM2', '🐶 COM3'];
 const RANK_TXT = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 let game = null, st = null, selected = new Set(), busy = false, dealAnim = false, session = 0, justTaken = new Set(), prevFieldCards = null, botWait = 780, daifugoPrevRanks = null, daifugoCfg = { ...G.DAIFUGO_DEFAULTS }, shinkeiDiff = 1, holdPair = null;
@@ -543,7 +543,7 @@ function cardEl(c, cls = '') {
   }
   const label = RANK_TXT[c.rank - 1], suit = G.SUITS[c.suit];
   const cs = '0.88em'; // コーナー文字サイズ（カードのfont-size基準）
-  let inner = `<div class="corner tl" style="font-size:${cs}"><span>${label}</span><span>${suit}</span></div>` + (mini ? '' : `<div class="corner br" style="font-size:${cs}px"><span>${label}</span><span>${suit}</span></div>`);
+  let inner = `<div class="corner tl" style="font-size:${cs}"><span>${label}</span><span>${suit}</span></div>` + (mini ? '' : `<div class="corner br" style="font-size:${cs}"><span>${label}</span><span>${suit}</span></div>`);
   if (mini) { inner += `<div class="big" style="font-size:1.4em">${suit}</div>`; }
   else if (c.rank === 1) { inner += `<div class="pip" style="left:50%; top:48%; font-size:2.2em">${suit}</div>`; }
   else if (c.rank >= 11) { inner += `<div class="faceart"><span style="font-size:1.35em">${suit}</span><span style="font-size:2.05em">${label}</span><span style="font-size:1.35em; transform:rotate(180deg)">${suit}</span></div>`; }
@@ -817,8 +817,8 @@ function renderShichinarabe() { $('selInfo').textContent = '';
   const info7 = $('selInfo');
   if (myTurn7) info7.innerHTML = selCard ? `<span class="ok">選択中：${G.SUITS[selCard.suit]}${RANK_TXT[selCard.rank - 1]}（出せる）</span>` : (legal.length ? '出せるカードを選んでね' : '出せるカードがない…パスしてね');
   actions(myTurn7 ? [
-    { label: '出す', disabled: !selCard, onClick: async () => { if (!selCard || busy) return; busy = true; const currentSession = session; const el = document.querySelector('#hand .card.sel'); const rows = document.querySelectorAll('#rows .srow'); const slot = rows[selCard.suit] && rows[selCard.suit].children[selCard.rank]; if (el && slot) flyTo(el, slot.getBoundingClientRect(), selCard); await sleep(240); if (session !== currentSession) return; selected.clear(); G.shichinarabePlay(st, G.cardId(selCard)); busy = false; render(); if (st.phase === 'end') showResult(); else driveBots(); } },
-    { label: `パス（残り${3 - st.passes[0]}回）`, sub: true, onClick: () => { selected.clear(); G.shichinarabePass(st); render(); if (st.phase === 'end') showResult(); else driveBots(); } },
+    { label: '出す', disabled: !selCard, onClick: async () => { if (!selCard || busy || !st || st.turn !== 0 || st.phase !== 'play') return; busy = true; const currentSession = session; const el = document.querySelector('#hand .card.sel'); const rows = document.querySelectorAll('#rows .srow'); const slot = rows[selCard.suit] && rows[selCard.suit].children[selCard.rank]; if (el && slot) flyTo(el, slot.getBoundingClientRect(), selCard); await sleep(240); if (session !== currentSession) return; selected.clear(); G.shichinarabePlay(st, G.cardId(selCard)); busy = false; render(); if (st.phase === 'end') showResult(); else driveBots(); } },
+    { label: `パス（残り${3 - st.passes[0]}回）`, sub: true, onClick: () => { if (busy || !st || st.turn !== 0 || st.phase !== 'play') return; selected.clear(); G.shichinarabePass(st); render(); if (st.phase === 'end') showResult(); else driveBots(); } },
   ] : []);
   if (st.phase === 'end') showResult();
 }
@@ -921,7 +921,7 @@ function renderDaifugo() {
     legalIds: myTurn ? legalCardIds : new Set(),
     dimIds: myTurn ? new Set(st.hands[0].filter(cd => !legalCardIds.has(G.cardId(cd))).map(G.cardId)) : new Set(),
     groupRanks: true,
-    onTap: cd => { if (!myTurn) return; const id = G.cardId(cd); if (!legalCardIds.has(id)) { shakeCard(id); return; } if (selected.has(id)) selected.delete(id); else selected.add(id); render(); }
+    onTap: cd => { if (!myTurn || busy || !st || st.turn !== 0 || st.phase !== 'play') return; const id = G.cardId(cd); if (!legalCardIds.has(id)) { shakeCard(id); return; } if (selected.has(id)) selected.delete(id); else selected.add(id); render(); }
   });
   const info = $('selInfo');
   if (myTurn) {
@@ -930,9 +930,9 @@ function renderDaifugo() {
     else info.innerHTML = `<span class="ng">選択中 ${selCards.length}枚：${reason ? reason.text : ''}</span>`;
   } else info.textContent = '';
   actions(myTurn ? [
-    { label: '出す', disabled: !(reason && reason.ok), onClick: async () => { if (busy) return; busy = true; const currentSession = session; const cs = st.hands[0].filter(cd => selected.has(G.cardId(cd))); const els = [...document.querySelectorAll('#hand .card.sel')]; const centerRect = $('center').getBoundingClientRect(); els.forEach((el, i) => flyTo(el, centerRect, cs[i], i * 45)); await sleep(250 + cs.length * 45); if (session !== currentSession) return; selected.clear(); G.daifugoPlay(st, 0, cs); busy = false; checkFx(); render(); if (st.phase === 'end') showResult(); else driveBots(); } },
-    ...(st.field ? [{ label: 'パス', sub: true, onClick: () => { selected.clear(); G.daifugoPass(st, 0); render(); if (st.phase === 'end') showResult(); else driveBots(); } }] : []),
-    ...(selCards.length ? [{ label: 'すべて解除', sub: true, onClick: () => { selected.clear(); render(); } }] : []),
+    { label: '出す', disabled: !(reason && reason.ok), onClick: async () => { if (busy || !st || st.turn !== 0 || st.phase !== 'play' || !reason?.ok) return; busy = true; const currentSession = session; const cs = st.hands[0].filter(cd => selected.has(G.cardId(cd))); const els = [...document.querySelectorAll('#hand .card.sel')]; const centerRect = $('center').getBoundingClientRect(); els.forEach((el, i) => flyTo(el, centerRect, cs[i], i * 45)); await sleep(250 + cs.length * 45); if (session !== currentSession) return; selected.clear(); G.daifugoPlay(st, 0, cs); busy = false; checkFx(); render(); if (st.phase === 'end') showResult(); else driveBots(); } },
+    ...(st.field ? [{ label: 'パス', sub: true, onClick: () => { if (busy || !st || st.turn !== 0 || st.phase !== 'play') return; selected.clear(); G.daifugoPass(st, 0); render(); if (st.phase === 'end') showResult(); else driveBots(); } }] : []),
+    ...(selCards.length ? [{ label: 'すべて解除', sub: true, onClick: () => { if (busy || !st || st.turn !== 0 || st.phase !== 'play') return; selected.clear(); render(); } }] : []),
   ] : []);
   if (st.phase === 'end') showResult();
 }
@@ -953,7 +953,7 @@ window.TC = {
     return [];
   },
   act(a) {
-    if (!st) return false;
+    if (!st || st.phase !== 'play' || st.turn !== 0) return false;
     if (game === 'daifugo') {
       if (a.type === 'pass') { G.daifugoPass(st, 0); }
       else { const cs = st.hands[0].filter(cd => a.ids.includes(G.cardId(cd))); G.daifugoPlay(st, 0, cs); checkFx(); }
