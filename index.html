@@ -139,6 +139,8 @@
   .fieldcards .card.back { transition:transform .12s; }
   .fieldcards .card.back:active { transform:translateY(-12px); }
   /* ババ抜き：引いたカードが手札に紛れる前に大きく表示する */
+  #drawFan .card { margin-left:-5px; } /* 低い画面でも各カードの触れる部分を確保 */
+  #drawFan .card:first-child { margin-left:0; }
   #babaReveal { display:flex; align-items:center; justify-content:center; gap:17px; padding:5px; max-width:min(94vw,500px); margin:auto; text-align:left; }
   #babaReveal .card { width:76px; height:108px; font-size:19px; animation:popIn .24s ease-out; }
   #babaReveal .drawHeadline { font-size:12px; color:#cde8d5; }
