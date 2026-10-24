@@ -57,7 +57,7 @@
   .card { position:relative; width:var(--cw); height:calc(var(--cw) * 1.44); font-size:calc(var(--cw) * 0.245); border-radius:8px; background:linear-gradient(155deg,#ffffff 60%,#f1ede4); color:#1c2733; box-shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 16px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 1px rgba(0,0,0,.08); flex:none; font-weight:700; overflow:hidden; }
   .card .pip { position:absolute; transform:translate(-50%,-50%); line-height:1; }
   .card .pip.flip { transform:translate(-50%,-50%) rotate(180deg); }
-  .card .corner { position:absolute; display:flex; flex-direction:column; align-items:center; line-height:1.02; z-index:2; font-weight:800; }
+  .card .corner { position:absolute; display:flex; flex-direction:column; align-items:center; line-height:1.0; z-index:2; font-weight:800; letter-spacing:-0.5px; text-shadow:0 0 3px #fff, 0 0 3px #fff, 0 0 2px #fff; }
   .card .corner.tl { top:4px; left:5px; }
   .card .corner.br { bottom:4px; right:5px; transform:rotate(180deg); }
   .card .faceart { position:absolute; inset:19% 23%; border:2px solid currentColor; border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(255,255,255,.45); box-shadow:inset 0 0 0 3px rgba(255,255,255,.35); }
@@ -464,13 +464,13 @@ const RANK_TXT = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', '
 let game = null, st = null, selected = new Set(), busy = false, dealAnim = false, session = 0, justTaken = new Set(), prevFieldCards = null, daifugoPrevRanks = null, daifugoCfg = { ...G.DAIFUGO_DEFAULTS }, shinkeiDiff = 1, holdPair = null;
 
 const PIPS = {
-  2: [[50,16,0],[50,84,1]], 3: [[50,16,0],[50,50,0],[50,84,1]],
-  4: [[28,16,0],[70,16,0],[28,84,1],[70,84,1]], 5: [[28,16,0],[70,16,0],[50,50,0],[28,84,1],[70,84,1]],
-  6: [[28,16,0],[70,16,0],[28,50,0],[70,50,0],[28,84,1],[70,84,1]],
-  7: [[28,16,0],[70,16,0],[50,33,0],[28,50,0],[70,50,0],[28,84,1],[70,84,1]],
-  8: [[28,16,0],[70,16,0],[50,33,0],[28,50,0],[70,50,0],[50,67,1],[28,84,1],[70,84,1]],
-  9: [[28,16,0],[70,16,0],[28,38,0],[70,38,0],[50,50,0],[28,62,1],[70,62,1],[28,84,1],[70,84,1]],
-  10: [[28,16,0],[70,16,0],[50,27,0],[28,38,0],[70,38,0],[28,62,1],[70,62,1],[50,73,1],[28,84,1],[70,84,1]],
+  2: [[50,20,0],[50,79,1]], 3: [[50,20,0],[50,50,0],[50,79,1]],
+  4: [[31,20,0],[67,20,0],[31,79,1],[67,79,1]], 5: [[31,20,0],[67,20,0],[50,50,0],[31,79,1],[67,79,1]],
+  6: [[31,20,0],[67,20,0],[31,50,0],[67,50,0],[31,79,1],[67,79,1]],
+  7: [[31,20,0],[67,20,0],[50,35,0],[31,50,0],[67,50,0],[31,79,1],[67,79,1]],
+  8: [[31,20,0],[67,20,0],[50,35,0],[31,50,0],[67,50,0],[50,65,1],[31,79,1],[67,79,1]],
+  9: [[31,20,0],[67,20,0],[31,36,0],[67,36,0],[50,50,0],[31,64,1],[67,64,1],[31,79,1],[67,79,1]],
+  10: [[31,20,0],[67,20,0],[50,28,0],[31,36,0],[67,36,0],[31,64,1],[67,64,1],[50,72,1],[31,79,1],[67,79,1]],
 };
 function cardEl(c, cls = '') {
   const d = document.createElement('div');
@@ -483,13 +483,13 @@ function cardEl(c, cls = '') {
     return d;
   }
   const label = RANK_TXT[c.rank - 1], suit = G.SUITS[c.suit];
-  const cs = '1em'; // コーナー文字サイズ（カードのfont-size基準）
+  const cs = '0.88em'; // コーナー文字サイズ（カードのfont-size基準）
   let inner = `<div class="corner tl" style="font-size:${cs}px"><span>${label}</span><span>${suit}</span></div>` + (mini ? '' : `<div class="corner br" style="font-size:${cs}px"><span>${label}</span><span>${suit}</span></div>`);
   if (mini) { inner += `<div class="big" style="font-size:1.4em">${suit}</div>`; }
-  else if (c.rank === 1) { inner += `<div class="pip" style="left:50%; top:52%; font-size:2.9em">${suit}</div>`; }
+  else if (c.rank === 1) { inner += `<div class="pip" style="left:50%; top:48%; font-size:2.2em">${suit}</div>`; }
   else if (c.rank >= 11) { inner += `<div class="faceart"><span style="font-size:1.35em">${suit}</span><span style="font-size:2.05em">${label}</span><span style="font-size:1.35em; transform:rotate(180deg)">${suit}</span></div>`; }
   else if (small) { inner += `<div class="big" style="font-size:2.1em">${suit}</div>`; }
-  else { for (const [x, y, f] of PIPS[c.rank]) inner += `<div class="pip ${f ? 'flip' : ''}" style="left:${x}%; top:${y}%; font-size:1.02em">${suit}</div>`; }
+  else { for (const [x, y, f] of PIPS[c.rank]) inner += `<div class="pip ${f ? 'flip' : ''}" style="left:${x}%; top:${y}%; font-size:0.8em">${suit}</div>`; }
   d.innerHTML = inner;
   return d;
 }
@@ -697,8 +697,13 @@ function renderBabanuki() { $('selInfo').textContent = '';
     const target = G.babanukiNextWithCards(st, 0);
     c.innerHTML = `<div style="text-align:center"><div style="margin-bottom:8px">${NAMES[target]} のカードを1枚タップして引こう</div><div class="fieldcards" id="drawFan"></div></div>`;
     const fan = c.querySelector('#drawFan');
-    st.hands[target].forEach((_, idx) => { const b = cardEl(null, 'small'); b.style.cursor = 'pointer'; b.onclick = async () => { if (busy) return; busy = true; flyTo(b, $('hand').getBoundingClientRect(), null); await sleep(250); G.babanukiDraw(st, idx); render(); await sleep(500); busy = false; if (st.phase === 'end') showResult(); else driveBots(); }; fan.appendChild(b); });
+    st.hands[target].forEach((_, idx) => { const b = cardEl(null, 'small'); b.style.cursor = 'pointer'; b.style.transition = 'transform .17s ease-out'; b.onclick = async () => { if (busy) return; busy = true; flyTo(b, $('hand').getBoundingClientRect(), null); await sleep(250); G.babanukiDraw(st, idx); render(); await sleep(500); busy = false; if (st.phase === 'end') showResult(); else driveBots(); }; fan.appendChild(b); });
     msg('あなたの番：引くカードを選んで');
+    const fanEls = [...fan.children];
+    const fanWave = x => { let f = 0, best = 1e9; fanEls.forEach((el, i) => { const r = el.getBoundingClientRect(); const d = Math.abs(x - (r.left + r.width / 2)); if (d < best) { best = d; f = i; } }); fanEls.forEach((el, i) => { const dist = Math.abs(i - f); el.style.transform = dist >= 2 ? '' : `translateY(${-16 * Math.cos(dist / 2 * Math.PI / 2)}px)`; }); };
+    fan.onpointermove = e => fanWave(e.clientX);
+    fan.onpointerdown = e => fanWave(e.clientX);
+    fan.onpointerleave = () => fanEls.forEach(el => el.style.transform = '');
   } else {
     if (st.lastDraw && st.lastDraw.paired) { c.innerHTML = ''; const w = document.createElement('div'); w.style.textAlign = 'center'; w.innerHTML = `<div style="color:#ffe9a8; margin-bottom:6px">ペアそろった！</div>`; const fc = document.createElement('div'); fc.className = 'fieldcards'; const pc = cardEl(st.lastDraw.card, 'small'); pc.classList.add('pop'); fc.appendChild(pc); w.appendChild(fc); c.appendChild(w); }
     else c.innerHTML = `<div style="text-align:center; color:#ffe9a8">${st.lastDraw ? '対戦中…' : '対戦中…'}</div>`;
@@ -728,10 +733,18 @@ function renderShichinarabe() { $('selInfo').textContent = '';
   if (st.lastAction && st.lastAction.type === 'play') { const cd = st.lastAction.card; const rows = c.querySelectorAll('.srow'); const row = rows[cd.suit]; if (row) { const cell = row.children[cd.rank]; if (cell) cell.classList.add('pop'); } }
   const legal = G.shichinarabeLegal(st.hands[0], st.placed);
   const legalIds = new Set(legal.map(G.cardId));
-  $('handLabel').textContent = st.turn === 0 ? `あなたの番（パスはあと${3 - st.passes[0]}回まで）` : `${NAMES[st.turn]} の番`;
-  msg(st.turn === 0 ? '光っている数字の横に出せるよ' : '');
-  renderHand(G.sortHand(st.hands[0]), { legalIds: st.turn === 0 ? legalIds : new Set(), dimIds: st.turn === 0 ? new Set(st.hands[0].filter(cd => !legalIds.has(G.cardId(cd))).map(G.cardId)) : new Set(), onTap: async (c2, ix, el) => { if (st.turn !== 0 || busy || !legalIds.has(G.cardId(c2))) return; busy = true; const rows = document.querySelectorAll('#rows .srow'); const slot = rows[c2.suit] && rows[c2.suit].children[c2.rank]; if (el && slot) flyTo(el, slot.getBoundingClientRect(), c2); await sleep(240); G.shichinarabePlay(st, G.cardId(c2)); busy = false; render(); if (st.phase === 'end') showResult(); else driveBots(); } });
-  actions(st.turn === 0 && st.phase === 'play' ? [{ label: `パス（残り${3 - st.passes[0]}回）`, sub: true, disabled: legal.length > 0 && false, onClick: () => { G.shichinarabePass(st); render(); if (st.phase === 'end') showResult(); else driveBots(); } }] : []);
+  const myTurn7 = st.turn === 0 && st.phase === 'play';
+  if (!myTurn7) selected.clear();
+  const selCard = st.hands[0].find(cd => selected.has(G.cardId(cd)));
+  $('handLabel').textContent = myTurn7 ? `あなたの番（パスはあと${3 - st.passes[0]}回まで）` : `${NAMES[st.turn]} の番`;
+  msg(myTurn7 ? '' : '');
+  renderHand(G.sortHand(st.hands[0]), { legalIds: myTurn7 ? legalIds : new Set(), dimIds: myTurn7 ? new Set(st.hands[0].filter(cd => !legalIds.has(G.cardId(cd))).map(G.cardId)) : new Set(), onTap: (c2) => { if (!myTurn7 || busy) return; const id = G.cardId(c2); if (!legalIds.has(id)) { shakeCard(id); return; } if (selected.has(id)) selected.delete(id); else { selected.clear(); selected.add(id); } render(); } });
+  const info7 = $('selInfo');
+  if (myTurn7) info7.innerHTML = selCard ? `<span class="ok">選択中：${G.SUITS[selCard.suit]}${RANK_TXT[selCard.rank - 1]}（出せる）</span>` : (legal.length ? '出せるカードを選んでね' : '出せるカードがない…パスしてね');
+  actions(myTurn7 ? [
+    { label: '出す', disabled: !selCard, onClick: async () => { if (!selCard || busy) return; busy = true; const el = document.querySelector('#hand .card.sel'); const rows = document.querySelectorAll('#rows .srow'); const slot = rows[selCard.suit] && rows[selCard.suit].children[selCard.rank]; if (el && slot) flyTo(el, slot.getBoundingClientRect(), selCard); await sleep(240); selected.clear(); G.shichinarabePlay(st, G.cardId(selCard)); busy = false; render(); if (st.phase === 'end') showResult(); else driveBots(); } },
+    { label: `パス（残り${3 - st.passes[0]}回）`, sub: true, onClick: () => { selected.clear(); G.shichinarabePass(st); render(); if (st.phase === 'end') showResult(); else driveBots(); } },
+  ] : []);
   if (st.phase === 'end') showResult();
 }
 // 神経衰弱
