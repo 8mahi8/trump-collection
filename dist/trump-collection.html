@@ -57,7 +57,7 @@
   .card .corner { position:absolute; display:flex; flex-direction:column; align-items:center; line-height:1.02; z-index:2; }
   .card .corner.tl { top:4px; left:5px; }
   .card .corner.br { bottom:4px; right:5px; transform:rotate(180deg); }
-  .card .faceart { position:absolute; inset:16% 18%; border:2px solid currentColor; border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; opacity:.92; }
+  .card .faceart { position:absolute; inset:19% 23%; border:2px solid currentColor; border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(255,255,255,.45); box-shadow:inset 0 0 0 3px rgba(255,255,255,.35); }
   .card.back { background:linear-gradient(150deg,#33629f,#21497e); border:2px solid #e8eff7; color:transparent; }
   .card.back::before { content:''; position:absolute; inset:5px; border-radius:5px; border:1.6px solid rgba(255,255,255,.75); background:repeating-linear-gradient(45deg,rgba(255,255,255,.13) 0 5px,transparent 5px 10px), repeating-linear-gradient(-45deg,rgba(255,255,255,.13) 0 5px,transparent 5px 10px); }
   .card.back::after { content:'♠'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,.85); font-size:26px; }
@@ -86,6 +86,8 @@
   #grid .card { width:52px; height:74px; cursor:pointer; }
   #grid .card .big { font-size:26px; } #grid .card .tl { font-size:13px; }
   #grid .card.taken { visibility:hidden; }
+  @keyframes takenOut { 0% { transform:scale(1); opacity:1; } 40% { transform:scale(1.14); opacity:1; } 100% { transform:scale(.6); opacity:0; } }
+  #grid .card.justtaken { animation:takenOut .38s ease-in forwards; visibility:visible; }
   #grid .card.flip { background:linear-gradient(165deg,#ffffff,#eef1ee); }
   /* 結果・設定モーダル */
   .modalWrap { position:absolute; inset:0; background:rgba(4,20,10,.72); display:flex; align-items:center; justify-content:center; z-index:40; padding:14px; }
@@ -124,7 +126,7 @@
   .confetti { position:absolute; top:0; width:10px; height:15px; z-index:50; pointer-events:none; animation:confettiFall 2.6s ease-in forwards; }
 
   /* ===== 選択表示（調査に基づく複合表現） ===== */
-  #hand .card.sel { transform:translateY(-27px) scale(1.06); outline:4px solid #ffd94a; box-shadow:0 0 18px 4px rgba(255,217,74,.75), 0 18px 24px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.95); z-index:6; }
+  #hand .card.sel { transform:translateY(-38px) scale(1.07); outline:4px solid #ffd94a; box-shadow:0 0 18px 4px rgba(255,217,74,.75), 0 18px 24px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.95); z-index:6; }
   .selbadge { position:absolute; top:-11px; left:50%; transform:translateX(-50%); width:24px; height:24px; border-radius:50%; background:#2fbf4f; color:#fff; font-size:15px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,.4); z-index:7; }
   #hand.hasSel .card:not(.sel) { filter:brightness(.74) saturate(.85); }
   .card.dim { filter:brightness(.6) saturate(.7); }
@@ -457,16 +459,16 @@ const G = { mulberry32, SUITS, SUIT_NAMES, cardId, makeDeck, shuffle, sortHand, 
 const $ = id => document.getElementById(id);
 const NAMES = ['あなた', '🐰 COM1', '🐱 COM2', '🐶 COM3'];
 const RANK_TXT = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-let game = null, st = null, selected = new Set(), busy = false, dealAnim = false, session = 0, daifugoPrevRanks = null, daifugoCfg = { ...G.DAIFUGO_DEFAULTS }, shinkeiDiff = 1, holdPair = null;
+let game = null, st = null, selected = new Set(), busy = false, dealAnim = false, session = 0, justTaken = new Set(), daifugoPrevRanks = null, daifugoCfg = { ...G.DAIFUGO_DEFAULTS }, shinkeiDiff = 1, holdPair = null;
 
 const PIPS = {
-  2: [[50,13,0],[50,87,1]], 3: [[50,13,0],[50,50,0],[50,87,1]],
-  4: [[29,13,0],[71,13,0],[29,87,1],[71,87,1]], 5: [[29,13,0],[71,13,0],[50,50,0],[29,87,1],[71,87,1]],
-  6: [[29,13,0],[71,13,0],[29,50,0],[71,50,0],[29,87,1],[71,87,1]],
-  7: [[29,13,0],[71,13,0],[50,31,0],[29,50,0],[71,50,0],[29,87,1],[71,87,1]],
-  8: [[29,13,0],[71,13,0],[50,31,0],[29,50,0],[71,50,0],[50,69,1],[29,87,1],[71,87,1]],
-  9: [[29,13,0],[71,13,0],[29,37,0],[71,37,0],[50,50,0],[29,63,1],[71,63,1],[29,87,1],[71,87,1]],
-  10: [[29,13,0],[71,13,0],[50,25,0],[29,37,0],[71,37,0],[29,63,1],[71,63,1],[50,75,1],[29,87,1],[71,87,1]],
+  2: [[50,16,0],[50,84,1]], 3: [[50,16,0],[50,50,0],[50,84,1]],
+  4: [[28,16,0],[70,16,0],[28,84,1],[70,84,1]], 5: [[28,16,0],[70,16,0],[50,50,0],[28,84,1],[70,84,1]],
+  6: [[28,16,0],[70,16,0],[28,50,0],[70,50,0],[28,84,1],[70,84,1]],
+  7: [[28,16,0],[70,16,0],[50,33,0],[28,50,0],[70,50,0],[28,84,1],[70,84,1]],
+  8: [[28,16,0],[70,16,0],[50,33,0],[28,50,0],[70,50,0],[50,67,1],[28,84,1],[70,84,1]],
+  9: [[28,16,0],[70,16,0],[28,38,0],[70,38,0],[50,50,0],[28,62,1],[70,62,1],[28,84,1],[70,84,1]],
+  10: [[28,16,0],[70,16,0],[50,27,0],[28,38,0],[70,38,0],[28,62,1],[70,62,1],[50,73,1],[28,84,1],[70,84,1]],
 };
 function cardEl(c, cls = '') {
   const d = document.createElement('div');
@@ -475,12 +477,12 @@ function cardEl(c, cls = '') {
   const mini = cls.includes('tiny');
   const small = cls.includes('small');
   if (c.joker) {
-    d.innerHTML = `<div class="corner tl" style="font-size:${mini ? 8 : 10}px"><span>JOKER</span></div><div class="big">🃏</div>`;
+    d.innerHTML = `<div class="corner tl" style="font-size:${mini ? 7 : 9}px; writing-mode:vertical-rl; letter-spacing:2px"><span>JOKER</span></div><div class="big" style="flex-direction:column; gap:0"><span style="font-size:${mini ? 14 : 34}px">🃏</span>${mini || small ? '' : '<span style="font-size:11px; letter-spacing:3px">JOKER</span>'}</div>`;
     return d;
   }
   const label = RANK_TXT[c.rank - 1], suit = G.SUITS[c.suit];
   const cs = mini ? 10 : small ? 12 : 15; // コーナー文字サイズ
-  let inner = `<div class="corner tl" style="font-size:${cs}px"><span>${label}</span><span>${suit}</span></div><div class="corner br" style="font-size:${cs}px"><span>${label}</span><span>${suit}</span></div>`;
+  let inner = `<div class="corner tl" style="font-size:${cs}px"><span>${label}</span><span>${suit}</span></div>` + (mini ? '' : `<div class="corner br" style="font-size:${cs}px"><span>${label}</span><span>${suit}</span></div>`);
   if (mini) { inner += `<div class="big" style="font-size:15px">${suit}</div>`; }
   else if (c.rank === 1) { inner += `<div class="pip" style="left:50%; top:52%; font-size:${small ? 30 : 44}px">${suit}</div>`; }
   else if (c.rank >= 11) { inner += `<div class="faceart"><span style="font-size:${small ? 15 : 21}px">${suit}</span><span style="font-size:${small ? 22 : 32}px">${label}</span><span style="font-size:${small ? 15 : 21}px; transform:rotate(180deg)">${suit}</span></div>`; }
@@ -596,6 +598,11 @@ async function driveBots() {
   try {
     while (st && session === my && st.phase === 'play' && st.turn !== 0) {
       await sleep(780);
+      if (!st || session !== my || st.phase !== 'play') break;
+      if (game === 'daifugo') { // 出す前に、相手の手元から裏向きカードを飛ばす
+        const mv = G.botDaifugo(st, st.turn);
+        if (mv.type === 'play') { const opps = document.querySelectorAll('#opponents .opp'); const src = opps[st.turn - 1]; if (src) { flyTo(src, $('center').getBoundingClientRect(), null); await sleep(235); } }
+      }
       if (!st || session !== my || st.phase !== 'play') break;
       botStep();
       checkFx();
@@ -723,8 +730,10 @@ async function shinkeiPlayerFlip(i) {
   G.shinkeiFlip(st, i);
   if (st.flipped.length === before && !st.lastPair) { render(); return; }
   if (st.lastPair && st.flipped.length === 0) { // 2枚目をめくった直後
-    holdPair = st.lastPair.positions; st.lastPair = null; render();
-    busy = true; const myF = session; await sleep(950); if (session !== myF || !st) { busy = false; return; } holdPair = null; busy = false; render();
+    holdPair = st.lastPair.positions; const wasMatch = st.board[holdPair[0]].taken; st.lastPair = null; render();
+    busy = true; const myF = session; await sleep(wasMatch ? 420 : 950); if (session !== myF || !st) { busy = false; return; }
+    if (wasMatch) { justTaken = new Set(holdPair); holdPair = null; render(); await sleep(390); justTaken = new Set(); }
+    holdPair = null; busy = false; render();
     if (st.phase === 'end') { showResult(); return; }
     if (st.turn === 1) shinkeiBotTurn();
     return;
@@ -742,7 +751,7 @@ async function shinkeiBotTurn() {
     await sleep(650);
     if (!st || session !== my || game !== 'shinkei' || st.phase !== 'play') break;
     const b = G.botShinkei(st); G.shinkeiFlip(st, b);
-    if (st.lastPair) { holdPair = st.lastPair.positions; st.lastPair = null; render(); await sleep(950); holdPair = null; }
+    if (st.lastPair) { holdPair = st.lastPair.positions; const wasMatch = st.board[holdPair[0]].taken; st.lastPair = null; render(); await sleep(wasMatch ? 420 : 950); if (wasMatch && session === my) { justTaken = new Set(holdPair); holdPair = null; render(); await sleep(390); justTaken = new Set(); } holdPair = null; }
     render();
   }
   busy = false;
