@@ -4,13 +4,13 @@
 
 学校の iPad でも遊べる、定番トランプゲームを集めるブラウザゲーム集です。
 **将来的には友達とルーム番号でオンライン対戦することが本命**。既存4ゲームは第一弾で、定番カードゲームとローカルルールを継続追加します。
-現在のv1.5.5本体はCOM対戦のみ。オンライン2人ルームのローカル試作は別ページで実装済みだが、遠隔の友達との実通信は未接続。
+v1.5.5の通常本体はCOM対戦のみ。別ページの神経衰弱2人オンライン版は**本人がPCとスマホの別端末で試遊成功**。ババ抜き・七並べ・大富豪は**共通4席のローカル検証版（遠隔Firebase未接続）**まで実装済み。
 
 ## 遊ぶ
 
 - GitHub Pages通常版（v1.4.0）: https://8mahi8.github.io/trump-collection/
 - **v1.5.5 試遊ページ（通常版は変更なし）**: https://8mahi8.github.io/trump-collection/preview-v1.5.5.html
-- **神経衰弱・2人用の別端末オンライン試作**: https://8mahi8.github.io/trump-collection/preview-online-memory-remote.html （実Supabase接続はまだユーザー試験待ち）
+- **神経衰弱・2人用の別端末オンライン試作**: https://8mahi8.github.io/trump-collection/preview-online-memory-remote.html （本人が別端末試遊で動作確認、学校Safariは未確認）
 - Google サイトに貼る場合は `dist/trump-collection.html` の中身をそのまま貼り付けてください（単体ファイル版）。
 
 ## 今後の最優先開発
@@ -34,7 +34,7 @@
 
 - `index.html` … 画面（UI）
 - `games.mjs` … ゲームのルールと COM の思考（画面なしでテスト可能）
-- `tests/games.test.mjs` … ルールの自動テスト（`node --test "tests/*.mjs"`、計30件（既存20件＋オンラインルーム6件＋通信アダプター4件））
+- `tests/games.test.mjs` … ルールの自動テスト（`node --test "tests/*.mjs"`、計36件（従来29件＋4席共通テスト7件））
 - `build-embed.mjs` … 単体ファイル版 `dist/trump-collection.html` の生成
 - `dev/verify.mjs` … 総合検証（テスト→ビルド→フック駆動の通しプレイ→スクショ→基準画像との差分）
 - `docs/research-*.md` … ルール／カード選択UI／カード品質の調査メモ
@@ -43,7 +43,7 @@
 
 - 学校の iPad 実機（Safari）での動作・操作感は未確認です。試遊は GitHub Pages 経由でお願いします。
 - Google サイトへ実際に貼った状態での動作は未確認です（単体ファイルは外部読み込みなしで作っています）。
-- 同じサイトの別タブで通信する神経衰弱の2人ルーム試作は実装済みですが、**遠隔2端末の実オンライン対戦は未実装**。RLS/Authと実接続が次の課題です。
+- 神経衰弱はSupabaseで**本人の別端末試遊に成功**。学校iPad実機・Google Sitesでの実通信は未確認。4人対戦はローカルブラウザ検証済みだが**Firebase実通信・Auth/Rules・非公開手札配送は未実装**。
 - COM の強さは「そこそこ考える」程度です。大富豪の打ち回しは実プレイの感想に合わせて調整していきます。
 
 
@@ -53,6 +53,14 @@
 
 - [2タブ試遊ラボ](https://8mahi8.github.io/trump-collection/preview-online-memory-lab.html)
 - [実装ファイル・30テスト・残課題](online/README.md)
+
+## Phase 3｜4席共通エンジン＋自動4画面試験（2026-10-25）
+
+ババ抜き・七並べ・大富豪を共通の4人ルームエンジンへ移植。入室→READY→開始→合法手→決着→再戦を各ゲームで検証。**36件のNodeテスト合格（うち90試合の自動完走）**。Chromiumでも4画面・3ゲームの完走と一致を確認し、再実行用スクリプトをGitHubに保存。
+
+- [4人共通エンジン](online/four-seat-authority.mjs) / [ローカル4タブ検証画面](online/four-seat-lab.html)
+- 自動検証：`node --test tests/*.mjs`、`python dev/verify_four_seat_browser.py`（Python PlaywrightとChromiumが必要）
+- [4席検証結果とFirebase移行設計](docs/FOUR_SEAT_PHASE3_2026-10-25.md)。**Firebaseへはまだ接続していない**ため、手札の非公開を保証するRules/Authを先にテストする。
 
 ## Phase 2｜オンライン試作（2026-10-25）
 
