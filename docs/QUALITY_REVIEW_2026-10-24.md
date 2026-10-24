@@ -85,6 +85,8 @@
 - GitHubから取得したv1.5.4のGoogle Sites単体HTMLをChromiumで読み込み、ゲーム切替と16:9横向き操作領域の表示を確認。HTMLは元の `index.html` と `games.mjs` からの生成内容と一致。
 - 未確認：Safari実機（Chromiumの動作確認はSafariの代替ではない）、Google Sites直接埋め込み、継続的なタッチ試遊。
 
+- v1.5.4のGoogle Sites用単体HTMLをChromiumで開き、大富豪をGUIのカード選択＋出す/パスだけで1試合完走。プレイヤー操作20回（13回出す、7回パス）、結果モーダル1つ、ページ例外0件。Playwright実行記録・スクリーンショット取得済み。
+
 ## まだ検証できていないこと
 - `node --test` の直接実行、およびリポジトリ所定の `node dev/verify.mjs` パイプラインは**今回未実施**。代わりにロジックの独立実行とPlaywright実ブラウザ描画・タップ確認を実施。
 - 学校iPad Safari実機とGoogle Sites直接埋め込みは**未確認**。Playwrightのタッチ模擬は実機の代わりにはならない。
