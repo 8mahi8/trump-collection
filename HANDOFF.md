@@ -5,7 +5,7 @@
 
 - リポジトリ: `8mahi8/trump-collection`
 - 試遊URL（GitHub Pages、main への push で自動更新）: https://8mahi8.github.io/trump-collection/
-- 開発ブランチの版: **v1.5.3**（main の公開版は v1.4.0）（`index.html` 内の `TC_VERSION` が版の正本。メニュー下部にも表示）
+- 開発ブランチの版: **v1.5.4**（main の公開版は v1.4.0）（`index.html` 内の `TC_VERSION` が版の正本。メニュー下部にも表示）
 - 状態: 全4ゲーム実装済み・検証パイプライン ALL PASS（2026-10-24）。開発は前任AI（モカ）から引き継ぎ中。
 
 ## このプロジェクトの前提（変えないこと）
@@ -27,7 +27,7 @@
 |---|---|
 | `index.html` | UI のすべて（CSS・画面描画・操作・BOT進行・アニメーション）。`games.mjs` を `import * as G` で読み込む |
 | `games.mjs` | ゲームロジックの正本。状態生成・合法手の列挙・手の適用・COM思考。DOM に一切触れない純粋なモジュールで、Node でテスト可能。乱数は生成関数の引数（rng）で注入する設計 |
-| `tests/games.test.mjs` | ロジックの単体テスト（8件）。`node --test "tests/*.mjs"`（v1.5.0では計18件） |
+| `tests/games.test.mjs` | ロジックの単体テスト（8件）。`node --test "tests/*.mjs"`（v1.5.4では計19件） |
 | `build-embed.mjs` | `games.mjs` を `index.html` にインライン化し、`const G = {...}` の shim を生成して `dist/trump-collection.html` を出力する |
 | `dist/trump-collection.html` | Sites 貼り付け用の単体ファイル。**直接編集しない**（`index.html` と `games.mjs` から生成する） |
 | `dev/verify.mjs` | 検証パイプライン（後述）。前任環境のツールを同梱したもの |
