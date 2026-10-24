@@ -107,6 +107,8 @@
   @keyframes turnPulse { 0%,100% { box-shadow:0 0 0 0 rgba(255,217,74,.55); } 50% { box-shadow:0 0 0 7px rgba(255,217,74,0); } }
   @keyframes modalPop { from { transform:scale(.75) translateY(24px); opacity:0; } to { transform:scale(1) translateY(0); opacity:1; } }
   @keyframes floaty { 0%,100% { transform:translateY(0) rotate(-6deg); } 50% { transform:translateY(-22px) rotate(6deg); } }
+  @keyframes flowOut { 0% { transform:translateY(0); opacity:1; } 100% { transform:translateY(26px) rotate(3deg); opacity:0; } }
+  .fieldcards.ghost { position:absolute; animation:flowOut .34s ease-in forwards; }
   @keyframes confettiFall { 0% { transform:translateY(-4vh) rotate(0); opacity:1; } 100% { transform:translateY(88vh) rotate(660deg); opacity:.7; } }
   @keyframes newGlow { 0%,100% { box-shadow:0 3px 7px rgba(0,0,0,.4); } 50% { box-shadow:0 0 0 4px #ffd94a, 0 3px 7px rgba(0,0,0,.4); } }
   @keyframes shakeX { 0%,100% { transform:translateX(0); } 25% { transform:translateX(-5px); } 75% { transform:translateX(5px); } }
@@ -459,7 +461,7 @@ const G = { mulberry32, SUITS, SUIT_NAMES, cardId, makeDeck, shuffle, sortHand, 
 const $ = id => document.getElementById(id);
 const NAMES = ['あなた', '🐰 COM1', '🐱 COM2', '🐶 COM3'];
 const RANK_TXT = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-let game = null, st = null, selected = new Set(), busy = false, dealAnim = false, session = 0, justTaken = new Set(), daifugoPrevRanks = null, daifugoCfg = { ...G.DAIFUGO_DEFAULTS }, shinkeiDiff = 1, holdPair = null;
+let game = null, st = null, selected = new Set(), busy = false, dealAnim = false, session = 0, justTaken = new Set(), prevFieldCards = null, daifugoPrevRanks = null, daifugoCfg = { ...G.DAIFUGO_DEFAULTS }, shinkeiDiff = 1, holdPair = null;
 
 const PIPS = {
   2: [[50,16,0],[50,84,1]], 3: [[50,16,0],[50,50,0],[50,84,1]],
@@ -673,7 +675,8 @@ function renderBabanuki() { $('selInfo').textContent = '';
     st.hands[target].forEach((_, idx) => { const b = cardEl(null, 'small'); b.style.cursor = 'pointer'; b.onclick = async () => { if (busy) return; busy = true; flyTo(b, $('hand').getBoundingClientRect(), null); await sleep(250); G.babanukiDraw(st, idx); render(); await sleep(500); busy = false; if (st.phase === 'end') showResult(); else driveBots(); }; fan.appendChild(b); });
     msg('あなたの番：引くカードを選んで');
   } else {
-    c.innerHTML = `<div style="text-align:center; color:#ffe9a8">${st.lastDraw ? `${NAMES[st.turn === 0 ? 3 : st.turn - 1] || ''} がカードを引いた${st.lastDraw.paired ? '（ペアを捨てた）' : ''}` : '対戦中…'}</div>`;
+    if (st.lastDraw && st.lastDraw.paired) { c.innerHTML = ''; const w = document.createElement('div'); w.style.textAlign = 'center'; w.innerHTML = `<div style="color:#ffe9a8; margin-bottom:6px">ペアそろった！</div>`; const fc = document.createElement('div'); fc.className = 'fieldcards'; const pc = cardEl(st.lastDraw.card, 'small'); pc.classList.add('pop'); fc.appendChild(pc); w.appendChild(fc); c.appendChild(w); }
+    else c.innerHTML = `<div style="text-align:center; color:#ffe9a8">${st.lastDraw ? '対戦中…' : '対戦中…'}</div>`;
     if (st.phase === 'play') msg(`${NAMES[st.turn]} の番`);
   }
   $('handLabel').textContent = `あなたの手札 ${st.hands[0].length}枚`;
@@ -781,6 +784,7 @@ function renderDaifugo() {
   if (st.field?.lockSuits) tags.push('🔒スート縛り');
   if (!st.field) {
     c.innerHTML = `<div style="text-align:center"><div style="color:#ffe9a8; margin-bottom:6px">${tags.join(' ')} ${st.lastEvent || ''}</div><div style="color:#cfe9d6">${st.turn === 0 ? '好きなカードを出せるよ（リード）' : NAMES[st.turn] + ' が出す番'}</div></div>`;
+    if (prevFieldCards && st.phase === 'play') { const ghost = document.createElement('div'); ghost.className = 'fieldcards ghost'; prevFieldCards.forEach(cd => ghost.appendChild(cardEl(cd, 'small'))); c.querySelector('div').appendChild(ghost); setTimeout(() => ghost.remove(), 360); }
   } else {
     const wrap = document.createElement('div');
     wrap.style.textAlign = 'center';
@@ -789,6 +793,7 @@ function renderDaifugo() {
     st.field.cards.forEach(cd => { const e = cardEl(cd, 'small'); e.classList.add('pop'); fc.appendChild(e); });
     c.innerHTML = ''; c.appendChild(wrap);
   }
+  prevFieldCards = st.field ? st.field.cards : null;
   const myTurn = st.turn === 0 && st.phase === 'play';
   const legal = myTurn ? G.daifugoLegalMoves(st, 0) : [];
   const legalKeys = new Set(legal.map(m => m.map(G.cardId).sort().join(',')));
