@@ -550,7 +550,7 @@ function renderShinkei() { $('selInfo').textContent = '';
   });
   $('handLabel').textContent = ''; $('hand').innerHTML = ''; actions([]);
   msg(st.phase === 'end' ? '' : st.turn === 0 ? 'あなたの番：2枚めくろう' : 'COMの番…');
-  if (st.phase === 'end') showResult();
+  // 最後のペアの公開アニメが終わるまでは結果モーダルを出さない
 }
 async function shinkeiPlayerFlip(i) {
   if (busy || !st || st.turn !== 0 || st.phase !== 'play') return;
