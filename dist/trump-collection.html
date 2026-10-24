@@ -150,6 +150,39 @@
     *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
   }
   @media (max-height:500px) { .opp .backs { display:none; } .opp { min-width:70px; padding:3px 5px; } .opp .face { font-size:18px; } #handArea { padding-top:0; } #topbar { padding-top:2px; padding-bottom:2px; } #handLabel { display:none; } .fieldcards .card.small { width:calc(var(--cw) * 0.6); height:calc(var(--cw) * 0.87); } #actions { margin-top:4px; min-height:40px; } .abtn { padding:9px 22px; } }
+/* v1.5.1: 短い横画面・Google Sites iframeの操作領域を確保 */
+@media (max-height: 500px) {
+  :root { --cw:44px; }
+  #topbar { min-height:44px; padding:0 7px; gap:6px; }
+  #topbar .gtitle { font-size:14px; }
+  #topbar button { padding:4px 9px; }
+  #opponents { padding:0 5px; gap:2px; }
+  .opp { min-width:60px; padding:1px 3px; border-width:1px; line-height:1.15; }
+  .opp .face { display:none; }
+  .opp .nm { font-size:11px; }
+  .opp .cnt { font-size:10px; }
+  #center { padding:2px 4px; }
+  #handArea { padding:0 4px 3px; }
+  #hand { min-height:66px; }
+  #selInfo { min-height:16px; margin-top:1px; font-size:11px; }
+  #actions { min-height:44px; margin-top:2px; gap:6px; }
+  .abtn { font-size:13px; padding:5px 12px; min-height:44px; }
+  #hand .card.sel { transform:translateY(-24px) scale(1.04); }
+  .selbadge { top:-7px; width:18px; height:18px; font-size:11px; }
+  #rows { gap:2px; }
+  .srow { gap:1px; }
+  .srow .slabel { width:20px; font-size:15px; }
+  #rows .slot, #rows .card.tiny { width:30px; height:27px; border-radius:4px; font-size:10px; }
+  #rows .card.tiny .tl { left:2px; top:2px; font-size:9px; }
+  #rows .card.tiny .big { font-size:1.15em; }
+}
+@media (max-height: 365px) {
+  :root { --cw:38px; }
+  #hand { min-height:57px; }
+  #rows .slot, #rows .card.tiny { width:27px; height:23px; }
+  #rows .card.tiny .tl { font-size:8px; }
+  .opp { padding:0 3px; }
+}
 </style>
 </head>
 <body>
@@ -484,7 +517,7 @@ function botDaifugo(st, p) {
 const G = { mulberry32, SUITS, SUIT_NAMES, cardId, makeDeck, shuffle, sortHand, removePairs, createBabanuki, babanukiNextWithCards, babanukiDraw, botBabanuki, createShichinarabe, shichinarabeLegal, shichinarabePlay, shichinarabePass, botShichinarabe, createShinkei, shinkeiObserve, shinkeiFlip, botShinkei, DAIFUGO_DEFAULTS, rankValue, createDaifugo, comboInfo, daifugoLegalMoves, daifugoPlay, daifugoPass, daifugoNext, botDaifugo };
 
 const $ = id => document.getElementById(id);
-const TC_VERSION = '1.5.0';
+const TC_VERSION = '1.5.1';
 const NAMES = ['あなた', '🐰 COM1', '🐱 COM2', '🐶 COM3'];
 const RANK_TXT = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 let game = null, st = null, selected = new Set(), busy = false, dealAnim = false, session = 0, justTaken = new Set(), prevFieldCards = null, botWait = 780, daifugoPrevRanks = null, daifugoCfg = { ...G.DAIFUGO_DEFAULTS }, shinkeiDiff = 1, holdPair = null;
