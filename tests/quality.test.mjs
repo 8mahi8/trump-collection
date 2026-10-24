@@ -121,3 +121,12 @@ test('ババ抜き: 不正なカード番号で手札を破壊しない', () => 
     assert.equal(st.phase, 'play');
   }
 });
+
+test('ババ抜き: 引いた本人と引かれた相手を区別して記録する', () => {
+  const st = G.createBabanuki(83);
+  const by = st.turn, from = G.babanukiNextWithCards(st, by);
+  G.babanukiDraw(st, 0);
+  assert.equal(st.lastDraw.by, by);
+  assert.equal(st.lastDraw.from, from);
+  assert.ok(st.lastDraw.card);
+});
