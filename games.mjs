@@ -107,13 +107,21 @@ function shichinarabeAdvance(st) {
   st.turn = n;
 }
 export function botShichinarabe(st) {
-  const p = st.turn, legal = shichinarabeLegal(st.hands[p], st.placed);
+  const p = st.turn, hand = st.hands[p];
+  const legal = shichinarabeLegal(hand, st.placed);
   if (!legal.length) return { type: 'pass' };
-  // 自分の次のカードを開ける手を優先
-  legal.sort((a, b) => {
-    const opens = c => st.hands[p].some(o => o.suit === c.suit && (o.rank === c.rank - 1 || o.rank === c.rank + 1)) ? 0 : 1;
-    return opens(a) - opens(b);
-  });
+  // 次の手番でも出せる自分の連番を多く開く。相手の非公開カードは参照しない。
+  const score = c => {
+    const step = c.rank < 7 ? -1 : 1;
+    let chain = 0;
+    for (let rank = c.rank + step; rank >= 1 && rank <= 13; rank += step) {
+      if (hand.some(x => x.suit === c.suit && x.rank === rank)) chain++;
+      else break;
+    }
+    return chain * 10 + hand.filter(x => x.suit === c.suit).length * 0.2;
+  };
+  legal.sort((a, b) => score(b) - score(a));
+  // 意図的なパスは2000試合の比較で成績が悪化したため導入しない。
   return { type: 'play', id: cardId(legal[0]) };
 }
 
