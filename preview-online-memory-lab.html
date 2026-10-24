@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>トランプコレクション｜2人神経衰弱 通信ラボ</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:system-ui,"Hiragino Sans",sans-serif;background:#0b412c;color:#fff}body{overflow:auto}
+main{max-width:980px;margin:auto;padding:12px 16px 22px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}h1{font-size:clamp(18px,3vw,27px);margin:6px 0}h2{font-size:17px;margin:9px 0}
+aside{font-size:12px;line-height:1.6;color:#eacb8e}
+.panel{padding:12px;border-radius:13px;background:#15573b;border:1px solid #3c8763;margin:9px 0}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.row>*{margin:2px 0}
+button,input{font:inherit;border:0;border-radius:9px;min-height:44px}
+button{background:#ffdf65;color:#1b3024;font-weight:700;padding:8px 16px;cursor:pointer}button:disabled{opacity:.4;cursor:default}
+button.alt{background:#e6f6e9}input{background:#fff;color:#18231f;padding:8px 12px;width:126px}
+#room{font-size:23px;font-weight:800;letter-spacing:2px;color:#ffe17c}#status{font-size:14px;line-height:1.6;min-height:20px}
+#board{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:clamp(3px,0.8vw,9px);width:min(560px,95vw);margin:4px auto}
+.tile{width:100%;aspect-ratio:0.73;min-height:0;padding:0;display:flex;align-items:center;justify-content:center;flex-direction:column;border-radius:8px;border:2px solid #edf6eb;background:linear-gradient(140deg,#2d65aa,#16386d);color:#fff;font-size:clamp(12px,2vw,21px);touch-action:manipulation}
+.tile.face{background:#f7f6ed;color:#182a35}.tile.red{color:#cb3c49}.tile.taken{visibility:hidden}.tile:disabled:not(.face){opacity:.73}
+#notice{font-size:15px;font-weight:700;color:#ffe17c}#gameArea{display:none}
+#lobby{display:none}
+@media(max-height:480px){
+body.playing #connect{display:none}
+body.playing header aside{display:none}
+body.playing #lobby .row:nth-child(2){display:none}
+body.playing #board{grid-template-columns:repeat(12,minmax(0,1fr));width:min(660px,94vw)}
+body.playing .panel{padding:4px 8px}
+body.playing #notice{font-size:11px}
+main{padding:3px 12px}h1{font-size:16px}header aside{font-size:10px}.panel{margin:4px 0;padding:5px 9px}#board{width:min(480px,90vw)}.tile{font-size:14px;border-radius:5px;border-width:1px}.row{gap:4px}button,input{min-height:38px}#status{font-size:12px}}
+</style></head>
+<body><main>
+<header><h1>🃏 神経衰弱｜2人ルーム研究室</h1><aside>検証用：同じサイトを開いた別タブで通信するラボ。<strong>まだ離れた端末同士のオンライン対戦ではありません。</strong></aside></header>
+<section id="connect" class="panel">
+  <div class="row"><button id="create">ルームを作る</button><input id="code" inputmode="numeric" maxlength="5" pattern="[0-9]*" placeholder="5桁の番号" aria-label="ルーム番号"><button id="join" class="alt">ルームに参加</button></div>
+  <div id="status" aria-live="polite">ホスト用タブで作成 → もう1つのタブで番号を入力</div>
+</section>
+<section id="lobby" class="panel">
+  <div class="row"><span>ルーム：<span id="room"></span></span><span id="seat"></span><span id="players"></span></div>
+  <div class="row"><button id="ready">準備OK</button><button id="start">対戦開始</button><button id="again">再戦ロビーへ</button></div>
+  <div id="notice"></div>
+</section>
+<section id="gameArea" class="panel">
+  <div class="row"><span id="turn"></span><span id="score"></span></div><div id="board" aria-label="神経衰弱のカード24枚"></div>
+</section>
+</main>
+<script>
+// トランプゲーム集 共通ロジック＋4ゲーム＋BOT（描画なし・Nodeでも動作）
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const SUITS = ['♠', '♥', '♦', '♣'];
+const SUIT_NAMES = ['スペード', 'ハート', 'ダイヤ', 'クラブ'];
+function cardId(c) { return c.joker ? 'JK' : c.suit + '-' + c.rank; }
+function makeDeck(jokers = 0) { const d = []; for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) d.push({ suit: s, rank: r }); for (let i = 0; i < jokers; i++) d.push({ joker: true }); return d; }
+function shuffle(deck, rng) { const d = deck.slice(); for (let i = d.length - 1; i > 0; i--) { const j = (rng() * (i + 1)) | 0;[d[i], d[j]] = [d[j], d[i]]; } return d; }
+function sortHand(hand) { return hand.slice().sort((a, b) => (a.joker ? 99 : a.suit * 100 + a.rank) - (b.joker ? 99 : b.suit * 100 + b.rank)); }
+function removePairs(hand) { // ババ抜き用: 同じ数字のペアを取り除く
+  const byRank = new Map(); const rest = [];
+  for (const c of hand) { if (c.joker) { rest.push(c); continue; } if (!byRank.has(c.rank)) byRank.set(c.rank, []); byRank.get(c.rank).push(c); }
+  const pairs = [];
+  for (const [, cs] of byRank) { const n = cs.length - (cs.length % 2); for (let i = 0; i < n; i++) pairs.push(cs[i]); for (let i = n; i < cs.length; i++) rest.push(cs[i]); }
+  return { hand: rest, pairs };
+}
+
+// ============ ババ抜き ============
+function createBabanuki(seed, players = 4) {
+  const rng = mulberry32(seed);
+  const deck = shuffle(makeDeck(1), rng);
+  const hands = Array.from({ length: players }, () => []);
+  deck.forEach((c, i) => hands[i % players].push(c));
+  const st = { game: 'babanuki', hands: hands.map(h => removePairs(h).hand), turn: 0, ranks: {}, finishedOrder: [], phase: 'play', loser: -1, lastDraw: null };
+  st.hands.forEach((h, i) => { if (h.length === 0) { st.ranks[i] = Object.keys(st.ranks).length + 1; st.finishedOrder.push(i); } });
+  while (st.hands[st.turn].length === 0) st.turn = (st.turn + 1) % players;
+  return st;
+}
+function babanukiNextWithCards(st, from) { let n = from; do { n = (n + 1) % st.hands.length; } while (st.hands[n].length === 0 && n !== from); return n; }
+function babanukiDraw(st, cardIndex) {
+  if (st.phase !== 'play') return st;
+  const me = st.turn, target = babanukiNextWithCards(st, me);
+  if (target === me) { st.phase = 'end'; return st; }
+  if (!Number.isInteger(cardIndex) || cardIndex < 0 || cardIndex >= st.hands[target].length) return st;
+  const card = st.hands[target].splice(cardIndex, 1)[0];
+  st.hands[me].push(card);
+  st.lastDraw = { from: target, by: me, card };
+  const before = st.hands[me].length;
+  st.hands[me] = removePairs(st.hands[me]).hand;
+  const paired = st.hands[me].length < before;
+  st.lastDraw.paired = paired;
+  for (const p of [target, me]) if (st.hands[p].length === 0 && st.ranks[p] === undefined) { st.ranks[p] = Object.keys(st.ranks).length + 1; st.finishedOrder.push(p); }
+  const alive = st.hands.map((h, i) => ({ h, i })).filter(o => o.h.length > 0);
+  if (alive.length <= 1) { st.phase = 'end'; st.loser = alive.length ? alive[0].i : -1; if (st.loser >= 0) st.ranks[st.loser] = st.hands.length; return st; }
+  st.turn = babanukiNextWithCards(st, me);
+  return st;
+}
+function botBabanuki(st) { const target = babanukiNextWithCards(st, st.turn); return (Math.random() * st.hands[target].length) | 0; }
+
+// ============ 七並べ ============
+function createShichinarabe(seed, players = 4) {
+  const rng = mulberry32(seed);
+  const deck = shuffle(makeDeck(0), rng);
+  const hands = Array.from({ length: players }, () => []);
+  deck.forEach((c, i) => hands[i % players].push(c));
+  const st = { game: 'shichinarabe', hands, placed: [null, null, null, null].map(() => ({ low: 8, high: 6 })), pending: [], turn: 0, passes: Array(players).fill(0), ranks: {}, out: Array(players).fill(false), phase: 'play', lastAction: null };
+  // 7を最初から場に出す
+  st.hands.forEach((h, p) => { st.hands[p] = h.filter(c => { if (c.rank === 7) { st.placed[c.suit] = { low: 7, high: 7 }; return false; } return true; }); });
+  const d3 = st.hands.findIndex(h => h.some(c => c.suit === 2 && c.rank === 3));
+  st.turn = d3 >= 0 ? d3 : 0;
+  shichinarabeAutoPlace(st);
+  return st;
+}
+function shichinarabeAutoPlace(st) { // pending（脱落者のカード）が隣接したら自動で並べる
+  let moved = true;
+  while (moved) { moved = false; st.pending = st.pending.filter(c => { const pl = st.placed[c.suit]; if (c.rank === pl.low - 1) { pl.low = c.rank; moved = true; return false; } if (c.rank === pl.high + 1) { pl.high = c.rank; moved = true; return false; } return true; }); }
+}
+function shichinarabeLegal(hand, placed) { return hand.filter(c => c.rank === placed[c.suit].low - 1 || c.rank === placed[c.suit].high + 1); }
+function shichinarabePlay(st, id) {
+  if (st.phase !== 'play') return st;
+  const p = st.turn, idx = st.hands[p].findIndex(c => cardId(c) === id);
+  if (idx < 0) return st;
+  const c = st.hands[p][idx], pl = st.placed[c.suit];
+  if (!(c.rank === pl.low - 1 || c.rank === pl.high + 1)) return st;
+  st.hands[p].splice(idx, 1);
+  if (c.rank === pl.low - 1) pl.low = c.rank; else pl.high = c.rank;
+  st.lastAction = { player: p, type: 'play', card: c };
+  shichinarabeAutoPlace(st);
+  if (st.hands[p].length === 0 && st.ranks[p] === undefined) { st.ranks[p] = Object.keys(st.ranks).length + 1; }
+  shichinarabeAdvance(st);
+  return st;
+}
+function shichinarabePass(st) {
+  if (st.phase !== 'play') return st;
+  const p = st.turn;
+  st.passes[p]++;
+  st.lastAction = { player: p, type: 'pass', count: st.passes[p] };
+  if (st.passes[p] >= 4 && !st.out[p]) { // 4回目のパスで脱落：手札は pending へ
+    st.out[p] = true; st.pending.push(...st.hands[p]); st.hands[p] = [];
+    st.ranks[p] = 99; // 暫定（最後に最下位へ）
+    shichinarabeAutoPlace(st);
+  }
+  shichinarabeAdvance(st);
+  return st;
+}
+function shichinarabeAdvance(st) {
+  const total = st.hands.length;
+  const remaining = st.hands.map((h, i) => i).filter(i => !st.out[i] && st.hands[i].length > 0);
+  if (remaining.length <= 1) { st.phase = 'end'; // 順位の正規化: 上がり順 → 最後まで残った人 → 脱落者
+    const order = [];
+    Object.entries(st.ranks).filter(([, v]) => v !== 99).sort((a, b) => a[1] - b[1]).forEach(([k]) => order.push(Number(k)));
+    remaining.forEach(i => { if (!order.includes(i)) order.push(i); });
+    st.hands.forEach((h, i) => { if (st.out[i] && !order.includes(i)) order.push(i); });
+    order.forEach((p, idx) => st.ranks[p] = idx + 1);
+    return;
+  }
+  let n = st.turn;
+  do { n = (n + 1) % total; } while (st.out[n] || st.hands[n].length === 0);
+  st.turn = n;
+}
+function botShichinarabe(st) {
+  const p = st.turn, hand = st.hands[p];
+  const legal = shichinarabeLegal(hand, st.placed);
+  if (!legal.length) return { type: 'pass' };
+  // 次の手番でも出せる自分の連番を多く開く。相手の非公開カードは参照しない。
+  const score = c => {
+    const step = c.rank < 7 ? -1 : 1;
+    let chain = 0;
+    for (let rank = c.rank + step; rank >= 1 && rank <= 13; rank += step) {
+      if (hand.some(x => x.suit === c.suit && x.rank === rank)) chain++;
+      else break;
+    }
+    return chain * 10 + hand.filter(x => x.suit === c.suit).length * 0.2;
+  };
+  legal.sort((a, b) => score(b) - score(a));
+  // 意図的なパスは2000試合の比較で成績が悪化したため導入しない。
+  return { type: 'play', id: cardId(legal[0]) };
+}
+
+// ============ 神経衰弱 ============
+function createShinkei(seed, difficulty = 1) {
+  const rng = mulberry32(seed);
+  const cards = [];
+  for (let s = 0; s < 4; s++) for (let r = 1; r <= 6; r++) cards.push({ suit: s, rank: r });
+  const board = shuffle(cards, rng).map(c => ({ card: c, taken: false }));
+  return { game: 'shinkei', board, turn: 0, scores: [0, 0], flipped: [], phase: 'play', winner: -1, difficulty, memory: new Map(), lastResult: null, lastPair: null };
+}
+function shinkeiObserve(st, pos) { const c = st.board[pos].card; st.memory.set(pos, c.suit + '-' + c.rank); if (st.difficulty === 0 && st.memory.size > 6) { const k = st.memory.keys().next().value; st.memory.delete(k); } if (st.difficulty === 1 && st.memory.size > 14) { const k = st.memory.keys().next().value; st.memory.delete(k); } }
+function shinkeiFlip(st, pos) {
+  if (st.phase !== 'play' || !Number.isInteger(pos) || pos < 0 || pos >= st.board.length || st.board[pos].taken || st.flipped.includes(pos) || st.flipped.length >= 2) return st;
+  st.flipped.push(pos); shinkeiObserve(st, pos);
+  if (st.flipped.length === 2) {
+    const [a, b] = st.flipped, ca = st.board[a].card, cb = st.board[b].card;
+    st.lastPair = { positions: [a, b] };
+    if (ca.rank === cb.rank) { st.board[a].taken = st.board[b].taken = true; st.scores[st.turn]++; st.memory.delete(a); st.memory.delete(b); st.lastResult = { match: true, player: st.turn }; st.flipped = []; }
+    else { st.lastResult = { match: false, player: st.turn }; st.flipped = []; st.turn = 1 - st.turn; if (st.difficulty === 0) { /* 弱いCOMは見たカードをよく忘れる */ for (const k of [...st.memory.keys()]) if (Math.random() < 0.4) st.memory.delete(k); } }
+    if (st.board.every(x => x.taken)) { st.phase = 'end'; st.winner = st.scores[0] === st.scores[1] ? -1 : (st.scores[0] > st.scores[1] ? 0 : 1); }
+  }
+  return st;
+}
+function botShinkei(st) {
+  // 既知のペアがあれば取る。なければ未知をめくり、既知と合えば取る
+  const known = [...st.memory.entries()].filter(([pos]) => !st.board[pos].taken);
+  if (st.flipped.length === 0) {
+    const byRank = new Map();
+    for (const [pos, key] of known) { const r = key.split('-')[1]; if (!byRank.has(r)) byRank.set(r, []); byRank.get(r).push(pos); }
+    for (const [, ps] of byRank) if (ps.length >= 2) return ps[0];
+    const unknown = st.board.map((b, i) => i).filter(i => !st.board[i].taken && !st.memory.has(i));
+    return unknown.length ? unknown[(Math.random() * unknown.length) | 0] : known[0]?.[0] ?? 0;
+  }
+  const first = st.board[st.flipped[0]].card;
+  const matchPos = known.find(([pos, key]) => pos !== st.flipped[0] && key.split('-')[1] === String(first.rank));
+  if (matchPos) return matchPos[0];
+  const unknown = st.board.map((b, i) => i).filter(i => !st.board[i].taken && i !== st.flipped[0] && !st.memory.has(i));
+  return unknown.length ? unknown[(Math.random() * unknown.length) | 0] : known.find(([pos]) => pos !== st.flipped[0])?.[0] ?? 0;
+}
+
+// ============ 大富豪 ============
+const DAIFUGO_DEFAULTS = { eightCut: true, revolution: true, suitLock: true, spade3: true, elevenBack: true, foulFinish: true, tribute: true };
+function rankValue(c) { if (c.joker) return 13; return c.rank === 1 ? 11 : c.rank === 2 ? 12 : c.rank - 3; } // 3=0 … K=10, A=11, 2=12, JOKER=13
+function createDaifugo(seed, cfg = DAIFUGO_DEFAULTS, prevRanks = null) {
+  const rng = mulberry32(seed);
+  const deck = shuffle(makeDeck(1), rng);
+  const hands = [[], [], [], []];
+  deck.forEach((c, i) => hands[i % 4].push(c));
+  const st = { game: 'daifugo', cfg, hands, turn: 0, field: null, revolution: false, ranks: {}, finished: [], fouls: [], phase: 'play', lastEvent: 'ゲーム開始', passStreak: 0, leader: 0, tributeLog: [] };
+  if (prevRanks && cfg.tribute) { // 献上: 大貧民→大富豪2枚 / 貧民→富豪1枚（自動で最強を渡し、最弱を受け取る）
+    const order = Object.entries(prevRanks).sort((a, b) => a[1] - b[1]).map(([k]) => Number(k)); // [大富豪, 富豪, 貧民, 大貧民]
+    const exch = (from, to, n) => { const fh = hands[from].sort((a, b) => rankValue(b) - rankValue(a)); const give = fh.splice(0, n); const th = hands[to].sort((a, b) => rankValue(a) - rankValue(b)); const back = th.splice(0, n); hands[from].push(...back); hands[to].push(...give); st.tributeLog.push(`${from}→${to} ${n}枚`); };
+    exch(order[3], order[0], 2); exch(order[2], order[1], 1);
+    st.turn = order[0]; st.leader = order[0];
+  } else { const d3 = hands.findIndex(h => h.some(c => c.suit === 2 && c.rank === 3)); st.turn = d3 >= 0 ? d3 : 0; st.leader = st.turn; }
+  st.hands = st.hands.map(sortHand);
+  return st;
+}
+function combosOf(hand) { // 同じ数字のあらゆるスートの組み合わせを列挙
+  const groups = new Map(); let joker = null;
+  for (const c of hand) { if (c.joker) { joker = c; continue; } if (!groups.has(c.rank)) groups.set(c.rank, []); groups.get(c.rank).push(c); }
+  const out = [];
+  if (joker) out.push([joker]);
+  for (const [, cs] of groups) {
+    // 接頭辞だけを列挙すると「♥5のみ」など合法手が消えるため、全ての非空部分集合を生成
+    for (let mask = 1; mask < (1 << cs.length); mask++) {
+      const subset = cs.filter((_, i) => (mask & (1 << i)) !== 0);
+      out.push(subset);
+      if (joker) out.push([...subset, joker]);
+    }
+  }
+  return out;
+}
+function comboInfo(cards, st) {
+  const nonJ = cards.filter(c => !c.joker);
+  const rank = nonJ.length ? nonJ[0].rank : null;
+  const value = cards.length === 1 && cards[0].joker ? 99 : rankValue(nonJ[0]);
+  const suits = new Set(nonJ.map(c => c.suit));
+  return { count: cards.length, rank, value, suits, hasJoker: cards.some(c => c.joker), has8: nonJ.some(c => c.rank === 8), hasJ: nonJ.some(c => c.rank === 11) };
+}
+function daifugoLegalMoves(st, p) {
+  const hand = st.hands[p], cfg = st.cfg, f = st.field;
+  let moves = combosOf(hand);
+  if (!f) return moves;
+  const rev = st.revolution !== (f.tempReverse || false); // 実効の反転状態（革命 XOR イレブンバック）
+  moves = moves.filter(cs => {
+    if (cs.length !== f.count) return false;
+    const info = comboInfo(cs, st);
+    if (cfg.spade3 && f.isJokerSingle && cs.length === 1 && !cs[0].joker && cs[0].suit === 0 && cs[0].rank === 3) return true;
+    if (cfg.suitLock && f.lockSuits) { // ジョーカーは不足したスート1つを補える
+      const extra = [...info.suits].filter(s => !f.lockSuits.has(s)).length;
+      const missing = [...f.lockSuits].filter(s => !info.suits.has(s)).length;
+      if (extra > 0 || missing > (info.hasJoker ? 1 : 0)) return false;
+    }
+    if (f.value === 99) return false; // ジョーカー単体にはスペ3以外出せない
+    if (info.value === 99) return true;
+    return rev ? info.value < f.value : info.value > f.value;
+  });
+  return moves;
+}
+function daifugoPlay(st, p, cards) {
+  if (st.phase !== 'play' || st.turn !== p) return st;
+  const legal = daifugoLegalMoves(st, p);
+  const ids = cards.map(cardId).sort().join(',');
+  const ok = legal.some(m => m.map(cardId).sort().join(',') === ids);
+  if (!ok) return st;
+  const info = comboInfo(cards, st);
+  const prevField = st.field;
+  const spade3Clear = !!(st.cfg.spade3 && prevField?.isJokerSingle && cards.length === 1 && !cards[0].joker && cards[0].suit === 0 && cards[0].rank === 3);
+  for (const c of cards) { const i = st.hands[p].findIndex(h => cardId(h) === cardId(c)); st.hands[p].splice(i, 1); }
+  let lockSuits = prevField?.lockSuits || null;
+  if (st.cfg.suitLock && prevField && !prevField.lockSuits && prevField.suits && info.suits.size === prevField.suits.size && [...info.suits].every(s => prevField.suits.has(s)) && info.count === prevField.count) lockSuits = new Set(info.suits);
+  st.field = { cards, count: info.count, value: info.value, suits: info.suits, lockSuits, isJokerSingle: info.count === 1 && info.hasJoker && info.rank === null, tempReverse: prevField?.tempReverse || false, lastPlayer: p };
+  if (st.cfg.elevenBack && info.hasJ) st.field.tempReverse = !st.field.tempReverse;
+  st.passStreak = 0;
+  const events = [];
+  if (st.cfg.revolution && info.count >= 4) { st.revolution = !st.revolution; events.push(st.revolution ? '革命！' : '革命鎮圧！'); }
+  // 上がり判定
+  if (st.hands[p].length === 0) {
+    let foul = false;
+    if (st.cfg.foulFinish && (info.value === 12 || info.hasJoker || (st.cfg.eightCut && info.has8))) foul = true;
+    if (foul) { st.fouls.push(p); st.finished.push(p); events.push('反則上がり！ 大貧民に'); }
+    else { st.finished.push(p); events.push('上がり！'); }
+    if (st.finished.length >= 3) { // 順位確定: 上がり順 → 最後まで残った人 → 反則者
+      const order = st.finished.filter(i => !st.fouls.includes(i));
+      const lastP = [0, 1, 2, 3].find(i => !st.finished.includes(i));
+      if (lastP !== undefined) order.push(lastP);
+      st.fouls.forEach(i => order.push(i));
+      order.forEach((pl, idx) => st.ranks[pl] = idx + 1);
+      st.phase = 'end'; st.lastEvent = events.join('／'); return st; }
+    if (st.finished.length === 2) { /* 残り2人のうち場のリード権は次へ */ }
+  }
+  // 8切り
+  if (st.phase === 'play' && (spade3Clear || (st.cfg.eightCut && info.has8))) { st.field = null; st.lastEvent = (events.join('／') + (spade3Clear ? ' スペ3返し！続けて出せる' : ' 8切り！続けて出せる')).trim(); if (!st.finished.includes(p)) { st.turn = p; st.leader = p; } else { st.turn = daifugoNext(st, p); st.leader = st.turn; } return st; }
+  st.lastEvent = events.join('／');
+  st.turn = daifugoNext(st, p);
+  return st;
+}
+function daifugoPass(st, p) {
+  if (st.phase !== 'play' || st.turn !== p || !st.field) return st;
+  st.passStreak++;
+  const activeCount = [0, 1, 2, 3].filter(i => !st.finished.includes(i)).length;
+  const requiredPasses = activeCount - (st.finished.includes(st.field.lastPlayer) ? 0 : 1);
+  if (st.passStreak >= requiredPasses) { // 最後に出した人が上がっている場合も、生存者全員のパスを待つ
+    const leader = st.field.lastPlayer;
+    st.field = null; st.passStreak = 0;
+    st.turn = st.finished.includes(leader) ? daifugoNext(st, leader) : leader;
+    st.leader = st.turn; st.lastEvent = '場が流れた';
+  } else { st.lastEvent = 'パス'; st.turn = daifugoNext(st, p); }
+  return st;
+}
+function daifugoNext(st, from) { let n = from; do { n = (n + 1) % 4; } while (st.finished.includes(n)); return n; }
+function botDaifugo(st, p) {
+  const options = daifugoLegalMoves(st, p);
+  if (!options.length) return { type: 'pass' };
+  const hand = st.hands[p], field = st.field;
+  const reversed = st.revolution !== (field?.tempReverse || false);
+  // 自分の手札＋公開されている残り枚数だけで判断。相手のカードは見ない。
+  const foulFinish = i => st.cfg.foulFinish && (i.value === 12 || i.hasJoker || (st.cfg.eightCut && i.has8));
+  const moves = options.map(cards => ({ cards, info: comboInfo(cards, st) }));
+  const finishes = moves.filter(m => m.cards.length === hand.length);
+  if (finishes.length) {
+    const clean = finishes.find(m => !foulFinish(m.info));
+    if (clean) return { type: 'play', cards: clean.cards };
+    if (!field) return { type: 'play', cards: finishes[0].cards }; // 親で手札が反則札のみなら出すしかない
+    return { type: 'pass' };
+  }
+  const strength = i => i.value === 99 ? 14 : reversed ? 12 - i.value : i.value;
+  const next = daifugoNext(st, p), imminentFinish = st.hands[next].length <= 2;
+  const evaluate = m => {
+    const remain = hand.filter(c => !m.cards.includes(c));
+    const remainRanks = new Map();
+    for (const c of remain) if (!c.joker) remainRanks.set(c.rank, (remainRanks.get(c.rank) || 0) + 1);
+    let score = strength(m.info) * 1.7 - m.cards.length * 6.5; // 弱い札をまとめて減らす
+    if (m.info.hasJoker) score += hand.length > 4 ? 23 : 9;
+    if (m.info.value === 12 && !reversed) score += hand.length > 4 ? 16 : 2;
+    if (st.cfg.eightCut && m.info.has8) score += field ? -4 : 5;
+    if (m.info.count >= 4 && st.cfg.revolution) {
+      const power = remain.length ? remain.reduce((total, c) => total + rankValue(c), 0) / remain.length : 7;
+      score += power > 6 ? 16 : -18; // 残りが弱ければ革命を狙う
+    }
+    // 反則上がりになる札が最後の1枚として残る手を避ける。
+    if (remain.length === 1 && foulFinish(comboInfo(remain, st))) score += 45;
+    if (remain.length === 2 && remain.some(c => c.joker || (!reversed && c.rank === 2))) score += 6;
+    for (const c of m.cards) if (!c.joker && remainRanks.has(c.rank)) score += 3.5; // ペア崩し抑制
+    if (imminentFinish && field) score -= strength(m.info) * 0.6;
+    if (remain.length <= 3) score -= 4;
+    return score;
+  };
+  moves.sort((a, b) => evaluate(a) - evaluate(b));
+  const best = moves[0];
+  if (field && !imminentFinish && hand.length > 4 && strength(best.info) >= 11 && Math.random() < 0.7) return { type: 'pass' };
+  return { type: 'play', cards: best.cards };
+}
+
+// 神経衰弱の2人対戦: host-authoritativeな状態管理。
+// 通信・描画から独立。機密のカード配置はauthorityだけに置き、公開viewへ流さない。
+
+
+const ROOM_PROTOCOL = 1;
+const ROOM_CODE_PATTERN = /^[0-9]{5}$/;
+
+function createMemoryAuthority({roomCode, hostId, seedSource = () => {
+  if (!globalThis.crypto?.getRandomValues) throw Error('安全な乱数が利用できません');
+  const u = new Uint32Array(1); globalThis.crypto.getRandomValues(u); return u[0];
+}}) {
+  if (!ROOM_CODE_PATTERN.test(roomCode)) throw Error('invalid room code');
+  if (typeof hostId !== 'string' || hostId.length < 8 || hostId.length > 100) throw Error('invalid host id');
+  let phase = 'lobby', revision = 0, round = 0, game = null, reveal = null;
+  const seats = [{id:hostId, ready:false}, null];
+  const handled = new Set();
+
+  const response = (ok, reason = '') => ({ok, reason, revision});
+  const advance = () => { revision++; return response(true); };
+  function seatOf(actor) {
+    return seats.findIndex(p => p && p.id === actor);
+  }
+  function publicView() {
+    const cards = game?.board.map((b, i) => {
+      const visible = game.flipped.includes(i) || reveal?.positions.includes(i);
+      return {taken:b.taken, card:visible ? {suit:b.card.suit,rank:b.card.rank} : null};
+    }) || [];
+    return {
+      protocol:ROOM_PROTOCOL,roomCode,revision,round,phase,
+      players:seats.map(p => p ? {ready:p.ready,present:true} : {ready:false,present:false}),
+      turn:game?.turn ?? null, scores:game ? [...game.scores] : [0,0],
+      winner:phase === 'finished' ? game.winner : null,
+      flipped:game?.flipped.slice() || [],reveal:reveal ? {positions:[...reveal.positions],match:reveal.match} : null,
+      locked:!!reveal, cards
+    };
+  }
+  function apply(action) {
+    if (!action || action.protocol !== ROOM_PROTOCOL || action.roomCode !== roomCode ||
+        typeof action.actor !== 'string' || action.actor.length > 100 ||
+        typeof action.actionId !== 'string' || action.actionId.length < 4 || action.actionId.length > 120) return response(false,'INVALID');
+    if (handled.has(action.actionId)) return response(false,'DUPLICATE');
+    const seat = seatOf(action.actor);
+    if (action.type === 'join') {
+      if (seat >= 0) return response(true,'ALREADY_JOINED');
+      if (phase !== 'lobby' || seats[1]) return response(false,'ROOM_FULL_OR_STARTED');
+      // 入室はロビーの最新revisionを知らない初回接続でも受ける。
+      // ルーム満員・対戦開始後の入室は禁止。
+      seats[1] = {id:action.actor,ready:false};
+      handled.add(action.actionId);return advance();
+    }
+    if (seat === -1) return response(false,'NOT_IN_ROOM');
+    if (action.expectedRevision !== revision || action.round !== round) return response(false,'STALE');
+    let ok = false;
+    if (action.type === 'ready' && phase === 'lobby') {
+      if (typeof action.ready !== 'boolean' || seats[seat].ready === action.ready) return response(false,'INVALID_READY');
+      seats[seat].ready = action.ready; ok=true;
+    } else if (action.type === 'start' && seat === 0 && phase === 'lobby' && seats.every(x => x?.ready)) {
+      // 配札は一度だけホスト側で行い、カードの正解データは共有しない。
+      game = createShinkei(seedSource(),2); phase='playing'; reveal=null; ok=true;
+    } else if (action.type === 'flip' && phase === 'playing' && !reveal && game.turn === seat &&
+               Number.isInteger(action.pos) && action.pos >= 0 && action.pos < 24 &&
+               !game.board[action.pos].taken && !game.flipped.includes(action.pos)) {
+      const before = game.flipped.length;
+      shinkeiFlip(game,action.pos);
+      if (before === 1 && game.lastPair) {
+        reveal = {positions:[...game.lastPair.positions],match:game.lastResult.match};
+      }
+      ok=true;
+    } else if (action.type === 'rematch' && phase === 'finished' && seat === 0) {
+      phase='lobby'; round++; game=null; reveal=null; for(const p of seats) if(p) p.ready=false;
+      ok=true;
+    }
+    if (!ok) return response(false,'NOT_ALLOWED');
+    handled.add(action.actionId);return advance();
+  }
+  // revealの待機タイマーはtransport/UI側で管理。ホストしか実行しない。
+  function settle() {
+    if (!reveal || !game) return false;
+    reveal=null;
+    if (game.phase === 'end') phase='finished';
+    revision++;
+    return true;
+  }
+  return {apply,settle,publicView,seatOf,get revision(){return revision;},get round(){return round;},get phase(){return phase;}};
+}
+
+function makeRoomCommand(view,actor,type,actionId,extra={}) {
+  return {protocol:ROOM_PROTOCOL,roomCode:view.roomCode,revision:view.revision,
+    expectedRevision:view.revision,round:view.round,actor,type,actionId,...extra};
+}
+
+
+
+const $=id=>document.getElementById(id);
+let authority=null, channel=null, currentView=null, localCode='',isHost=false, actor='',actionSeq=0,settleTimer=null;
+const suits=['♠','♥','♦','♣'];
+const randomToken=()=>{const a=new Uint32Array(3);crypto.getRandomValues(a);return Array.from(a,x=>x.toString(36)).join('-');};
+const randomRoom=()=>{const a=new Uint32Array(1);crypto.getRandomValues(a);return String(10000 + a[0]%90000)};
+const status=(s)=>{$('status').textContent=s};
+function closeRoom(){if(channel)channel.close();channel=null;if(settleTimer)clearTimeout(settleTimer);settleTimer=null;authority=null;currentView=null;}
+function setup(code,host){closeRoom();actor=randomToken();localCode=code;isHost=host;channel=new BroadcastChannel('trump-memory-lab-'+code);
+  channel.onmessage=e=>{const m=e.data;if(!m||m.protocol!==ROOM_PROTOCOL||m.roomCode!==localCode)return;
+    if(isHost&&m.kind==='command'){const r=authority.apply(m.action);if(r.ok)sendView();else {channel.postMessage({kind:'error',protocol:ROOM_PROTOCOL,roomCode:localCode,target:m.action.actor,reason:r.reason});sendView();}scheduleSettle();}
+    if(!isHost&&m.kind==='view'){const first=!currentView;currentView=m.view;if(first)status('参加できました。準備OKを押してください');render();}
+    if(!isHost&&m.kind==='error'&&m.target===actor)status('操作を受理できません：'+m.reason+'（最新状態を受信します）');
+    if(isHost&&m.kind==='sync')sendView();
+  };$('lobby').style.display='block';
+}
+function sendView(){if(!authority)return;currentView=authority.publicView();render();channel?.postMessage({kind:'view',protocol:ROOM_PROTOCOL,roomCode:localCode,view:currentView});}
+function send(type,extra={}){if(!currentView)return;const cmd=makeRoomCommand(currentView,actor,type,actor+'-'+(++actionSeq),extra);
+  if(isHost){const res=authority.apply(cmd);if(!res.ok){status('操作不可：'+res.reason);return;}sendView();scheduleSettle();}
+  else channel?.postMessage({kind:'command',protocol:ROOM_PROTOCOL,roomCode:localCode,action:cmd});}
+function scheduleSettle(){if(!isHost||!authority?.publicView().locked||settleTimer)return;
+  settleTimer=setTimeout(()=>{settleTimer=null;if(authority?.settle())sendView()},1000);
+}
+$('create').onclick=()=>{
+  const code=randomRoom();setup(code,true);
+  authority=createMemoryAuthority({roomCode:code,hostId:actor});sendView();
+  status('ルーム '+code+' を作成。別タブで参加してください');
+};
+$('join').onclick=()=>{
+  const code=$('code').value.trim();
+  if(!/^[0-9]{5}$/.test(code)){status('5桁のルーム番号を入力してください');return;}
+  setup(code,false);status('参加申請中：'+code);
+  // joinは既存ルームが進んでいてもOK。存在しなければ相手の返信は届かない。
+  channel.postMessage({kind:'command',protocol:ROOM_PROTOCOL,roomCode:code,
+    action:{protocol:ROOM_PROTOCOL,roomCode:code,actor,actionId:actor+'-'+(++actionSeq),expectedRevision:0,round:0,type:'join'}});
+  channel.postMessage({kind:'sync',protocol:ROOM_PROTOCOL,roomCode:code});
+  setTimeout(()=>{if(!currentView&&!isHost&&localCode===code)status('ホストが見つかりません。同じブラウザの別タブでホストを開いてください')},3500);
+};
+$('ready').onclick=()=>{const v=currentView;send('ready',{ready:!v.players[isHost?0:1].ready})};
+$('start').onclick=()=>send('start');
+$('again').onclick=()=>send('rematch');
+function render(){
+ const v=currentView;if(!v)return;
+ document.body.classList.toggle('playing',v.phase==='playing'||v.phase==='finished');
+ $('room').textContent=v.roomCode;
+ const mine=isHost?0:1;
+ $('seat').textContent='｜'+(isHost?'ホスト':'ゲスト');
+ $('players').textContent='｜'+v.players.filter(p=>p.present).length+'/2人';
+ $('ready').disabled=v.phase!=='lobby'||!v.players[mine]?.present;
+ $('ready').textContent=v.players[mine]?.ready?'準備を解除':'準備OK';
+ $('start').style.display=isHost?'':'none';
+ $('start').disabled=v.phase!=='lobby'||!v.players.every(p=>p.present&&p.ready);
+ $('again').style.display=(isHost&&v.phase==='finished')?'':'none';
+ $('notice').textContent=v.phase==='lobby'?'両者の準備後、ホストが開始':v.phase==='finished'?(v.winner===-1?'引き分け':'勝者：'+(v.winner===mine?'あなた':'相手')):v.locked?'2枚の結果を確認中…':'';
+ $('gameArea').style.display=(v.phase==='playing'||v.phase==='finished')?'block':'none';
+ $('turn').textContent='手番：'+(v.turn===mine?'あなた':'相手');
+ $('score').textContent='｜あなた '+v.scores[mine]+'ペア・相手 '+v.scores[1-mine]+'ペア';
+ const board=$('board');board.replaceChildren();
+ v.cards.forEach((c,i)=>{const b=document.createElement('button');b.className='tile';b.type='button';b.setAttribute('aria-label',i+1+'番のカード');
+   if(c.taken&&!v.reveal?.positions.includes(i))b.classList.add('taken');
+   if(c.card){b.classList.add('face');if(c.card.suit===1||c.card.suit===2)b.classList.add('red');const mark=document.createElement('span');mark.textContent=suits[c.card.suit];const num=document.createElement('b');num.textContent=c.card.rank===1?'A':String(c.card.rank);b.append(mark,num);}
+   else b.textContent='♠';
+   b.disabled=v.phase!=='playing'||v.turn!==mine||v.locked||c.taken||v.flipped.includes(i);
+   b.onclick=()=>send('flip',{pos:i});
+   board.appendChild(b);
+ });
+}
+</script></body></html>
