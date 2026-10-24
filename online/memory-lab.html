@@ -53,7 +53,7 @@ function closeRoom(){if(channel)channel.close();channel=null;if(settleTimer)clea
 function setup(code,host){closeRoom();actor=randomToken();localCode=code;isHost=host;channel=new BroadcastChannel('trump-memory-lab-'+code);
   channel.onmessage=e=>{const m=e.data;if(!m||m.protocol!==ROOM_PROTOCOL||m.roomCode!==localCode)return;
     if(isHost&&m.kind==='command'){const r=authority.apply(m.action);if(r.ok)sendView();else {channel.postMessage({kind:'error',protocol:ROOM_PROTOCOL,roomCode:localCode,target:m.action.actor,reason:r.reason});sendView();}scheduleSettle();}
-    if(!isHost&&m.kind==='view'){currentView=m.view;render();}
+    if(!isHost&&m.kind==='view'){const first=!currentView;currentView=m.view;if(first)status('参加できました。準備OKを押してください');render();}
     if(!isHost&&m.kind==='error'&&m.target===actor)status('操作を受理できません：'+m.reason+'（最新状態を受信します）');
     if(isHost&&m.kind==='sync')sendView();
   };$('lobby').style.display='block';
