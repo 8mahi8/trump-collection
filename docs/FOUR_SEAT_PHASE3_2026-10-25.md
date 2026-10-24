@@ -57,3 +57,11 @@ trumpRoomsV1/<code>/
 2. ゲストの個人手札の読み取り・ホスト操作受理を、複数クライアントで模擬する。通信断・逆順・古いコマンド・二重押しも試す。
 3. 4人用UIを現行トランプコレクションUIへ段階的に統合し、各ゲームのCOMモードは残す。
 4. 自己検証が通って初めて試遊URLを作成し、本人の実機検証は最終ゲートにする。
+
+## Phase 4進捗（2026-10-25、追記）
+
+- 学校実績からFirebase RTDBを第一候補に選定。外部CDN不要のFirebase Anonymous Auth/RESTアダプター `online/firebase-room-store.mjs` と4席のホスト・ゲスト進行制御 `online/firebase-room-controller.mjs` を開発。
+- Firebase専用のアクセス制御案 `firebase/trump-rooms.rules.json` を作成し、模擬環境で手札の本人制限・public/privateのリビジョン同期・入力重複・接続中断復旧等を検証。
+- Node全**48テスト合格（失敗0）**。Firebaseの追加テストはREST/Authモックと4人通信の疑似実装であり、**実Firebase EmulatorでRulesが正常に働くことは未確認**。
+- **警告：Rulesは完全な単体JSON。既存Firebaseへファイル全体を適用すると、他ゲームのRulesを消す危険がある。上書き禁止。** 検証方法は [Firebase README](../firebase/README.md) に記載。
+- 本人による頻繁な試遊を求めず、AIの自動テストを先行する。完成版の学校Safari検証以外で実機依頼を繰り返さない。
