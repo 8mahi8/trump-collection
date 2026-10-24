@@ -20,7 +20,8 @@ const results = [];
 const step = (name, ok, detail) => { results.push({ name, ok, detail }); console.log(`${ok ? '✔' : '✖'} ${name} ${detail || ''}`); };
 
 // 1) 単体テスト
-const t = spawnSync('node', ['--test', 'tests/games.test.mjs', 'tests/quality.test.mjs'], { cwd: REPO, encoding: 'utf8' });
+const suites = readdirSync(REPO + '/tests').filter(name => name.endsWith('.test.mjs')).map(name => 'tests/' + name).sort();
+const t = spawnSync('node', ['--test', ...suites], { cwd: REPO, encoding: 'utf8' });
 const passM = (t.stdout + t.stderr).match(/(?:ℹ|#)\s+pass (\d+)/), failM = (t.stdout + t.stderr).match(/(?:ℹ|#)\s+fail (\d+)/);
 step('単体テスト', t.status === 0, `pass=${passM?.[1]} fail=${failM?.[1]}`);
 
