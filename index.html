@@ -8,7 +8,12 @@
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { height:100%; overflow:hidden; }
   body { font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif; background:#0d4d2e; color:#fff; user-select:none; -webkit-user-select:none; touch-action:manipulation; }
-  #app { position:fixed; inset:0; background:radial-gradient(ellipse at 50% 40%, #177a45, #0d4d2e 78%); display:flex; flex-direction:column; }
+  #app { position:fixed; inset:0; background:radial-gradient(ellipse at 50% 38%, #1c8a50, #0d4d2e 75%); display:flex; flex-direction:column; }
+  #app::before { content:''; position:absolute; inset:0; pointer-events:none; background:radial-gradient(ellipse at center, transparent 52%, rgba(0,0,0,.42) 100%); z-index:1; }
+  #app::after { content:''; position:absolute; inset:0; pointer-events:none; z-index:1; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E"); background-size:180px; opacity:.05; }
+  #menuScreen, #gameScreen { position:relative; z-index:2; }
+  #center { position:relative; }
+  #center::before { content:''; position:absolute; width:min(72vw, 640px); height:78%; border-radius:50%; background:radial-gradient(ellipse at center, rgba(255,255,255,.032), transparent 70%); box-shadow:inset 0 0 0 2px rgba(255,255,255,.035), inset 0 0 44px rgba(0,0,0,.14); pointer-events:none; }
   .hidden { display:none !important; }
   /* メニュー */
   #menuScreen { flex:1; overflow-y:auto; position:relative; display:flex; flex-direction:column; align-items:center; padding:22px 14px 30px; }
@@ -32,7 +37,7 @@
   .opp.turn { border-color:#ffd94a; background:rgba(255,217,74,.13); }
   .opp .face { font-size:23px; }
   .opp .nm { font-size:12px; }
-  .opp .cnt { font-size:11px; color:#cfe9d6; }
+  .opp .cnt { font-size:11px; color:#cfe9d6; font-variant-numeric:tabular-nums; }
   .opp .backs { display:flex; justify-content:center; margin-top:3px; }
   .miniback { width:15px; height:22px; border-radius:3px; background:repeating-linear-gradient(45deg,#27548f,#27548f 3px,#1d4070 3px,#1d4070 6px); border:1px solid #dbe7f5; margin-left:-7px; }
   .miniback:first-child { margin-left:0; }
@@ -46,13 +51,21 @@
   .abtn:disabled { background:#8d977f; color:#e5e8dd; box-shadow:0 4px 0 #68755c; }
   .abtn.sub { background:#eef3ee; box-shadow:0 4px 0 #a9b3a9; color:#26402c; }
   /* カード */
-  .card { position:relative; width:64px; height:92px; border-radius:8px; background:linear-gradient(165deg,#ffffff,#eef1ee); color:#1c2733; box-shadow:0 3px 7px rgba(0,0,0,.4); flex:none; font-weight:700; }
+  .card { position:relative; width:64px; height:92px; border-radius:8px; background:linear-gradient(155deg,#ffffff 60%,#f1ede4); color:#1c2733; box-shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 16px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 1px rgba(0,0,0,.08); flex:none; font-weight:700; overflow:hidden; }
+  .card .pip { position:absolute; transform:translate(-50%,-50%); line-height:1; }
+  .card .pip.flip { transform:translate(-50%,-50%) rotate(180deg); }
+  .card .corner { position:absolute; display:flex; flex-direction:column; align-items:center; line-height:1.02; z-index:2; }
+  .card .corner.tl { top:4px; left:5px; }
+  .card .corner.br { bottom:4px; right:5px; transform:rotate(180deg); }
+  .card .faceart { position:absolute; inset:16% 18%; border:2px solid currentColor; border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; opacity:.92; }
+  .card.back { background:linear-gradient(150deg,#33629f,#21497e); border:2px solid #e8eff7; color:transparent; }
+  .card.back::before { content:''; position:absolute; inset:5px; border-radius:5px; border:1.6px solid rgba(255,255,255,.75); background:repeating-linear-gradient(45deg,rgba(255,255,255,.13) 0 5px,transparent 5px 10px), repeating-linear-gradient(-45deg,rgba(255,255,255,.13) 0 5px,transparent 5px 10px); }
+  .card.back::after { content:'♠'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,.85); font-size:26px; }
   .card .tl { position:absolute; top:4px; left:6px; font-size:16px; line-height:1.05; text-align:center; }
   .card .big { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:34px; }
   .card.red { color:#d5343c; }
   .card.joker { color:#7b3fd4; }
-  .card.back { background:repeating-linear-gradient(45deg,#2c5ea3,#2c5ea3 6px,#21497e 6px,#21497e 12px); border:2px solid #e6eef8; color:transparent; }
-  .card.small { width:44px; height:63px; border-radius:6px; }
+    .card.small { width:44px; height:63px; border-radius:6px; }
   .card.small .tl { font-size:12px; } .card.small .big { font-size:22px; }
   .card.tiny { width:34px; height:49px; border-radius:5px; }
   .card.tiny .tl { font-size:10px; top:2px; left:3px; } .card.tiny .big { font-size:15px; }
@@ -96,6 +109,7 @@
   @keyframes newGlow { 0%,100% { box-shadow:0 3px 7px rgba(0,0,0,.4); } 50% { box-shadow:0 0 0 4px #ffd94a, 0 3px 7px rgba(0,0,0,.4); } }
   @keyframes shakeX { 0%,100% { transform:translateX(0); } 25% { transform:translateX(-5px); } 75% { transform:translateX(5px); } }
   #hand .card.deal { animation:dealIn .38s cubic-bezier(.2,1.4,.4,1) backwards; }
+  #hand .card { transform:rotate(var(--rot, 0deg)) translateY(var(--arc, 0px)); transform-origin:50% 92%; }
   .card.pop { animation:popIn .3s ease-out; }
   .card.flipanim { animation:flipIn .28s ease-out; }
   .card.newcard { animation:newGlow .8s ease-in-out 2; }
@@ -104,10 +118,13 @@
   #banner { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; z-index:30; }
   #banner .btxt { font-size:clamp(40px,9vw,76px); font-weight:900; color:#fff; text-shadow:0 4px 0 rgba(0,0,0,.3), 0 0 34px rgba(255,180,0,.65); animation:bannerPop 1.15s ease-out forwards; letter-spacing:.04em; }
   .floatsuit { position:absolute; font-size:110px; opacity:.07; animation:floaty 7s ease-in-out infinite; pointer-events:none; }
+  .opp { position:relative; }
+  .bubble { position:absolute; left:50%; bottom:calc(100% + 7px); transform:translateX(-50%); background:#fff; color:#20301f; font-size:12.5px; font-weight:700; padding:5px 10px; border-radius:11px; white-space:nowrap; box-shadow:0 4px 10px rgba(0,0,0,.35); animation:popIn .25s ease-out; z-index:8; }
+  .bubble::after { content:''; position:absolute; left:50%; top:100%; transform:translateX(-50%); border:6px solid transparent; border-top-color:#fff; border-bottom:0; }
   .confetti { position:absolute; top:0; width:10px; height:15px; z-index:50; pointer-events:none; animation:confettiFall 2.6s ease-in forwards; }
 
   /* ===== 選択表示（調査に基づく複合表現） ===== */
-  #hand .card.sel { transform:translateY(-26px) scale(1.06); outline:4px solid #ffd94a; box-shadow:0 0 18px 4px rgba(255,217,74,.75), 0 10px 16px rgba(0,0,0,.45); z-index:6; }
+  #hand .card.sel { transform:translateY(-27px) scale(1.06); outline:4px solid #ffd94a; box-shadow:0 0 18px 4px rgba(255,217,74,.75), 0 18px 24px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.95); z-index:6; }
   .selbadge { position:absolute; top:-11px; left:50%; transform:translateX(-50%); width:24px; height:24px; border-radius:50%; background:#2fbf4f; color:#fff; font-size:15px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,.4); z-index:7; }
   #hand.hasSel .card:not(.sel) { filter:brightness(.74) saturate(.85); }
   .card.dim { filter:brightness(.6) saturate(.7); }
@@ -161,14 +178,34 @@ const NAMES = ['あなた', '🐰 COM1', '🐱 COM2', '🐶 COM3'];
 const RANK_TXT = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 let game = null, st = null, selected = new Set(), busy = false, dealAnim = false, session = 0, daifugoPrevRanks = null, daifugoCfg = { ...G.DAIFUGO_DEFAULTS }, shinkeiDiff = 1, holdPair = null;
 
+const PIPS = {
+  2: [[50,13,0],[50,87,1]], 3: [[50,13,0],[50,50,0],[50,87,1]],
+  4: [[29,13,0],[71,13,0],[29,87,1],[71,87,1]], 5: [[29,13,0],[71,13,0],[50,50,0],[29,87,1],[71,87,1]],
+  6: [[29,13,0],[71,13,0],[29,50,0],[71,50,0],[29,87,1],[71,87,1]],
+  7: [[29,13,0],[71,13,0],[50,31,0],[29,50,0],[71,50,0],[29,87,1],[71,87,1]],
+  8: [[29,13,0],[71,13,0],[50,31,0],[29,50,0],[71,50,0],[50,69,1],[29,87,1],[71,87,1]],
+  9: [[29,13,0],[71,13,0],[29,37,0],[71,37,0],[50,50,0],[29,63,1],[71,63,1],[29,87,1],[71,87,1]],
+  10: [[29,13,0],[71,13,0],[50,25,0],[29,37,0],[71,37,0],[29,63,1],[71,63,1],[50,75,1],[29,87,1],[71,87,1]],
+};
 function cardEl(c, cls = '') {
   const d = document.createElement('div');
   if (!c) { d.className = 'card back ' + cls; return d; }
   d.className = 'card ' + cls + (c.joker ? ' joker' : (c.suit === 1 || c.suit === 2) ? ' red' : '');
-  const label = c.joker ? 'JOKER' : RANK_TXT[c.rank - 1];
-  const suit = c.joker ? '★' : G.SUITS[c.suit];
-  d.innerHTML = `<div class="tl">${label}<br>${suit}</div><div class="big">${suit}</div>`;
-  if (c.joker) d.querySelector('.big').textContent = '🃏';
+  const mini = cls.includes('tiny');
+  const small = cls.includes('small');
+  if (c.joker) {
+    d.innerHTML = `<div class="corner tl" style="font-size:${mini ? 8 : 10}px"><span>JOKER</span></div><div class="big">🃏</div>`;
+    return d;
+  }
+  const label = RANK_TXT[c.rank - 1], suit = G.SUITS[c.suit];
+  const cs = mini ? 10 : small ? 12 : 15; // コーナー文字サイズ
+  let inner = `<div class="corner tl" style="font-size:${cs}px"><span>${label}</span><span>${suit}</span></div><div class="corner br" style="font-size:${cs}px"><span>${label}</span><span>${suit}</span></div>`;
+  if (mini) { inner += `<div class="big" style="font-size:15px">${suit}</div>`; }
+  else if (c.rank === 1) { inner += `<div class="pip" style="left:50%; top:52%; font-size:${small ? 30 : 44}px">${suit}</div>`; }
+  else if (c.rank >= 11) { inner += `<div class="faceart"><span style="font-size:${small ? 15 : 21}px">${suit}</span><span style="font-size:${small ? 22 : 32}px">${label}</span><span style="font-size:${small ? 15 : 21}px; transform:rotate(180deg)">${suit}</span></div>`; }
+  else if (small) { inner += `<div class="big" style="font-size:24px">${suit}</div>`; }
+  else { const fs = cls.includes('gridcard') ? 12.5 : 15.5; for (const [x, y, f] of PIPS[c.rank]) inner += `<div class="pip ${f ? 'flip' : ''}" style="left:${x}%; top:${y}%; font-size:${fs}px">${suit}</div>`; }
+  d.innerHTML = inner;
   return d;
 }
 function msg(t) { $('message').textContent = t; }
@@ -237,13 +274,16 @@ function renderHand(cards, opts = {}) {
   root.classList.toggle('hasSel', selected.size > 0);
   cards.forEach((c, idx) => {
     const el = cardEl(c);
+    const mid = (cards.length - 1) / 2;
+    el.style.setProperty('--rot', ((idx - mid) * 1.7).toFixed(2) + 'deg');
+    el.style.setProperty('--arc', (Math.pow(idx - mid, 2) * 0.55).toFixed(1) + 'px');
     if (dealAnim) { el.classList.add('deal'); el.style.animationDelay = (idx * 45) + 'ms'; }
     if (opts.groupRanks && idx > 0) { const prev = cards[idx - 1]; el.style.marginLeft = (!c.joker && !prev.joker && c.rank === prev.rank) ? '-40px' : '-18px'; }
     if (selected.has(G.cardId(c))) { el.classList.add('sel'); const b = document.createElement('div'); b.className = 'selbadge'; b.textContent = '✓'; el.appendChild(b); }
     if (opts.legalIds && opts.legalIds.has(G.cardId(c))) el.classList.add('legal');
     if (opts.dimIds && opts.dimIds.has(G.cardId(c))) el.classList.add('dim');
     if (shakeId === G.cardId(c)) el.classList.add('shake');
-    el.onclick = () => opts.onTap && opts.onTap(c, idx);
+    el.onclick = () => opts.onTap && opts.onTap(c, idx, el);
     root.appendChild(el);
   });
 }
@@ -288,10 +328,20 @@ function kickBots() { // 進行ループが止まっていたら再始動する�
   if (game === 'shinkei') { if (st.turn === 1) shinkeiBotTurn(); }
   else if (st.turn !== 0) driveBots();
 }
+function flyTo(fromEl, toRect, card, delay = 0) { // カードが飛ぶ演出（実DOMはそのまま、複製だけを飛ばす）
+  const r = fromEl.getBoundingClientRect();
+  const clone = cardEl(card);
+  clone.style.cssText = `position:fixed; left:${r.left}px; top:${r.top}px; width:${r.width}px; height:${r.height}px; z-index:60; pointer-events:none; margin:0;`;
+  document.body.appendChild(clone);
+  const dx = (toRect.left + toRect.width / 2) - (r.left + r.width / 2), dy = (toRect.top + toRect.height / 2) - (r.top + r.height / 2);
+  clone.animate([{ transform: 'translate(0,0)', opacity: 1 }, { transform: `translate(${dx}px, ${dy}px) scale(.94)`, opacity: .96 }], { duration: 235, delay, easing: 'cubic-bezier(0.16,1,0.3,1)', fill: 'forwards' });
+  setTimeout(() => clone.remove(), 235 + delay + 80);
+}
+function showBubble(playerIdx, text) { const opps = document.querySelectorAll('#opponents .opp'); const idx = game === 'shinkei' ? 0 : playerIdx - 1; const el = opps[idx]; if (!el || !text) return; const b = document.createElement('div'); b.className = 'bubble'; b.textContent = text; el.appendChild(b); setTimeout(() => b.remove(), 1500); }
 function botStep() {
-  if (game === 'babanuki') G.babanukiDraw(st, G.botBabanuki(st));
-  if (game === 'shichinarabe') { const m = G.botShichinarabe(st); if (m.type === 'pass') G.shichinarabePass(st); else G.shichinarabePlay(st, m.id); }
-  if (game === 'daifugo') { const m = G.botDaifugo(st, st.turn); if (m.type === 'pass') G.daifugoPass(st, st.turn); else G.daifugoPlay(st, st.turn, m.cards); }
+  if (game === 'babanuki') { const drawer = st.turn; G.babanukiDraw(st, G.botBabanuki(st)); showBubble(drawer, st.lastDraw && st.lastDraw.paired ? 'ペアそろった！' : '引いた'); }
+  if (game === 'shichinarabe') { const p = st.turn; const m = G.botShichinarabe(st); if (m.type === 'pass') { G.shichinarabePass(st); showBubble(p, st.out[p] ? '脱落…' : 'パス'); } else { G.shichinarabePlay(st, m.id); showBubble(p, '出した'); } }
+  if (game === 'daifugo') { const p = st.turn; const m = G.botDaifugo(st, p); if (m.type === 'pass') { G.daifugoPass(st, p); showBubble(p, 'パス'); } else { G.daifugoPlay(st, p, m.cards); const ev = st.lastEvent || ''; showBubble(p, ev.includes('革命') ? '革命！' : ev.includes('反則') ? '反則…' : ev.includes('上がり') ? '上がり！' : (st.field === null && ev.includes('8切り')) || (m.cards.some(cd => !cd.joker && cd.rank === 8) && st.cfg.eightCut && st.field === null) ? '8切り！' : '出した'); } }
   if (game === 'shinkei') { const a = G.botShinkei(st); G.shinkeiFlip(st, a); render(); }
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -306,12 +356,12 @@ function checkFx() { // 大富豪の大きな出来事をバナーで知らせ�
 function confetti() { const wrap = document.querySelector('.modalWrap'); if (!wrap) return; const colors = ['#ffd94a', '#ff6b81', '#57d7ff', '#8be08b', '#ffffff']; for (let i = 0; i < 30; i++) { const d = document.createElement('div'); d.className = 'confetti'; d.style.left = (Math.random() * 100) + '%'; d.style.background = colors[i % colors.length]; d.style.animationDelay = (Math.random() * 0.7) + 's'; d.style.transform = `rotate(${Math.random() * 360}deg)`; wrap.appendChild(d); setTimeout(() => d.remove(), 3600); } }
 function showResult() {
   if (game === 'babanuki') {
-    const lines = st.finishedOrder.map((p, i) => `${i + 1}位 ${NAMES[p]}${p === 0 ? '（あなた）' : ''}`);
+    const medal = r => ['🥇', '🥈', '🥉', ''][r - 1] || ''; const lines = st.finishedOrder.map((p, i) => `${medal(i + 1)} ${i + 1}位 ${NAMES[p]}${p === 0 ? '（あなた）' : ''}`);
     lines.push(`最下位 ${NAMES[st.loser]}（ババを持っていた）`);
     resultModal(st.loser === 0 ? '😱 あなたの負け…' : '🎉 あなたは上がれた！', lines);
   }
   if (game === 'shichinarabe') {
-    const lines = [0, 1, 2, 3].map(p => ({ p, r: st.ranks[p] })).sort((a, b) => a.r - b.r).map(o => `${o.r}位 ${NAMES[o.p]}${o.p === 0 ? '（あなた）' : ''}`);
+    const medal = r => ['🥇', '🥈', '🥉', ''][r - 1] || ''; const lines = [0, 1, 2, 3].map(p => ({ p, r: st.ranks[p] })).sort((a, b) => a.r - b.r).map(o => `${medal(o.r)} ${o.r}位 ${NAMES[o.p]}${o.p === 0 ? '（あなた）' : ''}`);
     resultModal(st.ranks[0] === 1 ? '🎉 あなたの勝ち！' : '結果', lines);
   }
   if (game === 'shinkei') {
@@ -319,7 +369,7 @@ function showResult() {
   }
   if (game === 'daifugo') {
     const rankName = r => ['大富豪', '富豪', '貧民', '大貧民'][r - 1];
-    const lines = [0, 1, 2, 3].map(p => ({ p, r: st.ranks[p] })).sort((a, b) => a.r - b.r).map(o => `${o.r}位 ${rankName(o.r)}：${NAMES[o.p]}${o.p === 0 ? '（あなた）' : ''}`);
+    const medal = r => ['🥇', '🥈', '🥉', ''][r - 1] || ''; const lines = [0, 1, 2, 3].map(p => ({ p, r: st.ranks[p] })).sort((a, b) => a.r - b.r).map(o => `${medal(o.r)} ${o.r}位 ${rankName(o.r)}：${NAMES[o.p]}${o.p === 0 ? '（あなた）' : ''}`);
     resultModal(st.ranks[0] === 1 ? '👑 大富豪！' : '結果', lines, '<button class="abtn" id="mNext">次のゲームへ（献上あり）</button>');
   }
 }
@@ -332,7 +382,7 @@ function renderBabanuki() { $('selInfo').textContent = '';
     const target = G.babanukiNextWithCards(st, 0);
     c.innerHTML = `<div style="text-align:center"><div style="margin-bottom:8px">${NAMES[target]} のカードを1枚タップして引こう</div><div class="fieldcards" id="drawFan"></div></div>`;
     const fan = c.querySelector('#drawFan');
-    st.hands[target].forEach((_, idx) => { const b = cardEl(null, 'small'); b.style.cursor = 'pointer'; b.onclick = async () => { if (busy) return; busy = true; G.babanukiDraw(st, idx); render(); await sleep(650); busy = false; if (st.phase === 'end') showResult(); else driveBots(); }; fan.appendChild(b); });
+    st.hands[target].forEach((_, idx) => { const b = cardEl(null, 'small'); b.style.cursor = 'pointer'; b.onclick = async () => { if (busy) return; busy = true; flyTo(b, $('hand').getBoundingClientRect(), null); await sleep(250); G.babanukiDraw(st, idx); render(); await sleep(500); busy = false; if (st.phase === 'end') showResult(); else driveBots(); }; fan.appendChild(b); });
     msg('あなたの番：引くカードを選んで');
   } else {
     c.innerHTML = `<div style="text-align:center; color:#ffe9a8">${st.lastDraw ? `${NAMES[st.turn === 0 ? 3 : st.turn - 1] || ''} がカードを引いた${st.lastDraw.paired ? '（ペアを捨てた）' : ''}` : '対戦中…'}</div>`;
@@ -364,7 +414,7 @@ function renderShichinarabe() { $('selInfo').textContent = '';
   const legalIds = new Set(legal.map(G.cardId));
   $('handLabel').textContent = st.turn === 0 ? `あなたの番（パスはあと${3 - st.passes[0]}回まで）` : `${NAMES[st.turn]} の番`;
   msg(st.turn === 0 ? '光っている数字の横に出せるよ' : '');
-  renderHand(G.sortHand(st.hands[0]), { legalIds: st.turn === 0 ? legalIds : new Set(), dimIds: st.turn === 0 ? new Set(st.hands[0].filter(cd => !legalIds.has(G.cardId(cd))).map(G.cardId)) : new Set(), onTap: c2 => { if (st.turn !== 0 || busy || !legalIds.has(G.cardId(c2))) return; G.shichinarabePlay(st, G.cardId(c2)); render(); if (st.phase === 'end') showResult(); else driveBots(); } });
+  renderHand(G.sortHand(st.hands[0]), { legalIds: st.turn === 0 ? legalIds : new Set(), dimIds: st.turn === 0 ? new Set(st.hands[0].filter(cd => !legalIds.has(G.cardId(cd))).map(G.cardId)) : new Set(), onTap: async (c2, ix, el) => { if (st.turn !== 0 || busy || !legalIds.has(G.cardId(c2))) return; busy = true; const rows = document.querySelectorAll('#rows .srow'); const slot = rows[c2.suit] && rows[c2.suit].children[c2.rank]; if (el && slot) flyTo(el, slot.getBoundingClientRect(), c2); await sleep(240); G.shichinarabePlay(st, G.cardId(c2)); busy = false; render(); if (st.phase === 'end') showResult(); else driveBots(); } });
   actions(st.turn === 0 && st.phase === 'play' ? [{ label: `パス（残り${3 - st.passes[0]}回）`, sub: true, disabled: legal.length > 0 && false, onClick: () => { G.shichinarabePass(st); render(); if (st.phase === 'end') showResult(); else driveBots(); } }] : []);
   if (st.phase === 'end') showResult();
 }
@@ -471,7 +521,7 @@ function renderDaifugo() {
     else info.innerHTML = `<span class="ng">選択中 ${selCards.length}枚：${reason ? reason.text : ''}</span>`;
   } else info.textContent = '';
   actions(myTurn ? [
-    { label: '出す', disabled: !(reason && reason.ok), onClick: () => { const cs = st.hands[0].filter(cd => selected.has(G.cardId(cd))); selected.clear(); G.daifugoPlay(st, 0, cs); checkFx(); render(); if (st.phase === 'end') showResult(); else driveBots(); } },
+    { label: '出す', disabled: !(reason && reason.ok), onClick: async () => { if (busy) return; busy = true; const cs = st.hands[0].filter(cd => selected.has(G.cardId(cd))); const els = [...document.querySelectorAll('#hand .card.sel')]; const centerRect = $('center').getBoundingClientRect(); els.forEach((el, i) => flyTo(el, centerRect, cs[i], i * 45)); await sleep(250 + cs.length * 45); selected.clear(); G.daifugoPlay(st, 0, cs); busy = false; checkFx(); render(); if (st.phase === 'end') showResult(); else driveBots(); } },
     ...(st.field ? [{ label: 'パス', sub: true, onClick: () => { selected.clear(); G.daifugoPass(st, 0); render(); if (st.phase === 'end') showResult(); else driveBots(); } }] : []),
     ...(selCards.length ? [{ label: 'すべて解除', sub: true, onClick: () => { selected.clear(); render(); } }] : []),
   ] : []);
