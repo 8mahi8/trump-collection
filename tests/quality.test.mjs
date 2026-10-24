@@ -111,3 +111,13 @@ test('七並べCOM: 自分の連番が長く続く列を優先する', () => {
   assert.equal(m.type, 'play');
   assert.equal(m.id, '0-8');
 });
+
+test('ババ抜き: 不正なカード番号で手札を破壊しない', () => {
+  const st = G.createBabanuki(83);
+  const previous = st.hands.map(h => h.map(G.cardId));
+  for (const index of [-1, 999, NaN, undefined, 1.2]) {
+    G.babanukiDraw(st, index);
+    assert.deepEqual(st.hands.map(h => h.map(G.cardId)), previous);
+    assert.equal(st.phase, 'play');
+  }
+});
