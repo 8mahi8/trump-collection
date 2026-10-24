@@ -5,7 +5,7 @@
 
 - リポジトリ: `8mahi8/trump-collection`
 - 試遊URL（GitHub Pages、main への push で自動更新）: https://8mahi8.github.io/trump-collection/
-- 開発ブランチの版: **v1.5.1**（main の公開版は v1.4.0）（`index.html` 内の `TC_VERSION` が版の正本。メニュー下部にも表示）
+- 開発ブランチの版: **v1.5.2**（main の公開版は v1.4.0）（`index.html` 内の `TC_VERSION` が版の正本。メニュー下部にも表示）
 - 状態: 全4ゲーム実装済み・検証パイプライン ALL PASS（2026-10-24）。開発は前任AI（モカ）から引き継ぎ中。
 
 ## このプロジェクトの前提（変えないこと）
