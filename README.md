@@ -34,7 +34,7 @@ v1.5.5の通常本体はCOM対戦のみ。別ページの神経衰弱2人オン�
 
 - `index.html` … 画面（UI）
 - `games.mjs` … ゲームのルールと COM の思考（画面なしでテスト可能）
-- `tests/games.test.mjs` … ルールの自動テスト（`node --test "tests/*.mjs"`、計36件（従来29件＋4席共通テスト7件））
+- `tests/games.test.mjs` … ルールの自動テスト（`node --test "tests/*.mjs"`、計48件（既存・4席共通・Firebaseモックの統合テスト））
 - `build-embed.mjs` … 単体ファイル版 `dist/trump-collection.html` の生成
 - `dev/verify.mjs` … 総合検証（テスト→ビルド→フック駆動の通しプレイ→スクショ→基準画像との差分）
 - `docs/research-*.md` … ルール／カード選択UI／カード品質の調査メモ
@@ -56,11 +56,17 @@ v1.5.5の通常本体はCOM対戦のみ。別ページの神経衰弱2人オン�
 
 ## Phase 3｜4席共通エンジン＋自動4画面試験（2026-10-25）
 
-ババ抜き・七並べ・大富豪を共通の4人ルームエンジンへ移植。入室→READY→開始→合法手→決着→再戦を各ゲームで検証。**36件のNodeテスト合格（うち90試合の自動完走）**。Chromiumでも4画面・3ゲームの完走と一致を確認し、再実行用スクリプトをGitHubに保存。
+ババ抜き・七並べ・大富豪を共通の4人ルームエンジンへ移植。入室→READY→開始→合法手→決着→再戦を各ゲームで検証。**48件のNodeテスト合格（うち90試合の4席ロジック自動完走）**。Chromiumでも4画面・3ゲームの完走と一致を確認し、再実行用スクリプトをGitHubに保存。
 
 - [4人共通エンジン](online/four-seat-authority.mjs) / [ローカル4タブ検証画面](online/four-seat-lab.html)
 - 自動検証：`node --test tests/*.mjs`、`python dev/verify_four_seat_browser.py`（Python PlaywrightとChromiumが必要）
 - [4席検証結果とFirebase移行設計](docs/FOUR_SEAT_PHASE3_2026-10-25.md)。**Firebaseへはまだ接続していない**ため、手札の非公開を保証するRules/Authを先にテストする。
+
+## Phase 4｜Firebase RTDBの安全な通信基盤（2026-10-25）
+
+- [専用Firebase設計と未完了ゲート](firebase/README.md)。匿名認証・トークン更新・UIDごとの手札・公開情報・操作命令・結果ACKを**SDK/CDN不要のRESTアダプター**として開発。
+- `online/firebase-room-store.mjs` と `online/firebase-room-controller.mjs` を追加。ホスト／ゲスト4人の模擬通信で3ゲームを最後まで進行、切断相当の書込失敗・再送・古い操作・非公開手札の同期チェックを確認。
+- `node --test tests/*.mjs` で**48/48合格**（Firebase REST/Auth部分はモック）。**実Firebase RTDB EmulatorでのRules評価、本番接続は未完了**。他ゲームのFirebaseデータやRulesは変更していない。
 
 ## Phase 2｜オンライン試作（2026-10-25）
 
