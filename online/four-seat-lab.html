@@ -1,0 +1,135 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>トランプコレクション 4人ルーム・ローカル検証</title><style>
+*{box-sizing:border-box}html,body{margin:0;font-family:system-ui,sans-serif;background:#123c2c;color:#f6f6ed}
+main{max-width:920px;margin:0 auto;padding:15px}h1{font-size:22px;margin:0 0 6px}
+small{color:#ffe8b3;line-height:1.5}.panel{padding:12px;border-radius:10px;border:1px solid #4e9471;background:#20553d;margin:10px 0}
+button,select,input{font:inherit;min-height:42px;border-radius:8px;padding:7px 12px;border:0}
+button{background:#ffdf73;color:#17281c;font-weight:700;cursor:pointer;margin:3px}button:disabled{opacity:.4}
+select,input{background:#fafff5;color:#223128}input{max-width:140px}
+#roomCode{font-size:21px;color:#fff2a6;font-weight:800;letter-spacing:2px}
+#board{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;align-items:center}
+.card{font-size:16px;border-radius:6px;border:1px solid #cde4cd;background:#fff;color:#222;min-width:52px;height:64px;padding:6px}
+.card.red{color:#b52245}.mini{color:#e8ebdc;font-size:13px}#actions{display:flex;flex-wrap:wrap}
+#actions button{font-size:14px}.pair{background:#c5eed4}.muted{color:#abdeb9}
+.badge{display:inline-block;padding:4px;border-radius:6px;background:#35694b}
+@media(max-width:780px){main{padding:6px}h1{font-size:17px}.panel{margin:5px 0;padding:7px}button,select,input{min-height:40px}#actions button{padding:6px 10px}.card{min-width:42px;height:55px}}
+</style></head><body><main>
+<h1>🃏 4人ルーム検証｜ババ抜き・七並べ・大富豪</h1>
+<small>これは<strong>ローカル・同じブラウザの別タブ専用</strong>のテスト画面。Firebaseには接続しません。相手の非公開カードを共有チャンネルへ送らないことを確認するための実験で、ネット越しの手札保護を保証するものではありません。</small>
+<div class="panel"><select id="game"><option value="babanuki">ババ抜き</option><option value="shichinarabe">七並べ</option><option value="daifugo">大富豪</option></select>
+<button id="create">作成（ホスト）</button><input id="code" placeholder="5桁番号" maxlength="5" inputmode="numeric"><button id="join">参加</button>
+<div id="status" role="status">ルームを作り、別タブ3つで番号を入力</div></div>
+<div id="lobby" class="panel" hidden><div>部屋 <span id="roomCode"></span> <span id="role"></span> <span id="roster"></span></div>
+<button id="ready">準備する</button><button id="start">全員準備OK → 開始</button><button id="rematch">再戦</button></div>
+<div id="match" class="panel" hidden><div id="state" class="mini"></div><div id="board"></div><div id="hand"></div><div id="actions"></div></div>
+</main><script type="module">
+import {createFourSeatAuthority,makeFourSeatCommand,FOUR_ROOM_PROTOCOL} from './four-seat-authority.mjs';
+const $=id=>document.getElementById(id),suite=['♠','♥','♦','♣'];
+const token=()=>{const v=new Uint32Array(3);crypto.getRandomValues(v);return [...v].map(x=>x.toString(36)).join('-')};
+const number=()=>{const v=new Uint32Array(1);crypto.getRandomValues(v);return String(10000+v[0]%90000)};
+let code='',actor='',game='',host=false,authority=null,publicChannel=null,privateChannel=null,seenActors=[],publicState=null,privateState=null,seq=0,session=0;
+function status(s){$('status').textContent=s}
+function stop(){session++;publicChannel?.close();privateChannel?.close();publicChannel=privateChannel=null;authority=null;publicState=privateState=null;seenActors=[];}
+function currentSeat(){return host?0:privateState?.seat??-1}
+function privateSend(a,pv){const ch=new BroadcastChannel('tc-four-lab-private-'+code+'-'+a);ch.postMessage(pv);ch.close();}
+function publish(){
+ if(!host||!authority)return;
+ publicState=authority.publicView();render();
+ publicChannel.postMessage({kind:'view',roomCode:code,game,view:publicState});
+ for(const a of seenActors)if(a!==actor)privateSend(a,authority.privateView(a));
+ privateState=authority.privateView(actor);render();
+}
+function receive(message){
+ if(!message||message.roomCode!==code||message.game!==game)return;
+ if(host&&message.kind==='command'){
+   const c=message.action;
+   const result=authority.apply(c);
+   if(result.ok){if(c.type==='join'&&authority.seatOf(c.actor)>=0&&!seenActors.includes(c.actor))seenActors.push(c.actor);}
+   else publicChannel.postMessage({kind:'error',target:c.actor,reason:result.reason,roomCode:code,game});
+   publish();
+ }else if(!host&&message.kind==='view'){
+   const v=message.view;
+   if(!v||v.roomCode!==code||v.game!==game||v.protocol!==FOUR_ROOM_PROTOCOL)return;
+   if(publicState&&(v.round<publicState.round||(v.round===publicState.round&&v.revision<publicState.revision)))return;
+   publicState=v;render();
+ }else if(!host&&message.kind==='error'&&message.target===actor)status('操作を受け付けません：'+message.reason);
+ else if(host&&message.kind==='sync')publish();
+}
+function setup(n,g,isHost){
+ stop();code=n;game=g;host=isHost;actor=token();seq=0;const my=session;
+ $('lobby').hidden=false;$('game').value=g;$('roomCode').textContent=code;
+ publicChannel=new BroadcastChannel('tc-four-lab-public-'+code);
+ publicChannel.onmessage=e=>{if(session===my)receive(e.data)};
+ privateChannel=new BroadcastChannel('tc-four-lab-private-'+code+'-'+actor);
+ privateChannel.onmessage=e=>{if(session===my&&e.data?.roomCode===code&&e.data?.seat>=0){privateState=e.data;render()}};
+ if(host){authority=createFourSeatAuthority({roomCode:code,hostId:actor,game});seenActors=[actor];publish();}
+ else {
+   publicChannel.postMessage({roomCode:code,game,kind:'command',action:{protocol:FOUR_ROOM_PROTOCOL,
+     roomCode:code,game,round:0,expectedRevision:0,actor,actionId:actor+'-join',type:'join'}});
+   publicChannel.postMessage({roomCode:code,game,kind:'sync'});
+ }
+ status(isHost?'ホストとして開始しました':'参加要求中…');
+}
+function cmd(type,extra={}){
+ if(!publicState)return status('ホストの公開状態を待機中…');
+ const action=makeFourSeatCommand(publicState,actor,type,actor+'-'+(++seq),extra);
+ if(host){const res=authority.apply(action);if(!res.ok)return status('操作不可：'+res.reason);publish();}
+ else publicChannel.postMessage({roomCode:code,game,kind:'command',action});
+}
+function cardTxt(c){return c.joker?'🃏JOKER':suite[c.suit]+({1:'A',11:'J',12:'Q',13:'K'}[c.rank]||String(c.rank))}
+function showCard(c,label,action){
+ const button=document.createElement('button');button.className='card'+(c?.suit===1||c?.suit===2?' red':'');
+ button.textContent=c?cardTxt(c):label;
+ button.disabled=!action;
+ if(action)button.onclick=action;
+ return button;
+}
+function render(){
+ if(!publicState)return;
+ const v=publicState,p=currentSeat(),y=v.phase==='playing';
+ $('roomCode').textContent=code;$('role').textContent=host?'ホスト':'参加者'+(p+1);
+ $('roster').textContent=v.seats.filter(s=>s.present).length+'/4人';
+ $('ready').disabled=v.phase!=='lobby'||p<0;
+ $('ready').textContent=v.seats[p]?.ready?'準備解除':'準備OK';
+ $('start').hidden=!host;$('start').disabled=v.phase!=='lobby'||!v.seats.every(s=>s.ready);
+ $('rematch').hidden=!host||v.phase!=='finished';
+ $('match').hidden=v.phase==='lobby';
+ $('state').textContent='ゲーム '+v.game+'｜'+(v.phase==='finished'?'結果':v.turn===p?'あなたの番':'相手の番')+
+   '｜手札枚数 '+(v.counts||[]).join('/')+'｜revision '+v.revision+
+   (v.lastEvent?'｜'+v.lastEvent:'');
+ const board=$('board');board.replaceChildren();const hand=$('hand');hand.replaceChildren();const actions=$('actions');actions.replaceChildren();
+ if(!y&&v.phase!=='finished')return;
+ if(v.game==='babanuki'){
+   const d=document.createElement('span');d.textContent='引く相手のカード';board.appendChild(d);
+   if(y&&v.turn===p)for(let i=0;i<v.counts[v.drawFrom];i++)board.appendChild(showCard(null,'♠',()=>cmd('draw',{index:i})));
+   if(privateState?.lastDraw){const t=document.createElement('b');t.textContent=' 引いた: '+cardTxt(privateState.lastDraw.card)+(privateState.lastDraw.paired?' ペア！':'');board.appendChild(t);}
+ }else if(v.game==='shichinarabe'){
+   const text=document.createElement('span');text.textContent='場：'+v.placed.map((x,i)=>suite[i]+x.low+'–'+x.high).join(' / ')+'｜パス '+v.passes.join('/');board.appendChild(text);
+   const pass=document.createElement('button');pass.textContent='パス';pass.disabled=!y||v.turn!==p;pass.onclick=()=>cmd('pass');actions.appendChild(pass);
+ }else if(v.game==='daifugo'){
+   const text=document.createElement('span');text.textContent='場：'+(v.field?.cards.map(cardTxt).join(' ')||'なし')+(v.revolution?' 革命中':'');board.appendChild(text);
+   const pass=document.createElement('button');pass.textContent='パス';pass.disabled=!y||v.turn!==p||!v.field;pass.onclick=()=>cmd('pass');actions.appendChild(pass);
+   if(y&&v.turn===p)for(const ids of (privateState?.legalMoves||[]).slice(0,25)){
+     const b=document.createElement('button');b.textContent='出す '+ids.join(' ');b.onclick=()=>cmd('play',{ids});actions.appendChild(b);
+   }
+ }
+ if(privateState?.hand){
+   const h=document.createElement('p');h.textContent='あなたの手札 '+privateState.hand.length+'枚：';hand.appendChild(h);
+   for(const c of privateState.hand){const id=c.joker?'JK':c.suit+'-'+c.rank;const play=y&&v.turn===p&&v.game==='shichinarabe'&&privateState.legalIds?.includes(id);
+     hand.appendChild(showCard(c,'',play?()=>cmd('play',{id}):null));}
+ }
+ if(v.phase==='finished'){
+   const result=document.createElement('p');result.textContent='終了｜順位 '+JSON.stringify(v.ranks);actions.appendChild(result);
+ }
+}
+$('create').onclick=()=>setup(number(),$('game').value,true);
+$('join').onclick=()=>{const code=$('code').value.trim();if(!/^[0-9]{5}$/.test(code))return status('5桁の番号を入力');
+ setup(code,$('game').value,false);
+};
+$('ready').onclick=()=>cmd('ready',{ready:!publicState.seats[currentSeat()].ready});
+$('start').onclick=()=>cmd('start');
+$('rematch').onclick=()=>cmd('rematch');
+window.TCFourLab={get publicView(){return publicState},get privateView(){return privateState},
+ get actor(){return actor},get code(){return code},get host(){return host},makeRoom:(code,game)=>setup(code,game,true),
+ joinRoom:(code,game)=>setup(code,game,false),action:cmd};
+</script></body></html>
