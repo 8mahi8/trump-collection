@@ -33,7 +33,7 @@ export function babanukiDraw(st, cardIndex) {
   if (!Number.isInteger(cardIndex) || cardIndex < 0 || cardIndex >= st.hands[target].length) return st;
   const card = st.hands[target].splice(cardIndex, 1)[0];
   st.hands[me].push(card);
-  st.lastDraw = { from: target, card };
+  st.lastDraw = { from: target, by: me, card };
   const before = st.hands[me].length;
   st.hands[me] = removePairs(st.hands[me]).hand;
   const paired = st.hands[me].length < before;
