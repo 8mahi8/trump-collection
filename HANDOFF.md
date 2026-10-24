@@ -9,6 +9,8 @@
 - Phase 2の別端末オンライン試作URL（同様にmainの別ファイルのみ追加）: https://8mahi8.github.io/trump-collection/preview-online-memory-remote.html
 - 詳細な通信構成・テスト・限界: [ONLINE_REMOTE_PHASE2_2026-10-25.md](docs/ONLINE_REMOTE_PHASE2_2026-10-25.md)
 - **4人用の最新コード・テスト・Firebase移行方針**: [FOUR_SEAT_PHASE3_2026-10-25.md](docs/FOUR_SEAT_PHASE3_2026-10-25.md)。再実行 `python dev/verify_four_seat_browser.py`。
+- **Firebase Auth・RTDB安全構成（Phase 4）**: [firebase/README.md](firebase/README.md)。実Firebase Rules/エミュレーター未検証のため外部4人接続不可。モック含むNode48/48合格。
+
 
 - 開発ブランチの版: **v1.5.5**（main の公開版は v1.4.0）（`index.html` 内の `TC_VERSION` が版の正本。メニュー下部にも表示）
 - 状態（2026-10-25更新）: v1.5.5のCOM4ゲームは試遊済み。**神経衰弱2人版は本人がPCとスマホの別端末でSupabase実通信試遊に成功**。**4人版（ババ抜き・七並べ・大富豪）はローカル4画面の通し検証成功、Firebase実通信は未接続**。
@@ -20,7 +22,7 @@
 - インストール・ログイン不要。横向き・タッチ操作中心。1ゲーム短時間で終わる。
 - **既存カードゲームをここへ継続追加**する。現在の4つで完結しない。既存4ゲームも最終的に友達同士のオンライン対戦へ対応する。
 - オンラインの操作は従来の開発ゲームと同様に「ルーム番号を作る→友達が参加→開始」。ゲーム選択と人数（2人／4人）はルーム内で共通化。
-- **現段階**: 2人神経衰弱は既存Supabase Freeの公開Broadcastを別topicで利用し、本人の別端末試遊成功。学校Safari・Google Sitesは未検証。4人版のFirebase設計は隔離中、Auth/Rulesと実接続は未完成。通常のCOM版・Google Sites版は変更しない。
+- **現段階**: 神経衰弱はSupabase実端末試遊済み。4人用Firebase Auth/RTDBアダプター、プライベート・パブリック分離とホスト/ゲスト操作制御を実装してモック試験済み。**実Firebaseエミュレーター上のRules検証と本番接続は未完了**。学校Safari・Google Sitesは未検証。通常COM版・Google Sites版は変更しない。
 - 正式な配布経路は **Google Sites への単体HTML貼り付け**（`dist/trump-collection.html` の中身を貼る）。GitHub Pages は試遊用。
 - 素材はすべて自作のみ。既存ゲームの名称・デザインの流用は不可（例: UNO は名称・デザインが使えないため不採用という判断済み）。
 
@@ -37,7 +39,7 @@
 |---|---|
 | `index.html` | UI のすべて（CSS・画面描画・操作・BOT進行・アニメーション）。`games.mjs` を `import * as G` で読み込む |
 | `games.mjs` | ゲームロジックの正本。状態生成・合法手の列挙・手の適用・COM思考。DOM に一切触れない純粋なモジュールで、Node でテスト可能。乱数は生成関数の引数（rng）で注入する設計 |
-| `tests/games.test.mjs` | ロジックの単体テスト（8件）。`node --test "tests/*.mjs"`（既存29件＋4席共通7件＝計36件） |
+| `tests/games.test.mjs` | ロジックの単体テスト（8件）。`node --test "tests/*.mjs"`（既存29件＋4席共通7件＝計48件） |
 | `build-embed.mjs` | `games.mjs` を `index.html` にインライン化し、`const G = {...}` の shim を生成して `dist/trump-collection.html` を出力する |
 | `dist/trump-collection.html` | Sites 貼り付け用の単体ファイル。**直接編集しない**（`index.html` と `games.mjs` から生成する） |
 | `dev/verify.mjs` | 検証パイプライン（後述）。前任環境のツールを同梱したもの |
