@@ -394,7 +394,11 @@ function daifugoLegalMoves(st, p) {
     if (cs.length !== f.count) return false;
     const info = comboInfo(cs, st);
     if (cfg.spade3 && f.isJokerSingle && cs.length === 1 && !cs[0].joker && cs[0].suit === 0 && cs[0].rank === 3) return true;
-    if (cfg.suitLock && f.lockSuits) { if (info.suits.size !== f.lockSuits.size || ![...info.suits].every(s => f.lockSuits.has(s))) return false; }
+    if (cfg.suitLock && f.lockSuits) { // ジョーカーは不足したスート1つを補える
+      const extra = [...info.suits].filter(s => !f.lockSuits.has(s)).length;
+      const missing = [...f.lockSuits].filter(s => !info.suits.has(s)).length;
+      if (extra > 0 || missing > (info.hasJoker ? 1 : 0)) return false;
+    }
     if (f.value === 99) return false; // ジョーカー単体にはスペ3以外出せない
     if (info.value === 99) return true;
     return rev ? info.value < f.value : info.value > f.value;
