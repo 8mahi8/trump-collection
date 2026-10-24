@@ -1,13 +1,14 @@
 # トランプコレクション 🃏
 
-> 開発を引き継ぐ場合は **[HANDOFF.md](HANDOFF.md)** を最初に読んでください（仕様・制約・検証手順の正本）。開発ブランチの版は v1.5.4（main の公開版は v1.4.0）。
+> 開発を引き継ぐ場合は **[HANDOFF.md](HANDOFF.md)** を最初に読んでください（仕様・制約・検証手順の正本）。開発ブランチの版は v1.5.5（main の公開版は v1.4.0）。
 
 学校の iPad でも遊べる、定番トランプゲームを集めたブラウザゲーム集です。
 インストール・ログイン不要、COM と対戦できます。
 
 ## 遊ぶ
 
-- GitHub Pages: https://8mahi8.github.io/trump-collection/
+- GitHub Pages通常版（v1.4.0）: https://8mahi8.github.io/trump-collection/
+- **v1.5.5 試遊ページ（通常版は変更なし）**: https://8mahi8.github.io/trump-collection/preview-v1.5.5.html
 - Google サイトに貼る場合は `dist/trump-collection.html` の中身をそのまま貼り付けてください（単体ファイル版）。
 
 ## 収録ゲーム
@@ -23,7 +24,7 @@
 
 - `index.html` … 画面（UI）
 - `games.mjs` … ゲームのルールと COM の思考（画面なしでテスト可能）
-- `tests/games.test.mjs` … ルールの自動テスト（`node --test "tests/*.mjs"`、計19件（基本8件＋品質回帰11件））
+- `tests/games.test.mjs` … ルールの自動テスト（`node --test "tests/*.mjs"`、計20件（基本8件＋品質回帰12件））
 - `build-embed.mjs` … 単体ファイル版 `dist/trump-collection.html` の生成
 - `dev/verify.mjs` … 総合検証（テスト→ビルド→フック駆動の通しプレイ→スクショ→基準画像との差分）
 - `docs/research-*.md` … ルール／カード選択UI／カード品質の調査メモ
