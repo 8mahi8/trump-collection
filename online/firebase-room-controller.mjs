@@ -38,9 +38,11 @@ export function createFirebaseRoomHost({store,roomCode,game,seedSource,config}){
           if(!result.ok){rejected++;continue;}
           accepted++;
         }
-        // Retry authorization grant if a prior network write failed.
-        await store.grantSeat(roomCode,uid);
-        members.add(uid);
+        // Retry a failed grant, but avoid needless Firebase writes each tick.
+        if(!members.has(uid)){
+          await store.grantSeat(roomCode,uid);
+          members.add(uid);
+        }
       }
       if(accepted)await publish();
       const pending=await store.commands(roomCode)||{};
@@ -106,8 +108,9 @@ export function createFirebaseRoomGuest({store,roomCode,game,actionIdSource}){
   }
   async function act(type,extra={}){
     if(!lastSnapshot)throw Error('NO_SYNCED_VIEW');
-    const id=actionIdSource();
-    if(typeof id!=='string'||!/^[A-Za-z0-9_-]{6,120}$/.test(id))throw Error('INVALID_ACTION_ID');
+    const suffix=actionIdSource();
+    const id=store.uid+'-'+suffix; // room-global deduplication across all participants
+    if(typeof suffix!=='string'||!/^[A-Za-z0-9_-]{6,60}$/.test(suffix)||id.length>120)throw Error('INVALID_ACTION_ID');
     const cmd=makeFourSeatCommand(lastSnapshot.publicView,store.uid,type,id,extra);
     await store.command(roomCode,cmd);
     return id;
