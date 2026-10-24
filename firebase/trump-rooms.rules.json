@@ -1,0 +1,76 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "trumpRoomsV1": {
+      "$room": {
+        "meta": {
+          ".read": "auth !== null",
+          ".write": "auth !== null && !data.exists() && newData.exists() && newData.child('hostUid').val() === auth.uid",
+          ".validate": "newData.hasChildren(['hostUid','game','protocol']) && newData.child('hostUid').isString() && newData.child('game').isString() && (newData.child('game').val() === 'babanuki' || newData.child('game').val() === 'shichinarabe' || newData.child('game').val() === 'daifugo') && newData.child('protocol').val() === 2",
+          "$other": {
+            ".validate": false
+          },
+          "hostUid": {
+            ".validate": "newData.isString()"
+          },
+          "game": {
+            ".validate": "newData.isString()"
+          },
+          "protocol": {
+            ".validate": "newData.isNumber()"
+          }
+        },
+        "joinRequests": {
+          ".read": "auth !== null && auth.uid === root.child('trumpRoomsV1/' + $room + '/meta/hostUid').val()",
+          "$uid": {
+            ".read": "auth !== null && auth.uid === $uid",
+            ".write": "auth !== null && auth.uid === $uid && !data.exists() && newData.val() === true && root.child('trumpRoomsV1/' + $room + '/meta').exists()"
+          }
+        },
+        "seats": {
+          ".read": "auth !== null && auth.uid === root.child('trumpRoomsV1/' + $room + '/meta/hostUid').val()",
+          ".write": "auth !== null && auth.uid === root.child('trumpRoomsV1/' + $room + '/meta/hostUid').val()",
+          "$uid": {
+            ".read": "auth !== null && auth.uid === $uid",
+            ".validate": "newData.val() === true"
+          }
+        },
+        "public": {
+          ".read": "auth !== null && root.child('trumpRoomsV1/' + $room + '/seats/' + auth.uid).val() === true",
+          ".write": "auth !== null && auth.uid === root.child('trumpRoomsV1/' + $room + '/meta/hostUid').val() && newData.exists()",
+          ".validate": "newData.hasChildren(['protocol','roomCode','game','round','revision','phase','seats']) && newData.child('protocol').val() === 2 && newData.child('roomCode').val() === $room && newData.child('revision').isNumber() && newData.child('revision').val() >= 0 && newData.child('round').isNumber() && newData.child('phase').isString()"
+        },
+        "private": {
+          "$uid": {
+            ".read": "auth !== null && auth.uid === $uid && root.child('trumpRoomsV1/' + $room + '/seats/' + $uid).val() === true",
+            ".write": "auth !== null && auth.uid === root.child('trumpRoomsV1/' + $room + '/meta/hostUid').val() && newData.exists()",
+            ".validate": "newData.hasChildren(['protocol','roomCode','seat','revision','round','hand']) && newData.child('protocol').val() === 2 && newData.child('roomCode').val() === $room && newData.child('revision').isNumber() && newData.child('seat').isNumber()"
+          }
+        },
+        "commands": {
+          ".read": "auth !== null && auth.uid === root.child('trumpRoomsV1/' + $room + '/meta/hostUid').val()",
+          "$uid": {
+            "$command": {
+              ".write": "auth !== null && ((auth.uid === $uid && root.child('trumpRoomsV1/' + $room + '/seats/' + $uid).val() === true && !data.exists() && newData.exists() && newData.child('actor').val() === $uid) || (auth.uid === root.child('trumpRoomsV1/' + $room + '/meta/hostUid').val() && !newData.exists()))",
+              ".validate": "newData.hasChildren(['actor','actionId','type','protocol','roomCode','round','expectedRevision','game']) && newData.child('protocol').val() === 2 && newData.child('roomCode').val() === $room && newData.child('actor').val() === $uid && newData.child('actionId').isString() && newData.child('type').isString() && newData.child('expectedRevision').isNumber()"
+            }
+          }
+        },
+        "receipts": {
+          "$uid": {
+            "$command": {
+              ".read": "auth !== null && auth.uid === $uid",
+              ".write": "auth !== null && auth.uid === root.child('trumpRoomsV1/' + $room + '/meta/hostUid').val()",
+              ".validate": "newData.hasChildren(['ok','reason','revision']) && newData.child('ok').isBoolean() && newData.child('revision').isNumber()"
+            }
+          }
+        },
+        "$other": {
+          ".read": false,
+          ".write": false
+        }
+      }
+    }
+  }
+}
