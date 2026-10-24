@@ -18,9 +18,9 @@ function started(game,seed=51,config=null){
   assert.equal(o.command(0,'start').ok,true);
   return o;
 }
-function playCurrent(o){
+function playCurrent(o,rng=Math.random){
   const view=o.room.publicView(),p=view.turn,privateView=o.room.privateView(names[p]);
-  if(view.game==='babanuki')return o.command(p,'draw',{index:0});
+  if(view.game==='babanuki')return o.command(p,'draw',{index:Math.floor(rng()*view.counts[view.drawFrom])});
   if(view.game==='shichinarabe'){
     return privateView.legalIds?.length?o.command(p,'play',{id:privateView.legalIds[0]}):o.command(p,'pass');
   }
@@ -126,10 +126,10 @@ test('4席大富豪: 既存ルールの合法手のみ受け付け公開場だ�
 });
 test('4席共通: ババ抜き・七並べ・大富豪をCOM代理で計90試合完走',()=>{
  for(const game of FOUR_GAMES)for(let seed=1;seed<=30;seed++){
-  const o=started(game,seed);
+  const o=started(game,seed),rng=G.mulberry32(seed+500);
   let moves=0;
   while(o.room.phase==='playing'&&moves++<10000){
-    const old=o.room.revision,res=playCurrent(o);
+    const old=o.room.revision,res=playCurrent(o,rng);
     assert.equal(res.ok,true,game+' seed '+seed+' action '+moves+' '+res.reason);
     assert.equal(o.room.revision,old+1);
     const pub=o.room.publicView();
