@@ -23,7 +23,7 @@
 
 - `index.html` … 画面（UI）
 - `games.mjs` … ゲームのルールと COM の思考（画面なしでテスト可能）
-- `tests/games.test.mjs` … ルールの自動テスト（`node --test "tests/*.mjs"`、全8件）
+- `tests/games.test.mjs` … ルールの自動テスト（`node --test "tests/*.mjs"`、計15件（8件＋品質回帰7件））
 - `build-embed.mjs` … 単体ファイル版 `dist/trump-collection.html` の生成
 - `dev/verify.mjs` … 総合検証（テスト→ビルド→フック駆動の通しプレイ→スクショ→基準画像との差分）
 - `docs/research-*.md` … ルール／カード選択UI／カード品質の調査メモ
