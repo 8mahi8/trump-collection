@@ -64,7 +64,14 @@
 - 七並べCOMは、自分の連続カードを長く開けられる手を優先（相手の伏せカードは非参照）。1体だけ新COM・3体従来COMの1,400試合（350シード×4席交代）で、新COMの1位率30.3%、平均順位2.38、従来COM平均順位2.54。強引な意図的パス案は別途2,000試合の比較で悪化したため不採用。
 - 七並べCOM4体だけの200試合もすべて終了。新たに回帰テスト3件追加し、従来15件と合わせて**18件のロジックチェック成功**。
 - 七並べの戦略背景参考: https://www.yorimichi-games.com/shichinarabe/ および https://www2.teu.ac.jp/gamelab/research/StudentThesis/Graduation/thesis2018_kasamatsu.pdf
-- **今回のv1.5.3 GUIブラウザ通しプレイと学校iPad Safari / Google Sites実機確認はまだ未実施**。v1.5.2までのブラウザ検証を流用して「最新GUI検証済み」とは扱わない。
+- v1.5.3のGitHub単体HTMLをChromium/Playwrightへ読み込み、以下の再検証を実施。学校iPad Safari / Google Sites実機確認は引き続き未実施。
+
+## 2026-10-24 v1.5.3 実行環境での最終確認
+- GitHub開発ブランチから取得した `games.mjs`、`tests/games.test.mjs`、`tests/quality.test.mjs` をNode.js v22.16.0の `node --test tests/*.mjs` で実行。**18件すべて合格、fail 0**。
+- 開発ブランチの `dist/trump-collection.html` をChromiumで実際に描画し、1180×700・1024×768・844×390・700×320の4画面×4ゲーム、**全16ケースで画面外はみ出しなし、pageerrorなし**。
+- 大富豪をCOM3人相手に画面のカード選択＋「出す」「パス」ボタンのみで1試合完走。**プレイヤー操作23回（13回出す＋10回パス）、約21.5秒、リザルトモーダル1枚、例外0件**。
+- スマホ横向きのタッチ模擬にて七並べの過去パスボタン再クリックを実施、パス回数の二重増加なし。大富豪の出す演出中に過去パスボタンを呼んでも、選択したペアが予定どおり場に出た。右下のカード角インデックスもCSS計算済みフォント9.4864pxで確認。
+- テストはChromiumのタッチ模擬であり、学校iPad Safariそのもの・Google Sites埋め込みそのものを保証しない。
 
 ## まだ検証できていないこと
 - `node --test` の直接実行、およびリポジトリ所定の `node dev/verify.mjs` パイプラインは**今回未実施**。代わりにロジックの独立実行とPlaywright実ブラウザ描画・タップ確認を実施。
