@@ -128,7 +128,7 @@
   .confetti { position:absolute; top:0; width:10px; height:15px; z-index:50; pointer-events:none; animation:confettiFall 2.6s ease-in forwards; }
 
   /* ===== 選択表示（調査に基づく複合表現） ===== */
-  #hand .card.sel { transform:translateY(-38px) scale(1.07); outline:4px solid #ffd94a; box-shadow:0 0 18px 4px rgba(255,217,74,.75), 0 18px 24px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.95); z-index:6; }
+  #hand .card.sel { overflow:visible; transform:translateY(-38px) scale(1.07); outline:4px solid #ffd94a; box-shadow:0 0 18px 4px rgba(255,217,74,.75), 0 18px 24px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.95); z-index:6; }
   .selbadge { position:absolute; top:-11px; left:50%; transform:translateX(-50%); width:24px; height:24px; border-radius:50%; background:#2fbf4f; color:#fff; font-size:15px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,.4); z-index:7; }
   #hand.hasSel .card:not(.sel) { filter:brightness(.74) saturate(.85); }
   .card.dim { filter:brightness(.6) saturate(.7); }
