@@ -33,7 +33,7 @@ export function makeRealtimeWire({projectUrl,publishableKey,roomCode,onEvent=()=
     const my=++epoch;
     let ws;
     try{ws=new Socket(endpoint.href);}catch(e){onStatus('error','WebSocketを開始できません');reconnect();return;}
-    socket=ws;ready=false;
+    socket=ws;ready=false;ref=1;
     connectTimer=setTimeout(()=>{if(my===epoch&&socket===ws){onStatus('error','接続がタイムアウトしました');ws.close();}},10000);
     ws.onopen=()=>{
       if(my!==epoch||stopped)return;
