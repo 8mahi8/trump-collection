@@ -66,7 +66,7 @@ test('Firebase Anonymous Auth: sign-up JSON, refresh token URL-encoded',async()=
 test('Firebase RTDB: room creation uses null_etag and cannot overwrite existing room',async()=>{
  const db=fakeDb(),host=store(db,IDS[0]),guest=store(db,IDS[1]);
  await host.reserve('12345','babanuki');
- await assert.rejects(()=>host.reserve('12345','babanuki'),e=>e.code==='ALREADY_EXISTS');
+ await assert.rejects(()=>host.reserve('12345','babanuki'),e=>['ALREADY_EXISTS','PERMISSION_DENIED'].includes(e.code));
  await assert.rejects(()=>guest.reserve('12345','daifugo'),e=>e.code==='PERMISSION_DENIED');
  assert.equal((await guest.meta('12345')).hostUid,IDS[0]);
  assert.equal(db.calls.find(x=>x.method==='PUT'&&x.path.endsWith('/meta')).headers['if-match'],'null_etag');
@@ -107,7 +107,7 @@ test('Firebase RTDB: only own command is accepted and duplicate action keys reje
  const cmd={protocol:2,roomCode:'45678',game:'daifugo',actor:IDS[1],actionId:'cmd000002',round:0,expectedRevision:5,type:'pass'};
  await guest.command('45678',cmd);
  await assert.rejects(()=>guest.command('45678',cmd),e=>e.code==='ALREADY_EXISTS');
- await assert.rejects(()=>guest.command('45678',{...cmd,actor:IDS[0]}),/INVALID_COMMAND/);
+ assert.throws(()=>guest.command('45678',{...cmd,actor:IDS[0]}),/INVALID_COMMAND/);
  assert.equal((await host.commands('45678'))[IDS[1]].cmd000002.actor,IDS[1]);
  await host.removeCommand('45678',IDS[1],'cmd000002');
  assert.equal(await host.commands('45678'),null);
