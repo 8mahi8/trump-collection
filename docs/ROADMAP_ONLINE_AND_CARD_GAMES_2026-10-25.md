@@ -51,3 +51,12 @@
 - **オンライン対戦はまだ未実装**。ルーム・通信・認証・非公開情報の分離など、これから実装する。
 - 既存GitHub Pages通常版`main/index.html`はv1.4.0。v1.5.5の試遊は `preview-v1.5.5.html`。
 - 次のコード変更の最優先はオンライン用ルーム／状態同期の設計と小さな接続試作。新規カードゲームを先行して増やすのは避け、将来追加しやすい土台を作る。
+
+
+## Phase 1実装実績（2026-10-25）
+
+- [オンライン神経衰弱の通信設計・検証詳細](../online/README.md)。5桁ルーム・2席・READY・START・めくり・ホスト確定・非公開ボードのview・再戦を実装。
+- BroadcastChannel（同じoriginの別タブのみ）でGUIを動かし、Chromiumのホスト/ゲスト間の同期を確認。700×320で横向き12×2の配置まで検証。
+- Supabase private Broadcastアダプターを追加（未接続）。実SupabaseとRLS/Auth・本人照合・別端末通信は次の工程。
+- 既存20件＋オンラインルーム6件＋通信アダプター4件＝計30件のNodeテスト成功。
+- [2タブ限定の検証ページ](https://8mahi8.github.io/trump-collection/preview-online-memory-lab.html)。従来のCOM版・学校Google Sites版は保護。
