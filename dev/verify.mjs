@@ -36,9 +36,33 @@ let errors = [];
 page.on('pageerror', e => errors.push(e.message));
 await page.goto('file://' + REPO + '/dist/trump-collection.html', { waitUntil: 'domcontentloaded' });
 await new Promise(r => setTimeout(r, 800));
-step('TCフック', await page.evaluate(() => !!window.TC && window.TC.version === '1.5.4'), await page.evaluate(() => window.TC?.version));
+step('TCフック', await page.evaluate(() => !!window.TC && window.TC.version === '1.5.5'), await page.evaluate(() => window.TC?.version));
 await page.screenshot({ path: SHOTS + '/menu.png' });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+ // ババ抜き：自分が引いた札の結果を表示。固定配札（seed=1）でジョーカーとペアを検証
+for (const [cardIndex, expected] of [[0, 'ペアなし'], [2, 'ペア成立']]) {
+  await page.evaluate(index => {
+    const random = Math.random;
+    Math.random = () => 1 / 1e9;
+    window.TC.start('babanuki');
+    Math.random = random;
+    const fan = document.querySelectorAll('#drawFan .card');
+    if (!fan[index]) throw new Error('Old Maid draw fan unavailable');
+    fan[index].click();
+  }, cardIndex);
+  await sleep(420);
+  const reveal = await page.evaluate(() => ({
+    text: document.querySelector('#babaReveal')?.textContent || '',
+    cards: document.querySelectorAll('#babaReveal .card').length,
+    drawer: window.TC.state.lastDraw?.by
+  }));
+  step('ババ抜き引いた札 ' + expected,
+    reveal.cards === 1 && reveal.drawer === 0 && reveal.text.includes(expected),
+    JSON.stringify(reveal));
+  await sleep(1150);
+}
+
 for (const g of ['babanuki', 'shichinarabe', 'shinkei', 'daifugo']) {
   errors = [];
   await page.evaluate(gg => { window.TC.setFast(true); window.TC.start(gg); }, g);
