@@ -25,6 +25,18 @@ body.playing #board{grid-template-columns:repeat(12,minmax(0,1fr));width:min(660
 body.playing .panel{padding:4px 8px}
 body.playing #notice{font-size:11px}
 main{padding:3px 12px}h1{font-size:16px}header aside{font-size:10px}.panel{margin:4px 0;padding:5px 9px}#board{width:min(480px,90vw)}.tile{font-size:14px;border-radius:5px;border-width:1px}.row{gap:4px}button,input{min-height:38px}#status{font-size:12px}}
+
+/* 横向きGoogle Sites iframe: 対戦中はメニューを畳んで盤面を表示 */
+body.inMatch #connect{display:none}
+body.inMatch header aside{display:none}
+body.inMatch #lobby{padding:4px 9px;margin:4px 0}
+body.inMatch #lobby #ready,body.inMatch #lobby #start{display:none !important}
+body.inMatch #lobby #notice{display:none}
+body.inMatch #gameArea{padding:5px 7px;margin:4px 0}
+body.inMatch #board{width:min(560px,calc((100dvh - 155px) * 1.2),94vw);gap:min(4px,1vh)}
+body.inMatch #gameArea .row{font-size:13px}
+body.inMatch .tile{border-radius:5px}
+@supports not (height:100dvh){body.inMatch #board{width:min(560px,calc((100vh - 155px) * 1.2),94vw)}}
 </style></head>
 <body><main>
 <header><h1>🃏 神経衰弱｜オンライン試作</h1><aside>PCとスマホで同じ5桁の番号を入力。外部CDN・ログイン不要。<strong>身内向け実験版：公開ルームで、番号は認証ではありません。</strong></aside></header>
@@ -137,6 +149,7 @@ $('again').onclick=()=>send('rematch');
 window.addEventListener('pagehide',()=>wire?.stop());
 function render(){
  const v=currentView;if(!v)return;
+ document.body.classList.toggle('inMatch',v.phase==='playing'||v.phase==='finished');
  const mine=isHost?0:1,alive=connected&&(!isHost?Date.now()-lastHostAt<=10000:true);
  $('room').textContent=v.roomCode;
  $('seat').textContent='｜'+(isHost?'ホスト':'ゲスト');
