@@ -36,7 +36,7 @@ let errors = [];
 page.on('pageerror', e => errors.push(e.message));
 await page.goto('file://' + REPO + '/dist/trump-collection.html', { waitUntil: 'domcontentloaded' });
 await new Promise(r => setTimeout(r, 800));
-step('TCフック', await page.evaluate(() => !!window.TC && window.TC.version === '1.5.0'), await page.evaluate(() => window.TC?.version));
+step('TCフック', await page.evaluate(() => !!window.TC && window.TC.version === '1.5.1'), await page.evaluate(() => window.TC?.version));
 await page.screenshot({ path: SHOTS + '/menu.png' });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 for (const g of ['babanuki', 'shichinarabe', 'shinkei', 'daifugo']) {
