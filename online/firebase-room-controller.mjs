@@ -92,16 +92,16 @@ export function createFirebaseRoomGuest({store,roomCode,game,actionIdSource}){
     }
   }
   async function poll(){
-    if(await store.seat(roomCode)!==true)return {status:'waiting_for_host'};
+    if(await store.seat(roomCode)!==true){lastSnapshot=null;return {status:'waiting_for_host'};}
     const [publicView,privateView]=await Promise.all([store.readPublic(roomCode),store.readPrivate(roomCode)]);
     if(!publicView||!privateView||publicView.roomCode!==roomCode||privateView.roomCode!==roomCode||
       publicView.game!==game||privateView.game!==game||
       publicView.revision!==privateView.revision||publicView.round!==privateView.round){
-      return {status:'syncing'};
+      lastSnapshot=null;return {status:'syncing'};
     }
     if(lastSnapshot&&(publicView.round<lastSnapshot.publicView.round||
       (publicView.round===lastSnapshot.publicView.round&&publicView.revision<lastSnapshot.publicView.revision))){
-      return {status:'stale'};
+      lastSnapshot=null;return {status:'stale'};
     }
     lastSnapshot={publicView,privateView};
     return {status:'ready',...lastSnapshot};
