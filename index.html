@@ -58,7 +58,6 @@
   .card.tiny .tl { font-size:10px; top:2px; left:3px; } .card.tiny .big { font-size:15px; }
   #hand .card { margin-left:-26px; cursor:pointer; transition:transform .12s; }
   #hand .card:first-child { margin-left:0; }
-  #hand .card.sel { transform:translateY(-18px); outline:3px solid #ffd94a; z-index:5; }
   #hand .card.legal { outline:3px solid rgba(87,215,255,.85); }
   .fieldcards { display:flex; justify-content:center; }
   .fieldcards .card { margin-left:-20px; }
@@ -106,6 +105,18 @@
   #banner .btxt { font-size:clamp(40px,9vw,76px); font-weight:900; color:#fff; text-shadow:0 4px 0 rgba(0,0,0,.3), 0 0 34px rgba(255,180,0,.65); animation:bannerPop 1.15s ease-out forwards; letter-spacing:.04em; }
   .floatsuit { position:absolute; font-size:110px; opacity:.07; animation:floaty 7s ease-in-out infinite; pointer-events:none; }
   .confetti { position:absolute; top:0; width:10px; height:15px; z-index:50; pointer-events:none; animation:confettiFall 2.6s ease-in forwards; }
+
+  /* ===== 選択表示（調査に基づく複合表現） ===== */
+  #hand .card.sel { transform:translateY(-26px) scale(1.06); outline:4px solid #ffd94a; box-shadow:0 0 18px 4px rgba(255,217,74,.75), 0 10px 16px rgba(0,0,0,.45); z-index:6; }
+  .selbadge { position:absolute; top:-11px; left:50%; transform:translateX(-50%); width:24px; height:24px; border-radius:50%; background:#2fbf4f; color:#fff; font-size:15px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,.4); z-index:7; }
+  #hand.hasSel .card:not(.sel) { filter:brightness(.74) saturate(.85); }
+  .card.dim { filter:brightness(.6) saturate(.7); }
+  .card.shake { animation:shakeX .3s ease-in-out; outline:3px solid #ff5252 !important; }
+  #selInfo { text-align:center; min-height:24px; font-size:14px; margin-top:6px; color:#eaf5ec; }
+  #selInfo .ok { color:#8be08b; font-weight:700; }
+  #selInfo .ng { color:#ffb3ab; }
+  .fieldcards .card.back { transition:transform .12s; }
+  .fieldcards .card.back:active { transform:translateY(-12px); }
   @media (max-width:560px){ .card{width:52px;height:76px} .card .big{font-size:27px} #hand .card{margin-left:-30px} #grid{grid-template-columns:repeat(6,46px)} #grid .card{width:46px;height:66px} }
 </style>
 </head>
@@ -136,6 +147,7 @@
     <div id="handArea">
       <div id="handLabel"></div>
       <div id="hand"></div>
+      <div id="selInfo"></div>
       <div id="actions"></div>
     </div>
   </div>
@@ -219,17 +231,23 @@ function renderOpponents(count, infoFn) {
   }
 }
 function isTurnOf(i) { return st && st.phase === 'play' && st.turn === i; }
+let shakeId = null;
 function renderHand(cards, opts = {}) {
   const root = $('hand'); root.innerHTML = '';
+  root.classList.toggle('hasSel', selected.size > 0);
   cards.forEach((c, idx) => {
     const el = cardEl(c);
     if (dealAnim) { el.classList.add('deal'); el.style.animationDelay = (idx * 45) + 'ms'; }
-    if (selected.has(G.cardId(c))) el.classList.add('sel');
+    if (opts.groupRanks && idx > 0) { const prev = cards[idx - 1]; el.style.marginLeft = (!c.joker && !prev.joker && c.rank === prev.rank) ? '-40px' : '-18px'; }
+    if (selected.has(G.cardId(c))) { el.classList.add('sel'); const b = document.createElement('div'); b.className = 'selbadge'; b.textContent = '✓'; el.appendChild(b); }
     if (opts.legalIds && opts.legalIds.has(G.cardId(c))) el.classList.add('legal');
+    if (opts.dimIds && opts.dimIds.has(G.cardId(c))) el.classList.add('dim');
+    if (shakeId === G.cardId(c)) el.classList.add('shake');
     el.onclick = () => opts.onTap && opts.onTap(c, idx);
     root.appendChild(el);
   });
 }
+function shakeCard(id) { shakeId = id; render(); setTimeout(() => { shakeId = null; render(); }, 330); }
 function actions(buttons) {
   const root = $('actions'); root.innerHTML = '';
   for (const b of buttons) { const btn = document.createElement('button'); btn.className = 'abtn' + (b.sub ? ' sub' : ''); btn.textContent = b.label; btn.disabled = !!b.disabled; btn.onclick = b.onClick; root.appendChild(btn); }
@@ -307,7 +325,7 @@ function showResult() {
 }
 
 // ババ抜き
-function renderBabanuki() {
+function renderBabanuki() { $('selInfo').textContent = '';
   renderOpponents(4, i => st.ranks[i] ? `${st.ranks[i]}位で上がり` : `${st.hands[i].length}枚`);
   const c = $('center');
   if (st.turn === 0 && st.phase === 'play') {
@@ -327,7 +345,7 @@ function renderBabanuki() {
   if (st.phase === 'end') showResult();
 }
 // 七並べ
-function renderShichinarabe() {
+function renderShichinarabe() { $('selInfo').textContent = '';
   renderOpponents(4, i => st.out[i] ? '脱落' : st.ranks[i] ? `${st.ranks[i]}位` : `${st.hands[i].length}枚・パス${st.passes[i]}`);
   const c = $('center');
   let html = '<div id="rows">';
@@ -346,12 +364,12 @@ function renderShichinarabe() {
   const legalIds = new Set(legal.map(G.cardId));
   $('handLabel').textContent = st.turn === 0 ? `あなたの番（パスはあと${3 - st.passes[0]}回まで）` : `${NAMES[st.turn]} の番`;
   msg(st.turn === 0 ? '光っている数字の横に出せるよ' : '');
-  renderHand(G.sortHand(st.hands[0]), { legalIds: st.turn === 0 ? legalIds : new Set(), onTap: c2 => { if (st.turn !== 0 || busy || !legalIds.has(G.cardId(c2))) return; G.shichinarabePlay(st, G.cardId(c2)); render(); if (st.phase === 'end') showResult(); else driveBots(); } });
+  renderHand(G.sortHand(st.hands[0]), { legalIds: st.turn === 0 ? legalIds : new Set(), dimIds: st.turn === 0 ? new Set(st.hands[0].filter(cd => !legalIds.has(G.cardId(cd))).map(G.cardId)) : new Set(), onTap: c2 => { if (st.turn !== 0 || busy || !legalIds.has(G.cardId(c2))) return; G.shichinarabePlay(st, G.cardId(c2)); render(); if (st.phase === 'end') showResult(); else driveBots(); } });
   actions(st.turn === 0 && st.phase === 'play' ? [{ label: `パス（残り${3 - st.passes[0]}回）`, sub: true, disabled: legal.length > 0 && false, onClick: () => { G.shichinarabePass(st); render(); if (st.phase === 'end') showResult(); else driveBots(); } }] : []);
   if (st.phase === 'end') showResult();
 }
 // 神経衰弱
-function renderShinkei() {
+function renderShinkei() { $('selInfo').textContent = '';
   const root = $('opponents'); root.style.justifyContent = 'center'; root.style.gap = '26px'; root.innerHTML = `<div class="opp ${st.turn === 1 ? 'turn' : ''}"><div class="face">🦊</div><div class="nm">COM</div><div class="cnt">${st.scores[1]}ペア</div></div><div class="opp ${st.turn === 0 ? 'turn' : ''}"><div class="face">🙂</div><div class="nm">あなた</div><div class="cnt">${st.scores[0]}ペア</div></div>`;
   const c = $('center');
   c.innerHTML = '<div id="grid"></div>';
@@ -401,6 +419,19 @@ async function shinkeiBotTurn() {
   else setTimeout(kickBots, 60);
 }
 // 大富豪
+function daifugoSelReason(selCards, legalKeys) {
+  if (!selCards.length) return null;
+  const key = selCards.map(G.cardId).sort().join(',');
+  if (legalKeys.has(key)) return { ok: true };
+  const nonJ = selCards.filter(c => !c.joker);
+  const ranks = new Set(nonJ.map(c => c.rank));
+  if (nonJ.length && ranks.size > 1) return { ok: false, text: '同じ数字でそろえてね' };
+  const f = st.field;
+  if (f && selCards.length !== f.count) return { ok: false, text: `場は${f.count}枚。${f.count}枚で出してね` };
+  if (f && st.cfg.suitLock && f.lockSuits) return { ok: false, text: '縛り中：場と同じスートで出してね' };
+  if (f) { const rev = st.revolution !== (f.tempReverse || false); return { ok: false, text: rev ? '革命中：場より弱いカードを出してね' : '場より強いカードが必要だよ' }; }
+  return { ok: false, text: 'その組み合わせでは出せないよ' };
+}
 function renderDaifugo() {
   renderOpponents(4, i => st.finished.includes(i) ? '上がり' : `${st.hands[i].length}枚`);
   const c = $('center');
@@ -423,13 +454,26 @@ function renderDaifugo() {
   const legalKeys = new Set(legal.map(m => m.map(G.cardId).sort().join(',')));
   const legalCardIds = new Set(legal.flat().map(G.cardId));
   const selCards = st.hands[0].filter(cd => selected.has(G.cardId(cd)));
-  const selKey = selCards.map(G.cardId).sort().join(',');
-  $('handLabel').textContent = myTurn ? 'あなたの番：カードを選んで「出す」' : `${NAMES[st.turn]} の番`;
+  const reason = myTurn ? daifugoSelReason(selCards, legalKeys) : null;
+  const sortedHand = st.hands[0].slice().sort((a, b) => G.rankValue(a) - G.rankValue(b) || (a.joker ? 9 : a.suit) - (b.joker ? 9 : b.suit));
+  $('handLabel').textContent = myTurn ? 'あなたの番' : `${NAMES[st.turn]} の番`;
   msg(st.revolution ? '革命中！ 弱いカードほど強い' : '');
-  renderHand(G.sortHand(st.hands[0]), { legalIds: myTurn ? legalCardIds : new Set(), onTap: cd => { if (!myTurn) return; const id = G.cardId(cd); if (selected.has(id)) selected.delete(id); else selected.add(id); render(); } });
+  renderHand(sortedHand, {
+    legalIds: myTurn ? legalCardIds : new Set(),
+    dimIds: myTurn ? new Set(st.hands[0].filter(cd => !legalCardIds.has(G.cardId(cd))).map(G.cardId)) : new Set(),
+    groupRanks: true,
+    onTap: cd => { if (!myTurn) return; const id = G.cardId(cd); if (!legalCardIds.has(id)) { shakeCard(id); return; } if (selected.has(id)) selected.delete(id); else selected.add(id); render(); }
+  });
+  const info = $('selInfo');
+  if (myTurn) {
+    if (!selCards.length) info.innerHTML = 'カードを選んでね（明るいカードが出せるよ）';
+    else if (reason && reason.ok) { const info2 = G.comboInfo(selCards, st); const extra = []; if (st.cfg.eightCut && info2.has8) extra.push('8切り！'); if (st.cfg.revolution && info2.count >= 4) extra.push(st.revolution ? '革命鎮圧！' : '革命！'); if (st.hands[0].length === selCards.length) extra.push('上がり！'); info.innerHTML = `<span class="ok">選択中 ${selCards.length}枚：出せる！</span> ${extra.join(' ')}`; }
+    else info.innerHTML = `<span class="ng">選択中 ${selCards.length}枚：${reason ? reason.text : ''}</span>`;
+  } else info.textContent = '';
   actions(myTurn ? [
-    { label: '出す', disabled: !legalKeys.has(selKey), onClick: () => { const cs = st.hands[0].filter(cd => selected.has(G.cardId(cd))); selected.clear(); G.daifugoPlay(st, 0, cs); checkFx(); render(); if (st.phase === 'end') showResult(); else driveBots(); } },
+    { label: '出す', disabled: !(reason && reason.ok), onClick: () => { const cs = st.hands[0].filter(cd => selected.has(G.cardId(cd))); selected.clear(); G.daifugoPlay(st, 0, cs); checkFx(); render(); if (st.phase === 'end') showResult(); else driveBots(); } },
     ...(st.field ? [{ label: 'パス', sub: true, onClick: () => { selected.clear(); G.daifugoPass(st, 0); render(); if (st.phase === 'end') showResult(); else driveBots(); } }] : []),
+    ...(selCards.length ? [{ label: 'すべて解除', sub: true, onClick: () => { selected.clear(); render(); } }] : []),
   ] : []);
   if (st.phase === 'end') showResult();
 }
