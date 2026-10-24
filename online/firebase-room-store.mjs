@@ -39,8 +39,15 @@ export function createFirebaseAnonymousAuth({apiKey,fetchImpl=globalThis.fetch,n
     },
     async refresh(){
       if(!session)throw Error('NOT_AUTHENTICATED');
-      const raw=await api('https://securetoken.googleapis.com/v1/token',{
-        grant_type:'refresh_token',refresh_token:session.refreshToken});
+      // Secure Token API requires form-urlencoded (anonymous signup uses JSON).
+      const url=new URL('https://securetoken.googleapis.com/v1/token');
+      url.searchParams.set('key',apiKey);
+      const response=await fetchImpl(url.toString(),{method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body:new URLSearchParams({grant_type:'refresh_token',refresh_token:session.refreshToken}).toString(),
+        cache:'no-store'});
+      if(!response.ok)throw new FirebaseRoomError(response.status,'FIREBASE_REFRESH_REJECTED');
+      const raw=await response.json();
       return setSession({...raw,localId:raw.user_id||session.uid},true);
     },
     async token(){
