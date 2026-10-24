@@ -78,6 +78,22 @@ await page.screenshot({ path: SHOTS + '/phone-land.png' });
 await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
 await sleep(700);
 await page.screenshot({ path: SHOTS + '/phone-port.png' });
+// 4b) 小さいGoogle Sites埋め込み・横向き画面のレイアウト回帰検査
+for (const [w, h] of [[844, 390], [700, 320]]) {
+  await page.setViewport({ width: w, height: h, isMobile: true, hasTouch: true });
+  for (const g of ['babanuki', 'shichinarabe', 'shinkei', 'daifugo']) {
+    await page.evaluate(id => { window.TC.setFast(false); window.TC.start(id); }, g);
+    await sleep(200);
+    const layout = await page.evaluate(() => {
+      const fits = sel => { const el = document.querySelector(sel); if (!el) return true;
+        const r = el.getBoundingClientRect();
+        return r.left >= -1 && r.right <= innerWidth + 1 && r.top >= -1 && r.bottom <= innerHeight + 1;
+      };
+      return { actions: fits('#actions'), handArea: fits('#handArea'), rows: fits('#rows'), grid: fits('#grid') };
+    });
+    step(`コンパクト画面 ${g} ${w}x${h}`, Object.values(layout).every(Boolean), JSON.stringify(layout));
+  }
+}
 await browser.close();
 
 // 5) 基準画像との差分（PILで縮小して平均差）
