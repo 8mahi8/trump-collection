@@ -268,25 +268,44 @@ export function daifugoPass(st, p) {
 }
 export function daifugoNext(st, from) { let n = from; do { n = (n + 1) % 4; } while (st.finished.includes(n)); return n; }
 export function botDaifugo(st, p) {
-  const moves = daifugoLegalMoves(st, p);
-  if (!moves.length) return { type: 'pass' };
-  const hand = st.hands[p], f = st.field;
-  const infos = moves.map(m => ({ cards: m, info: comboInfo(m, st) }));
-  const finishable = infos.filter(o => hand.length - o.cards.length === 0);
-  const foulFinishMove = o => st.cfg.foulFinish && (o.info.value === 12 || o.info.hasJoker || (st.cfg.eightCut && o.info.has8));
-  if (finishable.length) { const good = finishable.find(o => !foulFinishMove(o)); if (good) return { type: 'play', cards: good.cards }; if (!f) return { type: 'play', cards: finishable[0].cards }; return { type: 'pass' }; }
-  const score = o => {
-    let s = o.info.value * 2 - o.cards.length * 1.5; // 弱い・大きい組を優先
-    if (o.info.value >= 12) s += 30; // 2やジョーカーは温存
-    if (o.info.hasJoker) s += 25;
-    if (f && o.info.has8 && st.cfg.eightCut) s -= 8; // 8切りは場を取りたいときに価値
-    if (!f && o.cards.length >= 4 && st.cfg.revolution) { const handPower = hand.reduce((a, c) => a + rankValue(c), 0) / hand.length; if (handPower < 5.5) s -= 20; } // 弱い手札なら革命を狙う
-    const nextP = daifugoNext(st, p);
-    if (st.hands[nextP].length <= 2 && f) s -= (o.info.value) * 0.8; // 次が上がりそうなら強いカードで止める
-    return s;
+  const options = daifugoLegalMoves(st, p);
+  if (!options.length) return { type: 'pass' };
+  const hand = st.hands[p], field = st.field;
+  const reversed = st.revolution !== (field?.tempReverse || false);
+  // 自分の手札＋公開されている残り枚数だけで判断。相手のカードは見ない。
+  const foulFinish = i => st.cfg.foulFinish && (i.value === 12 || i.hasJoker || (st.cfg.eightCut && i.has8));
+  const moves = options.map(cards => ({ cards, info: comboInfo(cards, st) }));
+  const finishes = moves.filter(m => m.cards.length === hand.length);
+  if (finishes.length) {
+    const clean = finishes.find(m => !foulFinish(m.info));
+    if (clean) return { type: 'play', cards: clean.cards };
+    if (!field) return { type: 'play', cards: finishes[0].cards }; // 親で手札が反則札のみなら出すしかない
+    return { type: 'pass' };
+  }
+  const strength = i => i.value === 99 ? 14 : reversed ? 12 - i.value : i.value;
+  const next = daifugoNext(st, p), imminentFinish = st.hands[next].length <= 2;
+  const evaluate = m => {
+    const remain = hand.filter(c => !m.cards.includes(c));
+    const remainRanks = new Map();
+    for (const c of remain) if (!c.joker) remainRanks.set(c.rank, (remainRanks.get(c.rank) || 0) + 1);
+    let score = strength(m.info) * 1.7 - m.cards.length * 6.5; // 弱い札をまとめて減らす
+    if (m.info.hasJoker) score += hand.length > 4 ? 23 : 9;
+    if (m.info.value === 12 && !reversed) score += hand.length > 4 ? 16 : 2;
+    if (st.cfg.eightCut && m.info.has8) score += field ? -4 : 5;
+    if (m.info.count >= 4 && st.cfg.revolution) {
+      const power = remain.length ? remain.reduce((total, c) => total + rankValue(c), 0) / remain.length : 7;
+      score += power > 6 ? 16 : -18; // 残りが弱ければ革命を狙う
+    }
+    // 反則上がりになる札が最後の1枚として残る手を避ける。
+    if (remain.length === 1 && foulFinish(comboInfo(remain, st))) score += 45;
+    if (remain.length === 2 && remain.some(c => c.joker || (!reversed && c.rank === 2))) score += 6;
+    for (const c of m.cards) if (!c.joker && remainRanks.has(c.rank)) score += 3.5; // ペア崩し抑制
+    if (imminentFinish && field) score -= strength(m.info) * 0.6;
+    if (remain.length <= 3) score -= 4;
+    return score;
   };
-  infos.sort((a, b) => score(a) - score(b));
-  const best = infos[0];
-  if (f && best.info.value >= 12 && st.hands[daifugoNext(st, p)].length > 3 && Math.random() < 0.5) return { type: 'pass' }; // 切り札は温存気味に
+  moves.sort((a, b) => evaluate(a) - evaluate(b));
+  const best = moves[0];
+  if (field && !imminentFinish && hand.length > 4 && strength(best.info) >= 11 && Math.random() < 0.7) return { type: 'pass' };
   return { type: 'play', cards: best.cards };
 }
