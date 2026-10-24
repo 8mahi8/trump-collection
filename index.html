@@ -223,10 +223,10 @@
 <script type="module">
 import * as G from './games.mjs';
 const $ = id => document.getElementById(id);
-const TC_VERSION = '1.5.3';
+const TC_VERSION = '1.5.4';
 const NAMES = ['あなた', '🐰 COM1', '🐱 COM2', '🐶 COM3'];
 const RANK_TXT = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-let game = null, st = null, selected = new Set(), busy = false, dealAnim = false, session = 0, justTaken = new Set(), prevFieldCards = null, botWait = 780, daifugoPrevRanks = null, daifugoCfg = { ...G.DAIFUGO_DEFAULTS }, shinkeiDiff = 1, holdPair = null;
+let game = null, st = null, selected = new Set(), busy = false, dealAnim = false, session = 0, justTaken = new Set(), prevFieldCards = null, botWait = 780, daifugoPrevRanks = null, daifugoCfg = { ...G.DAIFUGO_DEFAULTS }, shinkeiDiff = 1, holdPair = null, resultShownSession = -1, bannerSequence = 0;
 
 const PIPS = {
   2: [[50,20,0],[50,79,1]], 3: [[50,20,0],[50,50,0],[50,79,1]],
@@ -259,13 +259,13 @@ function cardEl(c, cls = '') {
   return d;
 }
 function msg(t) { $('message').textContent = t; }
-function showMenu() { session++; busy = false; holdPair = null; justTaken = new Set(); game = null; st = null; $('gameScreen').classList.add('hidden'); $('menuScreen').classList.remove('hidden'); $('modalRoot').innerHTML = ''; }
+function showMenu() { session++; busy = false; selected.clear(); dealAnim = false; holdPair = null; justTaken = new Set(); game = null; st = null; $('gameScreen').classList.add('hidden'); $('menuScreen').classList.remove('hidden'); $('modalRoot').innerHTML = ''; }
 $('backBtn').onclick = showMenu;
 $('restartBtn').onclick = () => { if (game) startGame(game); };
 document.querySelectorAll('.tile').forEach(t => t.onclick = () => startGame(t.dataset.game));
 
 function startGame(g) {
-  session++; busy = false; holdPair = null; justTaken = new Set(); prevFieldCards = null; game = g; selected.clear(); daifugoPrevRanks = null;
+  session++; busy = false; holdPair = null; justTaken = new Set(); prevFieldCards = null; st = null; game = g; selected.clear(); daifugoPrevRanks = null;
   $('gameScreen').classList.toggle('shinkei', g === 'shinkei');
   $('menuScreen').classList.add('hidden'); $('gameScreen').classList.remove('hidden'); $('modalRoot').innerHTML = '';
   if (g === 'shinkei') { showShinkeiSettings(); return; }
@@ -280,7 +280,7 @@ function newMatch() {
   if (game === 'shinkei') st = G.createShinkei(seed, shinkeiDiff);
   if (game === 'daifugo') { st = G.createDaifugo(seed, daifugoCfg, daifugoPrevRanks); prevRev = false; }
   $('gameTitle').textContent = { babanuki: 'ババ抜き', shichinarabe: '七並べ', shinkei: '神経衰弱', daifugo: '大富豪' }[game];
-  dealAnim = true; render(); driveBots(); setTimeout(() => dealAnim = false, 900);
+  dealAnim = true; render(); driveBots(); const matchSession = session; setTimeout(() => { if (session === matchSession) dealAnim = false; }, 900);
 }
 function showShinkeiSettings() {
   modal(`<h2>神経衰弱の設定</h2>
@@ -347,7 +347,7 @@ function renderHand(cards, opts = {}) {
     els.forEach((el, i) => { if (i === 0) return; let m = -(cw - strip); if (opts.groupRanks) { const prev = cards[i - 1], c = cards[i]; m += (!c.joker && !prev.joker && c.rank === prev.rank) ? -5 : 3; } el.style.marginLeft = m + 'px'; });
   }
 }
-function shakeCard(id) { shakeId = id; render(); setTimeout(() => { shakeId = null; render(); }, 330); }
+function shakeCard(id) { shakeId = id; const mySession = session; render(); setTimeout(() => { if (session !== mySession || shakeId !== id) return; shakeId = null; render(); }, 330); }
 // 指で手札をなぞると、カードが波のように持ち上がる
 (function initWave() {
   const hand = $('hand');
@@ -417,7 +417,11 @@ function flyTo(fromEl, toRect, card, delay = 0) { // カードが飛ぶ演出（
   clone.style.cssText = `position:fixed; left:${r.left}px; top:${r.top}px; width:${r.width}px; height:${r.height}px; z-index:60; pointer-events:none; margin:0;`;
   document.body.appendChild(clone);
   const dx = (toRect.left + toRect.width / 2) - (r.left + r.width / 2), dy = (toRect.top + toRect.height / 2) - (r.top + r.height / 2);
-  clone.animate([{ transform: 'translate(0,0)', opacity: 1 }, { transform: `translate(${dx}px, ${dy}px) scale(.94)`, opacity: .96 }], { duration: 235, delay, easing: 'cubic-bezier(0.16,1,0.3,1)', fill: 'forwards' });
+  if (typeof clone.animate === 'function') {
+    clone.animate([{ transform: 'translate(0,0)', opacity: 1 }, { transform: `translate(${dx}px, ${dy}px) scale(.94)`, opacity: .96 }], { duration: 235, delay, easing: 'cubic-bezier(0.16,1,0.3,1)', fill: 'forwards' });
+  } else { // 古いiOS SafariではWeb Animations APIなしでもカードを出せる
+    clone.style.transform = `translate(${dx}px, ${dy}px) scale(.94)`;
+  }
   setTimeout(() => clone.remove(), 235 + delay + 80);
 }
 function showBubble(playerIdx, text) {
@@ -442,7 +446,7 @@ function botStep(plannedDaifugo = null) {
   if (game === 'shinkei') { const a = G.botShinkei(st); G.shinkeiFlip(st, a); render(); }
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-function banner(text) { const b = $('banner'); b.innerHTML = `<div class="btxt">${text}</div>`; setTimeout(() => { if (b) b.innerHTML = ''; }, 1200); }
+function banner(text) { const b = $('banner'), seq = ++bannerSequence, mySession = session; b.innerHTML = `<div class="btxt">${text}</div>`; setTimeout(() => { if (seq === bannerSequence && session === mySession) b.innerHTML = ''; }, 1200); }
 let prevRev = false;
 function checkFx() { // 大富豪の大きな出来事をバナーで知らせる
   if (!st || game !== 'daifugo') return;
@@ -452,6 +456,8 @@ function checkFx() { // 大富豪の大きな出来事をバナーで知らせ�
 }
 function confetti() { const wrap = document.querySelector('.modalWrap'); if (!wrap) return; const colors = ['#ffd94a', '#ff6b81', '#57d7ff', '#8be08b', '#ffffff']; for (let i = 0; i < 30; i++) { const d = document.createElement('div'); d.className = 'confetti'; d.style.left = (Math.random() * 100) + '%'; d.style.background = colors[i % colors.length]; d.style.animationDelay = (Math.random() * 0.7) + 's'; d.style.transform = `rotate(${Math.random() * 360}deg)`; wrap.appendChild(d); setTimeout(() => d.remove(), 3600); } }
 function showResult() {
+  if (!st || st.phase !== 'end' || resultShownSession === session) return;
+  resultShownSession = session; // renderと操作完了処理の双方から呼ばれても結果は一度だけ
   if (game === 'babanuki') {
     const medal = r => ['🥇', '🥈', '🥉', ''][r - 1] || ''; const lines = st.finishedOrder.map((p, i) => `${medal(i + 1)} ${i + 1}位 ${NAMES[p]}${p === 0 ? '（あなた）' : ''}`);
     lines.push(`最下位 ${NAMES[st.loser]}（ババを持っていた）`);
@@ -554,7 +560,8 @@ async function shinkeiPlayerFlip(i) {
   if (st.lastPair && st.flipped.length === 0) { // 2枚目をめくった直後
     holdPair = st.lastPair.positions; const wasMatch = st.board[holdPair[0]].taken; st.lastPair = null; render();
     busy = true; const myF = session; await sleep(wasMatch ? 420 : 950); if (session !== myF || !st) return;
-    if (wasMatch) { justTaken = new Set(holdPair); holdPair = null; render(); await sleep(390); justTaken = new Set(); }
+    if (wasMatch) { justTaken = new Set(holdPair); holdPair = null; render(); await sleep(390); if (session !== myF || game !== 'shinkei') return; justTaken = new Set(); }
+    if (session !== myF || game !== 'shinkei') return;
     holdPair = null; busy = false; render();
     if (st.phase === 'end') { showResult(); return; }
     if (st.turn === 1) shinkeiBotTurn();
@@ -573,7 +580,20 @@ async function shinkeiBotTurn() {
     await sleep(650);
     if (!st || session !== my || game !== 'shinkei' || st.phase !== 'play') break;
     const b = G.botShinkei(st); G.shinkeiFlip(st, b);
-    if (st.lastPair) { holdPair = st.lastPair.positions; const wasMatch = st.board[holdPair[0]].taken; st.lastPair = null; render(); await sleep(wasMatch ? 420 : 950); if (wasMatch && session === my) { justTaken = new Set(holdPair); holdPair = null; render(); await sleep(390); justTaken = new Set(); } holdPair = null; }
+    if (st.lastPair) {
+      holdPair = st.lastPair.positions;
+      const wasMatch = st.board[holdPair[0]].taken; st.lastPair = null; render();
+      await sleep(wasMatch ? 420 : 950);
+      if (session !== my || game !== 'shinkei') break;
+      if (wasMatch) {
+        justTaken = new Set(holdPair); holdPair = null; render();
+        await sleep(390);
+        if (session !== my || game !== 'shinkei') break;
+        justTaken = new Set();
+      }
+      holdPair = null;
+    }
+    if (session !== my || game !== 'shinkei') break;
     render();
   }
   if (session !== my) return;
