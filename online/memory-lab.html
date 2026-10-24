@@ -17,7 +17,14 @@ button.alt{background:#e6f6e9}input{background:#fff;color:#18231f;padding:8px 12
 .tile.face{background:#f7f6ed;color:#182a35}.tile.red{color:#cb3c49}.tile.taken{visibility:hidden}.tile:disabled:not(.face){opacity:.73}
 #notice{font-size:15px;font-weight:700;color:#ffe17c}#gameArea{display:none}
 #lobby{display:none}
-@media(max-height:480px){main{padding:3px 12px}h1{font-size:16px}header aside{font-size:10px}.panel{margin:4px 0;padding:5px 9px}#board{width:min(480px,90vw)}.tile{font-size:14px;border-radius:5px;border-width:1px}.row{gap:4px}button,input{min-height:38px}#status{font-size:12px}}
+@media(max-height:480px){
+body.playing #connect{display:none}
+body.playing header aside{display:none}
+body.playing #lobby .row:nth-child(2){display:none}
+body.playing #board{grid-template-columns:repeat(12,minmax(0,1fr));width:min(660px,94vw)}
+body.playing .panel{padding:4px 8px}
+body.playing #notice{font-size:11px}
+main{padding:3px 12px}h1{font-size:16px}header aside{font-size:10px}.panel{margin:4px 0;padding:5px 9px}#board{width:min(480px,90vw)}.tile{font-size:14px;border-radius:5px;border-width:1px}.row{gap:4px}button,input{min-height:38px}#status{font-size:12px}}
 </style></head>
 <body><main>
 <header><h1>🃏 神経衰弱｜2人ルーム研究室</h1><aside>検証用：同じサイトを開いた別タブで通信するラボ。<strong>まだ離れた端末同士のオンライン対戦ではありません。</strong></aside></header>
@@ -78,6 +85,7 @@ $('start').onclick=()=>send('start');
 $('again').onclick=()=>send('rematch');
 function render(){
  const v=currentView;if(!v)return;
+ document.body.classList.toggle('playing',v.phase==='playing'||v.phase==='finished');
  $('room').textContent=v.roomCode;
  const mine=isHost?0:1;
  $('seat').textContent='｜'+(isHost?'ホスト':'ゲスト');
