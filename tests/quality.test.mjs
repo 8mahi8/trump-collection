@@ -83,3 +83,31 @@ test('大富豪: 縛り中はジョーカーが不足スートを代用できる
   assert.ok(options.has(ids([card(0, 10), { joker: true }])), 'ジョーカーがハートを補える');
   assert.ok(!options.has(ids([card(0, 10), card(3, 10)])), 'クラブは縛りに反する');
 });
+
+test('大富豪COM: 最後に8を残すより先に処分して反則上がりを避ける', () => {
+  const st = G.createDaifugo(71);
+  st.turn = 0; st.field = null; st.hands[0] = [{ suit: 0, rank: 8 }, { suit: 1, rank: 4 }];
+  const m = G.botDaifugo(st, 0);
+  assert.equal(m.type, 'play');
+  assert.equal(m.cards.length, 1);
+  assert.equal(m.cards[0].rank, 8);
+});
+
+test('大富豪COM: 革命中はカードの強弱逆転を判断に反映する', () => {
+  const st = G.createDaifugo(72);
+  st.turn = 0; st.revolution = true;
+  st.field = { cards: [{ suit: 2, rank: 6 }], count: 1, value: G.rankValue({ suit: 2, rank: 6 }), suits: new Set([2]), lastPlayer: 1, tempReverse: false };
+  st.hands[0] = [{ suit: 0, rank: 3 }, { suit: 1, rank: 4 }, { suit: 2, rank: 5 }, { suit: 3, rank: 2 }];
+  const m = G.botDaifugo(st, 0);
+  assert.equal(m.type, 'play');
+  assert.equal(m.cards[0].rank, 5, '革命中の合法手から相対的に弱い5を使う');
+});
+
+test('七並べCOM: 自分の連番が長く続く列を優先する', () => {
+  const st = G.createShichinarabe(73);
+  st.turn = 0;
+  st.hands[0] = [{ suit: 0, rank: 8 }, { suit: 0, rank: 9 }, { suit: 0, rank: 10 }, { suit: 1, rank: 6 }, { suit: 3, rank: 2 }];
+  const m = G.botShichinarabe(st);
+  assert.equal(m.type, 'play');
+  assert.equal(m.id, '0-8');
+});
