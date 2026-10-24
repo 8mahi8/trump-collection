@@ -13,7 +13,7 @@
   #app::after { content:''; position:absolute; inset:0; pointer-events:none; z-index:1; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E"); background-size:180px; opacity:.05; }
   #menuScreen, #gameScreen { position:relative; z-index:2; }
   #center { position:relative; }
-  #center::before { content:''; position:absolute; width:min(72vw, 640px); height:78%; border-radius:50%; background:radial-gradient(ellipse at center, rgba(255,255,255,.032), transparent 70%); box-shadow:inset 0 0 0 2px rgba(255,255,255,.035), inset 0 0 44px rgba(0,0,0,.14); pointer-events:none; }
+  #center::before { content:''; position:absolute; width:min(72vw, 640px); height:min(64%, 30vw, 300px); border-radius:50%; background:radial-gradient(ellipse at center, rgba(255,255,255,.032), transparent 70%); box-shadow:inset 0 0 0 2px rgba(255,255,255,.035), inset 0 0 44px rgba(0,0,0,.14); pointer-events:none; }
   .hidden { display:none !important; }
   /* メニュー */
   #menuScreen { flex:1; overflow-y:auto; position:relative; display:flex; flex-direction:column; align-items:center; padding:22px 14px 30px; }
@@ -51,10 +51,13 @@
   .abtn:disabled { background:#8d977f; color:#e5e8dd; box-shadow:0 4px 0 #68755c; }
   .abtn.sub { background:#eef3ee; box-shadow:0 4px 0 #a9b3a9; color:#26402c; }
   /* カード */
-  .card { position:relative; width:64px; height:92px; border-radius:8px; background:linear-gradient(155deg,#ffffff 60%,#f1ede4); color:#1c2733; box-shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 16px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 1px rgba(0,0,0,.08); flex:none; font-weight:700; overflow:hidden; }
+  :root { --cw:64px; }
+  @media (max-height:500px) { :root { --cw:51px; } }
+  @media (max-width:560px) { :root { --cw:53px; } }
+  .card { position:relative; width:var(--cw); height:calc(var(--cw) * 1.44); font-size:calc(var(--cw) * 0.245); border-radius:8px; background:linear-gradient(155deg,#ffffff 60%,#f1ede4); color:#1c2733; box-shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 16px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 1px rgba(0,0,0,.08); flex:none; font-weight:700; overflow:hidden; }
   .card .pip { position:absolute; transform:translate(-50%,-50%); line-height:1; }
   .card .pip.flip { transform:translate(-50%,-50%) rotate(180deg); }
-  .card .corner { position:absolute; display:flex; flex-direction:column; align-items:center; line-height:1.02; z-index:2; }
+  .card .corner { position:absolute; display:flex; flex-direction:column; align-items:center; line-height:1.02; z-index:2; font-weight:800; }
   .card .corner.tl { top:4px; left:5px; }
   .card .corner.br { bottom:4px; right:5px; transform:rotate(180deg); }
   .card .faceart { position:absolute; inset:19% 23%; border:2px solid currentColor; border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(255,255,255,.45); box-shadow:inset 0 0 0 3px rgba(255,255,255,.35); }
@@ -62,15 +65,13 @@
   .card.back::before { content:''; position:absolute; inset:5px; border-radius:5px; border:1.6px solid rgba(255,255,255,.75); background:repeating-linear-gradient(45deg,rgba(255,255,255,.13) 0 5px,transparent 5px 10px), repeating-linear-gradient(-45deg,rgba(255,255,255,.13) 0 5px,transparent 5px 10px); }
   .card.back::after { content:'♠'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,.85); font-size:26px; }
   .card .tl { position:absolute; top:4px; left:6px; font-size:16px; line-height:1.05; text-align:center; }
-  .card .big { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:34px; }
+  .card .big { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:2em; }
   .card.red { color:#d5343c; }
   .card.joker { color:#7b3fd4; }
-    .card.small { width:44px; height:63px; border-radius:6px; }
-  .card.small .tl { font-size:12px; } .card.small .big { font-size:22px; }
-  .card.tiny { width:34px; height:49px; border-radius:5px; }
-  .card.tiny .tl { font-size:10px; top:2px; left:3px; } .card.tiny .big { font-size:15px; }
-  #hand .card { margin-left:-26px; cursor:pointer; transition:transform .12s; }
-  #hand .card:first-child { margin-left:0; }
+    .card.small { width:calc(var(--cw) * 0.7); height:calc(var(--cw) * 1.01); border-radius:6px; font-size:calc(var(--cw) * 0.185); }
+  .card.tiny { width:34px; height:49px; border-radius:5px; font-size:10.5px; }
+  #hand .card { margin-left:-24px; cursor:pointer; }
+  #hand .card:first-child { margin-left:0 !important; }
   #hand .card.legal { outline:3px solid rgba(87,215,255,.85); }
   .fieldcards { display:flex; justify-content:center; }
   .fieldcards .card { margin-left:-20px; }
@@ -82,9 +83,8 @@
   .slot { width:34px; height:49px; border-radius:5px; border:1.6px dashed rgba(255,255,255,.4); display:flex; align-items:center; justify-content:center; font-size:11px; color:rgba(255,255,255,.55); flex:none; }
   .slot.next { border-color:#ffd94a; color:#ffd94a; }
   /* 神経衰弱 */
-  #grid { display:grid; grid-template-columns:repeat(6,52px); gap:7px; justify-content:center; }
-  #grid .card { width:52px; height:74px; cursor:pointer; }
-  #grid .card .big { font-size:26px; } #grid .card .tl { font-size:13px; }
+  #grid { display:grid; grid-template-columns:repeat(6, calc(var(--cw) * 0.84)); gap:7px; justify-content:center; }
+  #grid .card { width:calc(var(--cw) * 0.84); height:calc(var(--cw) * 1.21); cursor:pointer; font-size:calc(var(--cw) * 0.21); }
   #grid .card.taken { visibility:hidden; }
   @keyframes takenOut { 0% { transform:scale(1); opacity:1; } 40% { transform:scale(1.14); opacity:1; } 100% { transform:scale(.6); opacity:0; } }
   #grid .card.justtaken { animation:takenOut .38s ease-in forwards; visibility:visible; }
@@ -113,7 +113,7 @@
   @keyframes newGlow { 0%,100% { box-shadow:0 3px 7px rgba(0,0,0,.4); } 50% { box-shadow:0 0 0 4px #ffd94a, 0 3px 7px rgba(0,0,0,.4); } }
   @keyframes shakeX { 0%,100% { transform:translateX(0); } 25% { transform:translateX(-5px); } 75% { transform:translateX(5px); } }
   #hand .card.deal { animation:dealIn .38s cubic-bezier(.2,1.4,.4,1) backwards; }
-  #hand .card { transform:rotate(var(--rot, 0deg)) translateY(var(--arc, 0px)); transform-origin:50% 92%; }
+  #hand .card { transform:translateY(calc(var(--arc, 0px) + var(--wave, 0px))) rotate(var(--rot, 0deg)); transform-origin:50% 92%; transition:transform .17s ease-out; }
   .card.pop { animation:popIn .3s ease-out; }
   .card.flipanim { animation:flipIn .28s ease-out; }
   .card.newcard { animation:newGlow .8s ease-in-out 2; }
@@ -138,7 +138,7 @@
   #selInfo .ng { color:#ffb3ab; }
   .fieldcards .card.back { transition:transform .12s; }
   .fieldcards .card.back:active { transform:translateY(-12px); }
-  @media (max-width:560px){ .card{width:52px;height:76px} .card .big{font-size:27px} #hand .card{margin-left:-30px} #grid{grid-template-columns:repeat(6,46px)} #grid .card{width:46px;height:66px} }
+  @media (max-height:500px) { .opp .backs { display:none; } .opp { min-width:70px; padding:3px 5px; } .opp .face { font-size:18px; } #handArea { padding-top:0; } #topbar { padding-top:2px; padding-bottom:2px; } #handLabel { display:none; } .fieldcards .card.small { width:calc(var(--cw) * 0.6); height:calc(var(--cw) * 0.87); } #actions { margin-top:4px; min-height:40px; } .abtn { padding:9px 22px; } }
 </style>
 </head>
 <body>
@@ -479,17 +479,17 @@ function cardEl(c, cls = '') {
   const mini = cls.includes('tiny');
   const small = cls.includes('small');
   if (c.joker) {
-    d.innerHTML = `<div class="corner tl" style="font-size:${mini ? 7 : 9}px; writing-mode:vertical-rl; letter-spacing:2px"><span>JOKER</span></div><div class="big" style="flex-direction:column; gap:0"><span style="font-size:${mini ? 14 : 34}px">🃏</span>${mini || small ? '' : '<span style="font-size:11px; letter-spacing:3px">JOKER</span>'}</div>`;
+    d.innerHTML = `<div class="corner tl" style="font-size:0.6em; writing-mode:vertical-rl; letter-spacing:2px"><span>JOKER</span></div><div class="big" style="flex-direction:column; gap:0"><span style="font-size:${mini ? '1.3em' : '2.3em'}">🃏</span></div>`;
     return d;
   }
   const label = RANK_TXT[c.rank - 1], suit = G.SUITS[c.suit];
-  const cs = mini ? 10 : small ? 12 : 15; // コーナー文字サイズ
+  const cs = '1em'; // コーナー文字サイズ（カードのfont-size基準）
   let inner = `<div class="corner tl" style="font-size:${cs}px"><span>${label}</span><span>${suit}</span></div>` + (mini ? '' : `<div class="corner br" style="font-size:${cs}px"><span>${label}</span><span>${suit}</span></div>`);
-  if (mini) { inner += `<div class="big" style="font-size:15px">${suit}</div>`; }
-  else if (c.rank === 1) { inner += `<div class="pip" style="left:50%; top:52%; font-size:${small ? 30 : 44}px">${suit}</div>`; }
-  else if (c.rank >= 11) { inner += `<div class="faceart"><span style="font-size:${small ? 15 : 21}px">${suit}</span><span style="font-size:${small ? 22 : 32}px">${label}</span><span style="font-size:${small ? 15 : 21}px; transform:rotate(180deg)">${suit}</span></div>`; }
-  else if (small) { inner += `<div class="big" style="font-size:24px">${suit}</div>`; }
-  else { const fs = cls.includes('gridcard') ? 12.5 : 15.5; for (const [x, y, f] of PIPS[c.rank]) inner += `<div class="pip ${f ? 'flip' : ''}" style="left:${x}%; top:${y}%; font-size:${fs}px">${suit}</div>`; }
+  if (mini) { inner += `<div class="big" style="font-size:1.4em">${suit}</div>`; }
+  else if (c.rank === 1) { inner += `<div class="pip" style="left:50%; top:52%; font-size:2.9em">${suit}</div>`; }
+  else if (c.rank >= 11) { inner += `<div class="faceart"><span style="font-size:1.35em">${suit}</span><span style="font-size:2.05em">${label}</span><span style="font-size:1.35em; transform:rotate(180deg)">${suit}</span></div>`; }
+  else if (small) { inner += `<div class="big" style="font-size:2.1em">${suit}</div>`; }
+  else { for (const [x, y, f] of PIPS[c.rank]) inner += `<div class="pip ${f ? 'flip' : ''}" style="left:${x}%; top:${y}%; font-size:1.02em">${suit}</div>`; }
   d.innerHTML = inner;
   return d;
 }
@@ -563,7 +563,7 @@ function renderHand(cards, opts = {}) {
     el.style.setProperty('--rot', ((idx - mid) * 1.7).toFixed(2) + 'deg');
     el.style.setProperty('--arc', (Math.pow(idx - mid, 2) * 0.55).toFixed(1) + 'px');
     if (dealAnim) { el.classList.add('deal'); el.style.animationDelay = (idx * 45) + 'ms'; }
-    if (opts.groupRanks && idx > 0) { const prev = cards[idx - 1]; el.style.marginLeft = (!c.joker && !prev.joker && c.rank === prev.rank) ? '-40px' : '-18px'; }
+    if (idx > 0) el.dataset.baseMargin = '1';
     if (selected.has(G.cardId(c))) { el.classList.add('sel'); const b = document.createElement('div'); b.className = 'selbadge'; b.textContent = '✓'; el.appendChild(b); }
     if (opts.legalIds && opts.legalIds.has(G.cardId(c))) el.classList.add('legal');
     if (opts.dimIds && opts.dimIds.has(G.cardId(c))) el.classList.add('dim');
@@ -571,8 +571,33 @@ function renderHand(cards, opts = {}) {
     el.onclick = () => opts.onTap && opts.onTap(c, idx, el);
     root.appendChild(el);
   });
+  // 手札が画面幅に収まるよう重なり幅を実測で決める（同数字は少し詰める）
+  const els = [...root.children];
+  if (els.length > 1) {
+    const cw = els[0].offsetWidth || 64;
+    const avail = (root.clientWidth || window.innerWidth) - 6;
+    let strip = Math.min(cw * 0.85, Math.max(20, (avail - cw) / (els.length - 1)));
+    els.forEach((el, i) => { if (i === 0) return; let m = -(cw - strip); if (opts.groupRanks) { const prev = cards[i - 1], c = cards[i]; m += (!c.joker && !prev.joker && c.rank === prev.rank) ? -5 : 3; } el.style.marginLeft = m + 'px'; });
+  }
 }
 function shakeCard(id) { shakeId = id; render(); setTimeout(() => { shakeId = null; render(); }, 330); }
+// 指で手札をなぞると、カードが波のように持ち上がる
+(function initWave() {
+  const hand = $('hand');
+  const setWave = clientX => {
+    const els = [...hand.children];
+    if (!els.length) return;
+    let f = -1, best = 1e9;
+    els.forEach((el, i) => { const r = el.getBoundingClientRect(); const cx = r.left + r.width / 2; const d = Math.abs(clientX - cx); if (d < best) { best = d; f = i + (clientX < cx ? 0 : 0); } });
+    els.forEach((el, i) => { const dist = Math.abs(i - f); const lift = dist >= 2 ? 0 : -30 * Math.cos(dist / 2 * Math.PI / 2); el.style.setProperty('--wave', lift.toFixed(1) + 'px'); });
+  };
+  const clear = () => [...hand.children].forEach(el => el.style.setProperty('--wave', '0px'));
+  hand.addEventListener('pointermove', e => { if (e.pointerType !== 'mouse' || e.buttons) setWave(e.clientX); else if (e.pointerType === 'mouse') setWave(e.clientX); });
+  hand.addEventListener('pointerdown', e => setWave(e.clientX));
+  hand.addEventListener('pointerup', clear);
+  hand.addEventListener('pointerleave', clear);
+  hand.addEventListener('pointercancel', clear);
+})();
 function actions(buttons) {
   const root = $('actions'); root.innerHTML = '';
   for (const b of buttons) { const btn = document.createElement('button'); btn.className = 'abtn' + (b.sub ? ' sub' : ''); btn.textContent = b.label; btn.disabled = !!b.disabled; btn.onclick = b.onClick; root.appendChild(btn); }
