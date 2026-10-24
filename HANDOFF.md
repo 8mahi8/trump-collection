@@ -127,3 +127,10 @@ jobs:
 - 試遊は GitHub Pages 経由・主にスマホ。新しい版を push したら URL と版番号を伝える。
 - 完成の定義: 実装 → 機械的レビュー（テスト/ビルド/通しプレイ） → 人間目線の品質確認（見た目・気持ちよさ・既存のちゃんとしたゲームと比べて恥ずかしくないか） → 直しをループ → 外部資料と照らして「人に見せられる」と判断できて初めて試遊を頼む。
 - 未確認のことを確認済みのように言わない。README の未確認事項は正直に保つ。
+
+
+## 2026-10-25 オンライン基盤Phase 1（実装済み・本番未接続）
+
+[オンライン開発レポート](online/README.md)が詳しい正本。神経衰弱2人用のホスト確定ルーム、非公開伏せ札を送らないview、古い操作・重複ID・手番違い拒否を開発。BroadcastChannelで同じoriginの2タブ同期（READY/START/1枚と2枚の公開と伏せ直し）をChromiumで確認。700×320横向きは12列×2段で画面内に収めた。Supabase private Broadcast transportアダプターはモック済みだが実DB/Auth/RLSとは未接続。新規10件を含むNode計30件合格。通常ゲームのGitHub Pages main/index.html・Google Sitesは変更なし。
+
+[専用2タブ試遊](https://8mahi8.github.io/trump-collection/preview-online-memory-lab.html)は**別端末間の実オンライン対戦には対応していない**。次は隔離したバックエンドの権限設計と、本物の2端末での通信検証。
