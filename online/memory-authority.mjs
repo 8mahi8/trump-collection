@@ -43,7 +43,8 @@ export function createMemoryAuthority({roomCode, hostId, seedSource = () => {
     if (action.type === 'join') {
       if (seat >= 0) return response(true,'ALREADY_JOINED');
       if (phase !== 'lobby' || seats[1]) return response(false,'ROOM_FULL_OR_STARTED');
-      if (action.expectedRevision !== revision) return response(false,'STALE');
+      // 入室はロビーの最新revisionを知らない初回接続でも受ける。
+      // ルーム満員・対戦開始後の入室は禁止。
       seats[1] = {id:action.actor,ready:false};
       handled.add(action.actionId);return advance();
     }
