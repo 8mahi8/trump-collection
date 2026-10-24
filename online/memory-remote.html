@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>トランプコレクション｜神経衰弱・別端末オンライン試作</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:system-ui,"Hiragino Sans",sans-serif;background:#0b412c;color:#fff}body{overflow:auto}
+main{max-width:980px;margin:auto;padding:12px 16px 22px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}h1{font-size:clamp(18px,3vw,27px);margin:6px 0}h2{font-size:17px;margin:9px 0}
+aside{font-size:12px;line-height:1.6;color:#eacb8e}
+.panel{padding:12px;border-radius:13px;background:#15573b;border:1px solid #3c8763;margin:9px 0}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.row>*{margin:2px 0}
+button,input{font:inherit;border:0;border-radius:9px;min-height:44px}
+button{background:#ffdf65;color:#1b3024;font-weight:700;padding:8px 16px;cursor:pointer}button:disabled{opacity:.4;cursor:default}
+button.alt{background:#e6f6e9}input{background:#fff;color:#18231f;padding:8px 12px;width:126px}
+#room{font-size:23px;font-weight:800;letter-spacing:2px;color:#ffe17c}#status{font-size:14px;line-height:1.6;min-height:20px}
+#board{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:clamp(3px,0.8vw,9px);width:min(560px,95vw);margin:4px auto}
+.tile{width:100%;aspect-ratio:0.73;min-height:0;padding:0;display:flex;align-items:center;justify-content:center;flex-direction:column;border-radius:8px;border:2px solid #edf6eb;background:linear-gradient(140deg,#2d65aa,#16386d);color:#fff;font-size:clamp(12px,2vw,21px);touch-action:manipulation}
+.tile.face{background:#f7f6ed;color:#182a35}.tile.red{color:#cb3c49}.tile.taken{visibility:hidden}.tile:disabled:not(.face){opacity:.73}
+#notice{font-size:15px;font-weight:700;color:#ffe17c}#gameArea{display:none}
+#lobby{display:none}
+@media(max-height:480px){
+body.playing #connect{display:none}
+body.playing header aside{display:none}
+body.playing #lobby .row:nth-child(2){display:none}
+body.playing #board{grid-template-columns:repeat(12,minmax(0,1fr));width:min(660px,94vw)}
+body.playing .panel{padding:4px 8px}
+body.playing #notice{font-size:11px}
+main{padding:3px 12px}h1{font-size:16px}header aside{font-size:10px}.panel{margin:4px 0;padding:5px 9px}#board{width:min(480px,90vw)}.tile{font-size:14px;border-radius:5px;border-width:1px}.row{gap:4px}button,input{min-height:38px}#status{font-size:12px}}
+</style></head>
+<body><main>
+<header><h1>🃏 神経衰弱｜オンライン試作</h1><aside>PCとスマホで同じ5桁の番号を入力。外部CDN・ログイン不要。<strong>身内向け実験版：公開ルームで、番号は認証ではありません。</strong></aside></header>
+<section id="connect" class="panel">
+  <div class="row"><button id="create">ルームを作る</button><input id="code" inputmode="numeric" maxlength="5" pattern="[0-9]*" placeholder="5桁の番号" aria-label="ルーム番号"><button id="join" class="alt">ルームに参加</button></div>
+  <div id="status" aria-live="polite">ホストで部屋作成 → 別端末から5桁で参加（接続先は検証用Supabase）</div>
+</section>
+<section id="lobby" class="panel">
+  <div class="row"><span>ルーム：<span id="room"></span></span><span id="seat"></span><span id="players"></span></div>
+  <div class="row"><button id="ready">準備OK</button><button id="start">対戦開始</button><button id="again">再戦ロビーへ</button></div>
+  <div id="notice"></div>
+</section>
+<section id="gameArea" class="panel">
+  <div class="row"><span id="turn"></span><span id="score"></span></div><div id="board" aria-label="神経衰弱のカード24枚"></div>
+</section>
+</main>
+<script type="module">
+import {ROOM_PROTOCOL,createMemoryAuthority,makeRoomCommand} from './memory-authority.mjs';
+import {makeRealtimeWire} from './realtime-wire.mjs';
+// 3d-soccer-onlineで公開済みのSupabase Freeプロジェクト。DB/Rules/既存チャンネルを変更しない。
+// 本番運用時はトランプ専用プロジェクトへ切り替え、Private Broadcast/RLSを導入する。
+const PROJECT_URL='https://itqimlgnrjikaamstdlp.supabase.co';
+const PUBLIC_KEY='sb_publishable_Ol0Rsa0xGW2_ItAre-_gcQ_p6ZUGbcN';
+const $=id=>document.getElementById(id), suits=['♠','♥','♦','♣'];
+const token=()=>{if(!crypto?.getRandomValues)throw Error('CRYPTO_UNAVAILABLE');const v=new Uint32Array(3);crypto.getRandomValues(v);return [...v].map(x=>x.toString(36)).join('-')};
+const randomRoom=()=>{const v=new Uint32Array(1);crypto.getRandomValues(v);return String(10000+v[0]%90000)};
+let authority=null,wire=null,currentView=null,code='',isHost=false,actor='',sequence=0,settleTimer=null,heartbeatTimer=null,joinWait=null,connected=false,lastHostAt=0,roomGeneration=0;
+function status(text){$('status').textContent=text}
+function closeRoom(){roomGeneration++;if(wire)wire.stop();wire=null;
+ for(const t of [settleTimer,heartbeatTimer,joinWait])clearTimeout(t);
+ clearInterval(heartbeatTimer);settleTimer=heartbeatTimer=joinWait=null;
+ authority=null;currentView=null;connected=false;lastHostAt=0;}
+function sendView(){
+ if(!authority)return;
+ currentView=authority.publicView();render();
+ wire?.send({kind:'view',protocol:ROOM_PROTOCOL,roomCode:code,view:currentView});
+}
+function receive(m){
+ if(!m||m.protocol!==ROOM_PROTOCOL||m.roomCode!==code)return;
+ if(isHost&&m.kind==='command'){
+   const a=m.action;if(!a||typeof a.actor!=='string')return;
+   const result=authority.apply(a);
+   if(!result.ok)wire?.send({kind:'error',protocol:ROOM_PROTOCOL,roomCode:code,target:a.actor,reason:result.reason});
+   sendView();scheduleSettle();
+ }else if(!isHost&&m.kind==='view'){
+   const v=m.view;
+   if(!v||v.protocol!==ROOM_PROTOCOL||v.roomCode!==code||!Array.isArray(v.players)||!Array.isArray(v.cards)||!Number.isInteger(v.revision))return;
+   if(currentView&&(v.round<currentView.round||(v.round===currentView.round&&v.revision<currentView.revision)))return;
+   currentView=v;lastHostAt=Date.now();
+   if(joinWait){clearTimeout(joinWait);joinWait=null;}
+   status(v.players[1]?.present?'接続OK。準備して対戦しよう':'ホストと通信中。参加を確認しています…');
+   render();
+ }else if(!isHost&&m.kind==='error'&&m.target===actor)status('操作が受理されません：'+m.reason+'（最新の状態に更新してください）');
+ else if(isHost&&m.kind==='sync')sendView();
+}
+function setup(number,host){
+ closeRoom();isHost=host;code=number;actor=token();sequence=0;
+ const gen=roomGeneration;
+ $('lobby').style.display='block';$('room').textContent=number;
+ $('seat').textContent='｜'+(host?'ホスト':'ゲスト');
+ if(host){authority=createMemoryAuthority({roomCode:code,hostId:actor});currentView=authority.publicView();render();}
+ wire=makeRealtimeWire({projectUrl:PROJECT_URL,publishableKey:PUBLIC_KEY,roomCode:code,
+    onEvent:receive,onStatus:(state,description)=>{
+      if(gen!==roomGeneration)return;
+      connected=state==='connected';status(description);
+      if(connected){
+        if(isHost)sendView();
+        else{
+          const a={protocol:ROOM_PROTOCOL,roomCode:code,actor,actionId:actor+'-'+(++sequence),expectedRevision:0,round:0,type:'join'};
+          wire.send({kind:'command',protocol:ROOM_PROTOCOL,roomCode:code,action:a});
+          wire.send({kind:'sync',protocol:ROOM_PROTOCOL,roomCode:code});
+          clearTimeout(joinWait);
+          joinWait=setTimeout(()=>{if(gen===roomGeneration&&!currentView)status('参加待ち：ホストが応答しません。番号・ホスト接続を確認してください')},6000);
+        }
+      }
+      render();
+    }});
+ wire.start();
+ heartbeatTimer=setInterval(()=>{
+   if(gen!==roomGeneration)return;
+   if(isHost&&wire?.connected)sendView();
+   if(!isHost&&connected&&currentView&&Date.now()-lastHostAt>10000){
+     status('ホストからの更新が止まっています。接続の復帰を待っています…');
+     wire?.send({kind:'sync',protocol:ROOM_PROTOCOL,roomCode:code});
+   }
+   render();
+ },3000);
+}
+function send(type,extra={}){
+ if(!wire?.connected||!currentView){status('通信が未接続です');return;}
+ const cmd=makeRoomCommand(currentView,actor,type,actor+'-'+(++sequence),extra);
+ if(isHost){
+   const r=authority.apply(cmd);if(!r.ok){status('操作不可：'+r.reason);return;}
+   sendView();scheduleSettle();
+ }else wire.send({kind:'command',protocol:ROOM_PROTOCOL,roomCode:code,action:cmd});
+}
+function scheduleSettle(){
+ if(!isHost||!authority?.publicView().locked||settleTimer)return;
+ const gen=roomGeneration;
+ settleTimer=setTimeout(()=>{settleTimer=null;if(gen===roomGeneration&&authority?.settle())sendView()},1000);
+}
+$('create').onclick=()=>{try{setup(randomRoom(),true)}catch(e){status('ルーム作成失敗：'+e.message)}};
+$('join').onclick=()=>{
+ const number=$('code').value.trim();if(!/^[0-9]{5}$/.test(number)){status('5桁の部屋番号を入力してください');return;}
+ try{setup(number,false)}catch(e){status('参加失敗：'+e.message)}
+};
+$('ready').onclick=()=>{if(currentView)send('ready',{ready:!currentView.players[isHost?0:1].ready})};
+$('start').onclick=()=>send('start');
+$('again').onclick=()=>send('rematch');
+window.addEventListener('pagehide',()=>wire?.stop());
+function render(){
+ const v=currentView;if(!v)return;
+ const mine=isHost?0:1,alive=connected&&(!isHost?Date.now()-lastHostAt<=10000:true);
+ $('room').textContent=v.roomCode;
+ $('seat').textContent='｜'+(isHost?'ホスト':'ゲスト');
+ $('players').textContent='｜'+v.players.filter(p=>p.present).length+'/2人';
+ $('ready').disabled=!alive||v.phase!=='lobby'||!v.players[mine]?.present;
+ $('ready').textContent=v.players[mine]?.ready?'準備を解除':'準備OK';
+ $('start').style.display=isHost?'':'none';
+ $('start').disabled=!alive||v.phase!=='lobby'||!v.players.every(p=>p.present&&p.ready);
+ $('again').style.display=(isHost&&v.phase==='finished')?'':'none';
+ $('notice').textContent=v.phase==='lobby'?'両者の準備後、ホストが開始':v.phase==='finished'?(v.winner===-1?'引き分け':'勝者：'+(v.winner===mine?'あなた':'相手')):v.locked?'2枚の結果を確認中…':'';
+ $('gameArea').style.display=(v.phase==='playing'||v.phase==='finished')?'block':'none';
+ $('turn').textContent='手番：'+(v.turn===mine?'あなた':'相手');
+ $('score').textContent='｜あなた '+v.scores[mine]+'ペア・相手 '+v.scores[1-mine]+'ペア';
+ const board=$('board');board.replaceChildren();
+ v.cards.forEach((c,i)=>{
+   const b=document.createElement('button');b.className='tile';b.type='button';b.setAttribute('aria-label',(i+1)+'番のカード');
+   if(c.taken&&!v.reveal?.positions.includes(i))b.classList.add('taken');
+   if(c.card){b.classList.add('face');if(c.card.suit===1||c.card.suit===2)b.classList.add('red');
+     const mark=document.createElement('span');mark.textContent=suits[c.card.suit];
+     const num=document.createElement('b');num.textContent=c.card.rank===1?'A':String(c.card.rank);b.append(mark,num);}
+   else b.textContent='♠';
+   b.disabled=!alive||v.phase!=='playing'||v.turn!==mine||v.locked||c.taken||v.flipped.includes(i);
+   b.onclick=()=>send('flip',{pos:i});board.appendChild(b);
+ });
+}
+
+</script></body></html>
