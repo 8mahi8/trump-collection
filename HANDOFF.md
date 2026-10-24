@@ -6,6 +6,8 @@
 - リポジトリ: `8mahi8/trump-collection`
 - 通常版URL（GitHub Pages、main の index.html）: https://8mahi8.github.io/trump-collection/
 - v1.5.5 専用試遊URL（main に **個別HTMLのみ**追加、通常版は不変）: https://8mahi8.github.io/trump-collection/preview-v1.5.5.html
+- Phase 2の別端末オンライン試作URL（同様にmainの別ファイルのみ追加）: https://8mahi8.github.io/trump-collection/preview-online-memory-remote.html
+- 詳細な通信構成・テスト・限界: [ONLINE_REMOTE_PHASE2_2026-10-25.md](docs/ONLINE_REMOTE_PHASE2_2026-10-25.md)
 - 開発ブランチの版: **v1.5.5**（main の公開版は v1.4.0）（`index.html` 内の `TC_VERSION` が版の正本。メニュー下部にも表示）
 - 状態: v1.5.5はCOM対応4ゲーム実装済み・ユーザー試遊済み。**最終目標はカードゲーム追加＋友達とのオンライン対戦**（COMは補助モード）。同じoriginの別タブ限定の2人ルーム試作は実装済み。遠隔の実通信は未接続。
 - **今後の計画の正本**: [オンライン・カードゲーム拡張ロードマップ](docs/ROADMAP_ONLINE_AND_CARD_GAMES_2026-10-25.md)。この方針はユーザーが2026-10-25に明示した。
@@ -16,6 +18,7 @@
 - インストール・ログイン不要。横向き・タッチ操作中心。1ゲーム短時間で終わる。
 - **既存カードゲームをここへ継続追加**する。現在の4つで完結しない。既存4ゲームも最終的に友達同士のオンライン対戦へ対応する。
 - オンラインの操作は従来の開発ゲームと同様に「ルーム番号を作る→友達が参加→開始」。ゲーム選択と人数（2人／4人）はルーム内で共通化。
+- **現段階**: 2人神経衰弱の別端末オンライン試作は、既存Supabase Freeの公開Broadcastを別topicで利用。実Supabase/学校Safariは未検証、身内テスト限定。通常のCOM版・Google Sites版は変更しない。
 - 正式な配布経路は **Google Sites への単体HTML貼り付け**（`dist/trump-collection.html` の中身を貼る）。GitHub Pages は試遊用。
 - 素材はすべて自作のみ。既存ゲームの名称・デザインの流用は不可（例: UNO は名称・デザインが使えないため不採用という判断済み）。
 
@@ -98,6 +101,7 @@ node dev/verify.mjs         # 3. 総合検証（テスト→ビルド→通し�
 ## 未確認事項（済んだことにしない）
 
 - 学校 iPad 実機 Safari での動作・操作感は未確認（オーナーの担当）。
+- Phase 2のブラウザ試験は模擬WebSocket経由の2ページ同期。**実Supabase WebSocketへは未接続**。ルーム番号は認証ではなく、公開Broadcastを正式版として扱わないこと。
 - Google Sites に実際に貼った状態での動作は未確認（技術的には外部読み込みなし・localStorage 不使用で抵触しない見込み）。
 - GitHub Actions の workflow ファイルは、連携アプリの権限では設置できず未設置。置く場合は `.github/workflows/test.yml` に以下の内容で作成する:
 
