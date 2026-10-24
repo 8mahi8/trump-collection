@@ -138,6 +138,13 @@
   #selInfo .ng { color:#ffb3ab; }
   .fieldcards .card.back { transition:transform .12s; }
   .fieldcards .card.back:active { transform:translateY(-12px); }
+  /* ババ抜き：引いたカードが手札に紛れる前に大きく表示する */
+  #babaReveal { display:flex; align-items:center; justify-content:center; gap:17px; padding:5px; max-width:min(94vw,500px); margin:auto; text-align:left; }
+  #babaReveal .card { width:76px; height:108px; font-size:19px; animation:popIn .24s ease-out; }
+  #babaReveal .drawHeadline { font-size:12px; color:#cde8d5; }
+  #babaReveal .drawName { font-size:clamp(17px,3.5vw,24px); font-weight:800; margin:3px 0 6px; }
+  #babaReveal .drawOutcome { font-size:clamp(12px,2.4vw,15px); color:#ffe48a; font-weight:700; line-height:1.35; }
+  @media(max-height:365px) { #babaReveal .card { width:58px; height:84px; font-size:15px; } #babaReveal { gap:10px; } #babaReveal .drawName { margin:1px 0 3px; } }
   /* 横向きスマホやGoogle Sites埋め込みの低いiframeでも盤面が切れないようにする */
   #gameScreen.shinkei #handArea { display:none; }
   #gameScreen.shinkei #center { padding:3px 6px; }
@@ -223,7 +230,7 @@
 <script type="module">
 import * as G from './games.mjs';
 const $ = id => document.getElementById(id);
-const TC_VERSION = '1.5.4';
+const TC_VERSION = '1.5.5';
 const NAMES = ['あなた', '🐰 COM1', '🐱 COM2', '🐶 COM3'];
 const RANK_TXT = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 let game = null, st = null, selected = new Set(), busy = false, dealAnim = false, session = 0, justTaken = new Set(), prevFieldCards = null, botWait = 780, daifugoPrevRanks = null, daifugoCfg = { ...G.DAIFUGO_DEFAULTS }, shinkeiDiff = 1, holdPair = null, resultShownSession = -1, bannerSequence = 0;
@@ -477,6 +484,19 @@ function showResult() {
   }
 }
 
+// 引いたカードの正体とペア成否を約1秒見せる。相手が引いた非公開カードは出さない。
+function showBabanukiReveal(draw) {
+  const root = document.createElement('div'); root.id = 'babaReveal'; root.setAttribute('role','status');
+  root.appendChild(cardEl(draw.card));
+  const info = document.createElement('div');
+  const name = draw.card.joker ? 'ジョーカー' : G.SUITS[draw.card.suit] + RANK_TXT[draw.card.rank-1];
+  info.innerHTML = '<div class="drawHeadline">引いたカードは…</div>';
+  const value = document.createElement('div'); value.className = 'drawName'; value.textContent = name; info.appendChild(value);
+  const outcome = document.createElement('div'); outcome.className = 'drawOutcome';
+  outcome.textContent = draw.paired ? 'ペア成立！同じ数字の2枚を捨てた' : 'ペアなし・手札に加えた';
+  info.appendChild(outcome); root.appendChild(info);
+  $('center').replaceChildren(root);
+}
 // ババ抜き
 function renderBabanuki() { $('selInfo').textContent = '';
   renderOpponents(4, i => st.ranks[i] ? `${st.ranks[i]}位で上がり` : `${st.hands[i].length}枚`);
@@ -485,7 +505,7 @@ function renderBabanuki() { $('selInfo').textContent = '';
     const target = G.babanukiNextWithCards(st, 0);
     c.innerHTML = `<div style="text-align:center"><div style="margin-bottom:8px">${NAMES[target]} のカードを1枚タップして引こう</div><div class="fieldcards" id="drawFan"></div></div>`;
     const fan = c.querySelector('#drawFan');
-    st.hands[target].forEach((_, idx) => { const b = cardEl(null, 'small'); b.style.cursor = 'pointer'; b.style.transition = 'transform .17s ease-out'; b.onclick = async () => { if (busy) return; busy = true; const currentSession = session; flyTo(b, $('hand').getBoundingClientRect(), null); await sleep(250); if (session !== currentSession) return; G.babanukiDraw(st, idx); render(); await sleep(500); if (session !== currentSession) return; busy = false; if (st.phase === 'end') showResult(); else driveBots(); }; fan.appendChild(b); });
+    st.hands[target].forEach((_, idx) => { const b = cardEl(null, 'small'); b.style.cursor = 'pointer'; b.style.transition = 'transform .17s ease-out'; b.onclick = async () => { if (busy || !st || st.turn !== 0 || st.phase !== 'play') return; busy = true; const currentSession = session; flyTo(b, $('hand').getBoundingClientRect(), null); await sleep(250); if (session !== currentSession) return; G.babanukiDraw(st, idx); const draw = st.lastDraw; render(); if (draw?.by === 0) showBabanukiReveal(draw); await sleep(1100); if (session !== currentSession) return; render(); busy = false; if (st.phase === 'end') showResult(); else driveBots(); }; fan.appendChild(b); });
     msg('あなたの番：引くカードを選んで');
     const fanEls = [...fan.children];
     const fanWave = x => { let f = 0, best = 1e9; fanEls.forEach((el, i) => { const r = el.getBoundingClientRect(); const d = Math.abs(x - (r.left + r.width / 2)); if (d < best) { best = d; f = i; } }); fanEls.forEach((el, i) => { const dist = Math.abs(i - f); el.style.transform = dist >= 2 ? '' : `translateY(${-16 * Math.cos(dist / 2 * Math.PI / 2)}px)`; }); };
@@ -493,13 +513,13 @@ function renderBabanuki() { $('selInfo').textContent = '';
     fan.onpointerdown = e => fanWave(e.clientX);
     fan.onpointerleave = () => fanEls.forEach(el => el.style.transform = '');
   } else {
-    if (st.lastDraw && st.lastDraw.paired) { c.innerHTML = ''; const w = document.createElement('div'); w.style.textAlign = 'center'; w.innerHTML = `<div style="color:#ffe9a8; margin-bottom:6px">ペアそろった！</div>`; const fc = document.createElement('div'); fc.className = 'fieldcards'; const pc = cardEl(st.lastDraw.card, 'small'); pc.classList.add('pop'); fc.appendChild(pc); w.appendChild(fc); c.appendChild(w); }
-    else c.innerHTML = `<div style="text-align:center; color:#ffe9a8">${st.lastDraw ? '対戦中…' : '対戦中…'}</div>`;
+    // COMの引いたカードは非公開。ペアができたことだけ表示する。
+    c.innerHTML = `<div style="text-align:center; color:#ffe9a8">${st.lastDraw?.paired ? 'ペアそろった！' : '対戦中…'}</div>`;
     if (st.phase === 'play') msg(`${NAMES[st.turn]} の番`);
   }
   $('handLabel').textContent = `あなたの手札 ${st.hands[0].length}枚`;
   renderHand(G.sortHand(st.hands[0]), {});
-  if (st.lastDraw && st.lastDraw.card) { const els = $('hand').children; const sorted = G.sortHand(st.hands[0]); const ix = sorted.findIndex(c => G.cardId(c) === G.cardId(st.lastDraw.card)); if (ix >= 0 && els[ix]) els[ix].classList.add('newcard'); }
+  if (st.lastDraw?.by === 0 && !st.lastDraw.paired) { const els = $('hand').children; const sorted = G.sortHand(st.hands[0]); const ix = sorted.findIndex(c => G.cardId(c) === G.cardId(st.lastDraw.card)); if (ix >= 0 && els[ix]) els[ix].classList.add('newcard'); }
   actions([]);
 }
 // 七並べ
