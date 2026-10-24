@@ -30,6 +30,7 @@ export function babanukiDraw(st, cardIndex) {
   if (st.phase !== 'play') return st;
   const me = st.turn, target = babanukiNextWithCards(st, me);
   if (target === me) { st.phase = 'end'; return st; }
+  if (!Number.isInteger(cardIndex) || cardIndex < 0 || cardIndex >= st.hands[target].length) return st;
   const card = st.hands[target].splice(cardIndex, 1)[0];
   st.hands[me].push(card);
   st.lastDraw = { from: target, card };
