@@ -10,6 +10,7 @@
 
 - GitHub Pages通常版（v1.4.0）: https://8mahi8.github.io/trump-collection/
 - **v1.5.5 試遊ページ（通常版は変更なし）**: https://8mahi8.github.io/trump-collection/preview-v1.5.5.html
+- **神経衰弱・2人用の別端末オンライン試作**: https://8mahi8.github.io/trump-collection/preview-online-memory-remote.html （実Supabase接続はまだユーザー試験待ち）
 - Google サイトに貼る場合は `dist/trump-collection.html` の中身をそのまま貼り付けてください（単体ファイル版）。
 
 ## 今後の最優先開発
@@ -52,3 +53,10 @@
 
 - [2タブ試遊ラボ](https://8mahi8.github.io/trump-collection/preview-online-memory-lab.html)
 - [実装ファイル・30テスト・残課題](online/README.md)
+
+## Phase 2｜オンライン試作（2026-10-25）
+
+- `online/memory-authority.mjs`: 2人神経衰弱の配札・手番の正本。伏せ札は公開viewへ含めない。
+- `online/realtime-wire.mjs`: 外部CDN不要のSupabase標準WebSocket。再接続とルーム別topicを実装。
+- `online/memory-remote.html`: GitHub Pagesとは別の開発用ソース。2人のルーム番号参加・対戦・再戦のUI。
+- [Phase 2のテスト・既知制約](docs/ONLINE_REMOTE_PHASE2_2026-10-25.md)。既存のSupabase Freeプロジェクトの独立チャンネルを利用した**公開チャンネルの短期試作**であり、5桁番号は認証ではない。学校正式版へは未展開。
