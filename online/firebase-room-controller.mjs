@@ -9,9 +9,10 @@ export function createFirebaseRoomHost({store,roomCode,game,seedSource,config}){
     roomCode,game,hostId:store.uid,seedSource,config
   });
   const members=new Set([store.uid]);
-  let initialized=false,working=false;
+  let initialized=false,working=false,publishedRevision=-1;
   async function publish(){
     await store.publishViews(roomCode,authority,[...members]);
+    publishedRevision=authority.revision; // only commit after private+public both succeed
   }
   async function bootstrap(){
     if(initialized)throw Error('ROOM_ALREADY_INITIALIZED');
@@ -44,7 +45,7 @@ export function createFirebaseRoomHost({store,roomCode,game,seedSource,config}){
           members.add(uid);
         }
       }
-      if(accepted)await publish();
+      if(accepted||publishedRevision!==authority.revision)await publish();
       const pending=await store.commands(roomCode)||{};
       for(const uid of Object.keys(pending).sort()){
         const entries=pending[uid];
