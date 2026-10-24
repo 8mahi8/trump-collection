@@ -159,3 +159,17 @@ test('Firebase 4人コントローラー: public/private revision mismatch block
  assert.equal((await s.clients[p].poll()).status,'syncing');
  await assert.rejects(()=>s.clients[p].act('pass'),/NO_SYNCED_VIEW/);
 });
+
+test('Firebase 4人コントローラー: ロビー状態配信に失敗しても次回tickで復旧',async()=>{
+ const s=setup('babanuki',15);
+ await s.host.bootstrap();
+ await s.clients[1].requestJoin();
+ s.state.failPublishOnce=true;
+ await assert.rejects(()=>s.host.tick(),/SIMULATED_LOST_WRITE/);
+ assert.equal(s.host.authority.seatOf(IDS[1]),1);
+ assert.equal(s.state.public.revision,0);
+ await s.host.tick();
+ assert.equal(s.state.public.revision,1);
+ assert.equal((await s.clients[1].poll()).status,'ready');
+ assert.equal(s.state.seatWrites,2);
+});
