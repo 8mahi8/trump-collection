@@ -5,7 +5,10 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createServer} from 'node:http';
 import {resolve} from 'node:path';
-import {chromium} from 'playwright';
+import {chromium,webkit} from 'playwright';
+const engine=process.env.TC_BROWSER_ENGINE||'chromium';
+if(!['chromium','webkit'].includes(engine))throw Error('INVALID_BROWSER_ENGINE: '+engine);
+const browserType=engine==='webkit'?webkit:chromium;
 
 const html=readFileSync(resolve('dist/trump-collection-online-lab.html'),'utf8');
 const server=createServer((req,res)=>{
@@ -14,7 +17,7 @@ const server=createServer((req,res)=>{
 });
 await new Promise((resolve,reject)=>server.listen(8765,'127.0.0.1',error=>error?reject(error):resolve()));
 const errors=[];
-const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+const browser=await browserType.launch(engine==='chromium'?{headless:true,args:['--no-sandbox']}:{headless:true});
 const testPages=[];
 const URL='http://127.0.0.1:8765/';
 const emulator=process.env.TC_BROWSER_EMULATOR==='1';
@@ -56,7 +59,7 @@ try{
   await page.locator('#create').click();
   await page.waitForFunction(()=>document.getElementById('status').textContent.includes('Firebase接続先が未設定'));
   assert.equal(await page.locator('#create').isDisabled(),false);
-  console.log('BROWSER SMOKE PASS: 800×450 UI + missing-config guard');
+  console.log('BROWSER SMOKE PASS ['+engine+']: 800×450 UI + missing-config guard');
  }else{
   for(const game of ['babanuki','shichinarabe','daifugo']){
    const owner=game==='babanuki'?page:await setup();
@@ -120,7 +123,7 @@ try{
    }
    await Promise.all(participants.map(p=>p.waitForFunction(
      rev=>TCFourRemote.view.revision>rev,before,{timeout:20000})));
-   console.log('FIREBASE EMULATOR BROWSER PASS:',game,'4 pages, unique seats, READY, first synced move');
+   console.log('FIREBASE EMULATOR BROWSER PASS ['+engine+']:',game,'4 pages, unique seats, READY, first synced move');
    if(game==='babanuki'){
     // Simulate host connectivity loss while all guest pages stay online.
     await owner.route('**/heartbeat.json*',route=>
@@ -145,7 +148,7 @@ try{
           document.getElementById('status').textContent.includes('部屋'),
      null,{timeout:25000})));
    for(const p of others)assert.equal(await p.locator('#create').isDisabled(),false);
-   console.log('FIREBASE EMULATOR BROWSER PASS:',game,
+   console.log('FIREBASE EMULATOR BROWSER PASS ['+engine+']:',game,
      'friend/host leaves, all browsers return to create/join menu');
   }
  }
