@@ -32,6 +32,7 @@ select,input{background:#fafff5;color:#223128}input{max-width:140px}
 </main><script type="module">
 import {createFirebaseAnonymousAuth,createFirebaseRoomStore} from './firebase-room-store.mjs';
 import {validateDedicatedFirebaseConfig} from './firebase-dedicated-guard.mjs';
+import {nextFirebasePollDelay} from './firebase-poll-policy.mjs';
 import {createFirebaseRoomHost,createFirebaseRoomGuest} from './firebase-room-controller.mjs';
 
 // PUBLIC Firebase Web API key and RTDB URL only. Do not put admin credentials here.
@@ -48,7 +49,7 @@ const cardText=c=>c?.joker?'JOKER':UI_SUITS[c.suit]+(CARD_NAMES[c.rank]||c.rank)
 let session=0,auth=null,store=null,hostRunner=null,guestRunner=null;
 let roomCode='',game='',mySeat=-1,isHost=false,publicState=null,privateState=null;
 let busy=false,pendingAction='',failCount=0,selected=new Set(),lastRender='',online=true;
-let tickTimer=null,pollWorking=false;
+let tickTimer=null,pollWorking=false,lastPollStatus='waiting_for_host';
 const stateName=()=>isHost?'host':guestRunner?'guest':'menu';
 
 function status(message){$('status').textContent=message;}
@@ -56,7 +57,7 @@ function setupInfo(message){$('notice').textContent=message;}
 function clear(){
  session++;clearTimeout(tickTimer);tickTimer=null;
  hostRunner=guestRunner=null;roomCode='';publicState=privateState=null;
- mySeat=-1;isHost=false;busy=false;pendingAction='';failCount=0;selected.clear();lastRender='';
+ mySeat=-1;isHost=false;busy=false;pendingAction='';failCount=0;lastPollStatus='waiting_for_host';selected.clear();lastRender='';
  $('lobby').hidden=true;$('match').hidden=true;
  $('create').disabled=false;$('join').disabled=false;$('game').disabled=false;
 }
@@ -188,6 +189,7 @@ async function poll(epoch){
    return;
   }
   if(result.status==='ready'){
+   lastPollStatus='ready';
    publicState=result.publicView;privateState=result.privateView;
    mySeat=privateState.seat;
    const resumed=!online;
@@ -204,7 +206,7 @@ async function poll(epoch){
    }
    render();
   }else{
-   online=false;
+   online=false;lastPollStatus=result.status;
    status(result.status==='waiting_for_host'?'ホストの入室承認を待っています…':
     result.status==='host_unavailable'?'ホストの応答が止まっています。復帰するまで操作を停止します…':
     '状態を同期しています…');
@@ -212,12 +214,15 @@ async function poll(epoch){
   }
  }catch(e){
   if(!shouldRun(epoch))return;
-  online=false;failCount++;
+  online=false;lastPollStatus='error';failCount++;
   status('通信を再確認しています ('+failCount+')：'+describe(e));
   render();
  }finally{
   pollWorking=false;
-  if(shouldRun(epoch))schedule(epoch,online?650:Math.min(1200+failCount*700,5000));
+  if(shouldRun(epoch))schedule(epoch,nextFirebasePollDelay({
+   phase:publicState?.phase,isHost,pendingAction:Boolean(pendingAction),
+   status:lastPollStatus,failCount,myTurn:publicState?.turn===mySeat
+  }));
  }
 }
 async function send(type,extra={}){
