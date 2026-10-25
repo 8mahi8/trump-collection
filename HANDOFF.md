@@ -9,7 +9,7 @@
 - Phase 2の別端末オンライン試作URL（同様にmainの別ファイルのみ追加）: https://8mahi8.github.io/trump-collection/preview-online-memory-remote.html
 - 詳細な通信構成・テスト・限界: [ONLINE_REMOTE_PHASE2_2026-10-25.md](docs/ONLINE_REMOTE_PHASE2_2026-10-25.md)
 - **4人用の最新コード・テスト・Firebase移行方針**: [FOUR_SEAT_PHASE3_2026-10-25.md](docs/FOUR_SEAT_PHASE3_2026-10-25.md)。再実行 `python dev/verify_four_seat_browser.py`。
-- **Firebase Auth・RTDB安全構成（Phase 4）**: [firebase/README.md](firebase/README.md)。実Firebase Rules/エミュレーター未検証のため外部4人接続不可。モック含むNode48/48合格。
+- **Firebase Auth・RTDB実エミュレーター検証（Phase 5）**: [firebase/README.md](firebase/README.md)。[GitHub Actions成功](https://github.com/8mahi8/trump-collection/actions/runs/40158460489)。Node52/52合格、Firebase Local Emulator SuiteのAuth+RTDBで4人対戦3ゲーム完走（ババ抜き28手・七並べ52手・大富豪97手）。**本番Firebaseと学校Safariは未検証**。
 
 
 - 開発ブランチの版: **v1.5.5**（main の公開版は v1.4.0）（`index.html` 内の `TC_VERSION` が版の正本。メニュー下部にも表示）
@@ -39,7 +39,7 @@
 |---|---|
 | `index.html` | UI のすべて（CSS・画面描画・操作・BOT進行・アニメーション）。`games.mjs` を `import * as G` で読み込む |
 | `games.mjs` | ゲームロジックの正本。状態生成・合法手の列挙・手の適用・COM思考。DOM に一切触れない純粋なモジュールで、Node でテスト可能。乱数は生成関数の引数（rng）で注入する設計 |
-| `tests/games.test.mjs` | ロジックの単体テスト（8件）。`node --test "tests/*.mjs"`（既存29件＋4席共通7件＝計48件） |
+| `tests/games.test.mjs` | ロジックの単体テスト（8件）。`node --test "tests/*.mjs"`（既存29件＋4席共通7件＝計52件） |
 | `build-embed.mjs` | `games.mjs` を `index.html` にインライン化し、`const G = {...}` の shim を生成して `dist/trump-collection.html` を出力する |
 | `dist/trump-collection.html` | Sites 貼り付け用の単体ファイル。**直接編集しない**（`index.html` と `games.mjs` から生成する） |
 | `dev/verify.mjs` | 検証パイプライン（後述）。前任環境のツールを同梱したもの |
@@ -142,3 +142,10 @@ jobs:
 [オンライン開発レポート](online/README.md)が詳しい正本。神経衰弱2人用のホスト確定ルーム、非公開伏せ札を送らないview、古い操作・重複ID・手番違い拒否を開発。BroadcastChannelで同じoriginの2タブ同期（READY/START/1枚と2枚の公開と伏せ直し）をChromiumで確認。700×320横向きは12列×2段で画面内に収めた。Supabase private Broadcast transportアダプターはモック済みだが実DB/Auth/RLSとは未接続。新規10件を含むNode計30件合格。通常ゲームのGitHub Pages main/index.html・Google Sitesは変更なし。
 
 [専用2タブ試遊](https://8mahi8.github.io/trump-collection/preview-online-memory-lab.html)は**別端末間の実オンライン対戦には対応していない**。次は隔離したバックエンドの権限設計と、本物の2端末での通信検証。
+
+## 2026-10-25｜Firebase Local Emulator 成功（最新）
+
+- 自動化ファイル：`.github/workflows/firebase-emulator-ci.yml`、隔離用`firebase.emulator.json`、`tests/firebase-emulator.e2e.mjs`。
+- 旧Mockだけでなく、Firebase EmulatorのRules本体を使って匿名Auth＋RTDB4人対戦。実際に他人のprivate/commandsを拒否し、3ゲームを最後まで実行・再戦に成功。
+- **席の正本は`privateView.seat`**（UIDやクライアントの参加順から推測しない）。REST条件付きコマンドのため本人だけが自分の`commands/$uid`を読めるRuleに変更。他人のキューの読取は拒否。
+- 既存の学校版・main / v1.5.5は変えない。Firebase本番への反映は禁止、専用実接続試作と学校検証は後続工程。
