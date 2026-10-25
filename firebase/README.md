@@ -48,10 +48,17 @@ CIにJava 21、Node 22を導入済み。ローカルのこの作業環境はCLI�
 
 本番では、独立Firebaseプロジェクト／DBを使うか、現在のRulesを安全に保ったままトランプ専用の子パスだけを合成して必要なテストをすること。他ゲームの本番データ、Rulesは変更していない。
 
+## Phase 7：ホスト心拍による一時通信断の判定（2026-10-25）
+
+- RTDBの`heartbeat: {seq}`はホスト認証UIDのみ書込み、入室済みユーザーだけ読取。シーケンスを単調増加させる[ルール](trump-rooms.rules.json)を実Firebase Emulatorで検証。
+- ホストの約2.8秒間隔の更新が**約15秒進まなければ**ゲストは`host_unavailable`として操作停止。UIDと権威エンジンが保持された状態なら自動復旧。
+- [検証成功 CI](https://github.com/8mahi8/trump-collection/actions/runs/40170975967)：Node60/60、3ゲーム実Firebase Emulator完走、Chromium4画面でホスト通信遮断→ゲスト停止→復帰まで成功。
+- ページ再読込後の席復元、ホスト終了後の完全復元は未対応。詳しくは[Phase 7資料](../docs/ONLINE_RECOVERY_PHASE7_2026-10-25.md)。
+
 ## Phase 6：実ブラウザGUIの確認（2026-10-25）
 
 - [開発用オンラインUI](../online/four-seat-remote.html)と[Google Sites直接貼付け用単体HTML候補](../dist/trump-collection-online-lab.html)を生成（Firebase本番設定未投入）。
-- [Actions成功記録](https://github.com/8mahi8/trump-collection/actions/runs/40166268484)：Node56/56、実Firebase Emulatorの3ゲーム完走、Chromium4画面で**3ゲームそれぞれのカード操作同期**も成功。未設定Configの場合の案内表示、800×450の画面起動も合格。
+- [Actions成功記録](https://github.com/8mahi8/trump-collection/actions/runs/40166268484)：Node60/60、実Firebase Emulatorの3ゲーム完走、Chromium4画面で**3ゲームそれぞれのカード操作同期**も成功。未設定Configの場合の案内表示、800×450の画面起動も合格。
 - 詳細は[Phase 6開発ノート](../docs/ONLINE_UI_PHASE6_2026-10-25.md)。
 - 学校SafariやGoogle Sites、実Firebase本番での検証はまだ実施していない。ページ更新後の認証UIDとホスト状態の復旧も未実装。
 
