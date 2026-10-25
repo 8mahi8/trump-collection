@@ -148,7 +148,9 @@ async function poll(epoch){
   if(result.status==='ready'){
    publicState=result.publicView;privateState=result.privateView;
    mySeat=privateState.seat;
+   const resumed=!online;
    failCount=0;online=true;
+   if(resumed&&!pendingAction)status('通信が復旧したよ');
    if(pendingAction){
     const receipt=await guestRunner.receipt(pendingAction);
     if(!shouldRun(epoch))return;
@@ -161,7 +163,9 @@ async function poll(epoch){
    render();
   }else{
    online=false;
-   status(result.status==='waiting_for_host'?'ホストの入室承認を待っています…':'状態を同期しています…');
+   status(result.status==='waiting_for_host'?'ホストの入室承認を待っています…':
+    result.status==='host_unavailable'?'ホストの応答が止まっています。復帰するまで操作を停止します…':
+    '状態を同期しています…');
    render();
   }
  }catch(e){
