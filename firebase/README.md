@@ -1,66 +1,57 @@
-# トランプコレクション｜Firebase試験専用の認証・権限設計
+# トランプコレクション｜Firebase Auth + RTDB 開発・検証記録
 
-**注意：これはFirebase実接続前の開発資料。実FirebaseエミュレーターでのSecurity Rules評価は未実施。公開・本番導入不可。**
+**2026-10-25 更新：Firebase Local Emulator Suite の実際のAuth/RTDB Rulesを使う統合テストに成功。Firebase本番接続・学校Safari・Google Sitesは未実施。**
 
-## 何を作ったか（2026-10-25）
-- `online/firebase-room-store.mjs`: Firebase Auth匿名ログイン（REST）、ID token更新、RTDBへの認証付きGET/PUT/DELETE、5桁の部屋の条件付き作成、手札と公開状態の分離。
-- `online/firebase-room-controller.mjs`: ホストが4人のjoin要求を受理し、READY・出す・パス・引く等のコマンドを既存エンジンで検証。個別private状態を配信してからpublicリビジョンを公開する。ゲストは両リビジョンが一致しなければ操作停止。
-- `firebase/trump-rooms.rules.json`: Firebase RTDBの**専用エミュレーター／専用DB用の、単独で完結したRules文書**。
-- `tests/firebase-room-store.test.mjs`: HTTP/Authモック7件。匿名認証、URLエスケープ、条件付き作成、UIDの違いによる個別手札アクセス、二重送信を検証。
-- `tests/firebase-room-controller.test.mjs`: 通信模擬5件。3ゲームの4人対戦完走、再戦、古いコマンド拒否、通信途中エラー・ロビー配信失敗からの復帰、private/publicのリビジョン不一致時の操作禁止。
+## 現在の成果
+- [実エミュレーター成功ワークフロー](https://github.com/8mahi8/trump-collection/actions/runs/40158460489)：Node自動テスト **52/52**、Firebase Auth+RTDB Emulatorの4人オンライン構成で**ババ抜き28手、七並べ52手、大富豪97手**を完走、再戦成功。実エミュレーターテスト 1/1 合格。
+- [GitHub Actionsの設定](../.github/workflows/firebase-emulator-ci.yml)。開発ブランチへの関連コード変更で自動実行。demoプロジェクト `demo-trumpcards` を使い、**Google Cloudの実プロジェクトや本番DBには接続しない**。
+- `firebase.emulator.json`: 認証エミュレーター `127.0.0.1:9099`、Realtime Database エミュレーター `127.0.0.1:9000`。
+- `tests/firebase-emulator.e2e.mjs`: 本物のエミュレーター上で匿名ユーザー5名を作成し、他人のprivate/commandキュー読み取り拒否、入室前の公開状態拒否、4人参加・READY・開始・プレイ・順位一致・再戦を確認。
 
-`node --test tests/*.mjs` は**48件全件合格（実行済み）**。これはJavaScriptエンジンと**模擬Firebase**の検証であって、Firebase本番・実エミュレーター上の権限テストではない。
+## 実装ファイル
+- `online/firebase-room-store.mjs`：外部SDK/CDNに依存しないFirebase Anonymous Auth + RTDB REST。トークン更新、`if-match: null_etag`による部屋の競合防止、入室申請、公開／本人用手札／コマンド／ACKの分離。
+- `online/firebase-room-controller.mjs`：ホストが手番・合法手を検証して、各自のprivateスナップショットを書いてからpublicを更新。ゲストは両方のrevision一致まで操作禁止。配信エラーの再試行、重複コマンドの再ACK、入室要求の権限エラーの無条件握りつぶし防止。
+- `firebase/trump-rooms.rules.json`：トランプ専用のAuth/RTDBルール。ルーム直下の公開読み取りは行わない。
+- `online/four-seat-authority.mjs`：ババ抜き、七並べ、大富豪の4人対戦共通ロビーとゲーム処理。
+- `tests/firebase-room-store.test.mjs`、`tests/firebase-room-controller.test.mjs`：モックによる単体／通信例外テスト。実エミュレーターテストと補完関係にある。
 
-## 重要：既存FirebaseにこのRulesをそのまま適用しない
+## 実エミュレーターで発覚し修正した問題
+1. **条件付き操作の権限**：ゲストによる`if-match`書き込みが拒否された。自分の`commands/<uid>`キューのみ読む権限を追加し、他人のキューは引き続き拒否。実エミュレーターで確かめた。
+2. **席順の思い込み**：入室を処理するUIDの並びと、テスト端末作成順が一致しないことがある。参加端末の正式席は、ホストが送った`privateView.seat`を正本とする。
+3. **古いrevision**：READYやSTARTはその直前の公開／個人スナップショットを照合し、操作前に最新状態へ更新する。
+4. **空手札の保存**：Firebaseは空配列を省略する場合があるため、privateのルールでは`hand`を必須キーにしない。表示側は存在しない場合に空手札として扱う必要がある。
 
-**`trump-rooms.rules.json` はルートが `.read: false`, `.write: false` の完全なRulesファイル。** 既存小国戦線/BRAWL等と共有するFirebase RTDBへファイル全体を上書き適用すると、他ゲームのアクセスを壊す可能性がある。
-
-隔離したデータベースの**エミュレーターで検証**してから、既存Rulesと差分を確認したうえでトランプ専用の子パスだけを合成するか、完全に独立したFirebaseプロジェクト／データベースで使う。既存Rulesに無断変更を加えない。
-
-## 想定するデータ構造
-
+## データ構造
 ```text
 trumpRoomsV1/<5桁>/
-  meta                 { hostUid, game, protocol: 2 }
-  joinRequests/<uid>   true            ← 参加希望者だけ書ける
-  seats/<uid>          true            ← hostのみ承認・変更
-  public               publicView      ← 承認された全員が読める
-  private/<uid>        privateView     ← 本人だけ読める・hostだけ書ける
-  commands/<uid>/<id>  操作命令        ← 本人だけ作成・hostだけ一覧読取と削除
-  receipts/<uid>/<id>  結果ACK         ← 本人だけ読める・hostだけ書ける
+  meta                 { hostUid, game, protocol }
+  joinRequests/<uid>   true         ← uid本人が参加申請、hostのみ一覧取得
+  seats/<uid>          true         ← hostが承認、本人が席を確認
+  public               publicView   ← 承認された全員のみ閲覧
+  private/<uid>        privateView  ← uid本人だけ閲覧、hostのみ配信
+  commands/<uid>/<id>  操作命令     ← uid本人が作成・自分のキューのみ閲覧、hostは全件閲覧と削除
+  receipts/<uid>/<id>  結果ACK      ← uid本人が閲覧、hostが配信
 ```
+- **5桁の部屋番号は認証ではない。** 匿名Firebase `auth.uid` で本人と席を結びつける。個人用手札は公開パスに入れない。
+- 厳密な競技不正対策ではなく**身内向けホスト権威方式**。ホスト端末のルールエンジンは全手札を見る。
+- Firebase Realtime Databaseのルート、上位階層、他ゲームのパスを公開にしない。親の`.read: true`は子で取り消せない。
 
-- `auth.uid` と各パスの `$uid` を比較。ルーム番号や自称 `actor` 文字列を本人証明には使わない。
-- ルーム直下に `.read:true` を置かない。Firebase RTDBの祖先read権限はprivate下層でも取り消せない。
-- 未承認者は`public`を読めない。`meta`は匿名認証済みの人がルーム参加時に参照できる。
-- 利用するのはFirebaseの公開Web API key（秘密キーやService Accountではない）。本番のAPI keyとDatabase URLは接続先の許可・設定が完了してから画面へ注入する。
+## 再実行
+```bash
+node --test tests/*.test.mjs
+npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.emulator.json --only auth,database "node --test tests/firebase-emulator.e2e.mjs"
+```
+CIにJava 21、Node 22を導入済み。ローカルのこの作業環境はCLIが入っていないため、実エミュレーターは**GitHub Actions上で稼働・合格確認**している。
 
-## 次に必須の検証（Firebase Local Emulator Suite）
+## 注意：このRulesファイルを既存Firebaseへ適用しない
+`trump-rooms.rules.json` はrootの`.read:false/.write:false`を含む**単体ファイル**。小国戦線・BRAWLなど既存ゲームが使うDBに丸ごと反映すると、現在のRulesを**上書きして壊すおそれ**がある。
 
-Google公式参照：
-- https://firebase.google.com/docs/rules/unit-tests
-- https://firebase.google.com/docs/database/security/rules-conditions
-- https://firebase.google.com/docs/database/security/core-syntax
-- https://firebase.google.com/docs/reference/rest/auth
-- https://firebase.google.com/docs/reference/rest/database
+本番では、独立Firebaseプロジェクト／DBを使うか、現在のRulesを安全に保ったままトランプ専用の子パスだけを合成して必要なテストをすること。他ゲームの本番データ、Rulesは変更していない。
 
-実エミュレーターで少なくとも以下を検証する：
+## まだ終わっていないこと
+- 実Firebase本番プロジェクトのURL/API key設定・接続。実エミュレーターの合格は本番接続の保証ではない。
+- 切断・ページ再読込時のホスト権威状態の復元、ゲスト再参加、プレゼンス監視、部屋のTTL／掃除。
+- 無音の横向き学校iPad SafariとGoogle Sites直接HTML埋め込みでのブラウザ検証。
+- 通常v1.5.5の4ゲームGUIへの統合（COMモードは保護）。
 
-1. 匿名認証なしではいかなるデータも読めない／書けない。
-2. hostだけが`meta`初回作成、席の承認、public/private配信、コマンド読取と削除、receipt配信をできる。
-3. 未承認ユーザーはprivate/publicを読めず、他人の`private/$uid`のGETは拒否される。
-4. guestは`commands/<自分のuid>/<id>`のみ作成でき、他人のUIDを`actor`に書くことも、既存のIDを上書きすることも拒否される。
-5. 不正なパス、親ノード一括GET、ルーム番号衝突、UID入れ替え、他人のreceipt取得が拒否される。
-6. 4人で入室→全ゲーム対戦→再戦／端末切断→復帰を実Firebaseエミュレーター上で完走。
-7. トランプ専用のRulesを**他ゲームの既存Rulesと統合した場合も、他ゲームの権限が変化しない**こと。
-
-**環境内にFirebase CLIと `@firebase/rules-unit-testing` がないため、現時点ではこの実エミュレーターテストは実行できていない。** その検証なしで独立チャンネル以外の外部公開はしない。
-
-## 未対応
-- Firebase本番への実接続（まだURL/Web API Keyがトランプ側へ設定されていない）
-- 実Firebase Rulesによる権限検証
-- ホストページ更新後の対戦復元、端末切断中の席再参加、ルーム自動削除
-- iPad Safari / Google Sites直接埋め込み
-- 4人版の通常コレクションUIへの統合
-
-これらを解決してから初めて、オーナーへ新しい試遊版を渡す。
+参考にした他リポジトリは`8mahi8/shokoku-sensen/online-net.js`、`8mahi8/brawl-bot-playtest/network/FRIENDS_TRANSPORT_DECISIONS.md`、`8mahi8/brawl-bot-playtest/firebase.draft-staging-authz-e2e.json`。トランプ特有の**非公開情報**とサーバー判定を優先し、ゲーム全体の通信コードは流用せず責務だけ参考にした。
