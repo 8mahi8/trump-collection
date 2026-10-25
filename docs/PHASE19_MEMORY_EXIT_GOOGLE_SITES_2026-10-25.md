@@ -13,6 +13,15 @@
 - `online/collection-launcher.template.html`：すべての「友達と遊ぶ」（神経衰弱を含む）で既存の`askFriendsToLeave`を使用。子画面が応答しなくても**最大1.8秒でメニューに戻る**。
 - `dev/verify-collection-launcher.mjs`：学校Google Sitesに近いsandbox付き二重iframeで、Chromium／WebKitを使い、SupabaseのWebSocketだけを**Playwright内部の模擬サーバーへ差し替えて**ホストの`room_closed`とゲストの`player_left`が送信されること、親に退出ACKが届くこと、ホストからの`room_closed`受信でゲストがゲームを閉じることをテスト。**本番Supabaseへテスト用ルームを作らない**。
 
+## 検証結果（確定）
+
+**[GitHub Actions #40201651323](https://github.com/8mahi8/trump-collection/actions/runs/40201651323) 成功**。
+- Node **93/93 件成功**、失敗0。
+- Chromium・WebKitとも4ゲームのCOM／友達8入口、Google Sites風二重iframeの画面選択・戻るを合格。
+- 模擬Supabase WebSocketで神経衰弱ホストの`room_closed`、ゲストの`player_left`の送信、ゲストの`room_closed`受信でルームを終了する動作を両エンジンで確認。
+- 既存Firebase Auth/RTDB Emulatorの3ゲーム×4独立ページ入室→READY→初手同期、ホスト一時回線断→復帰、ホスト／友人退出→新ルームが両エンジンで合格。
+- 共有Rules Emulator・ルート局所化Rules Emulatorともに成功。学校Safariと実Supabase、本番Firebaseは未試験。
+
 ## 検証・制約
 - Firebase3ゲームの既存Chrome／WebKit・4画面同期と退出の回帰テストも同じCIで継続。
 - Supabase Broadcastは公開チャンネルの既存身内試作で、短い部屋番号を参加認証とは見なさない。故意の不正操作のための高度な対策を追加しない。
