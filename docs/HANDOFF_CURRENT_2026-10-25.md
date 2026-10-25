@@ -3,6 +3,14 @@
 > **次の開発担当AIはまずこの文書と [HANDOFF.md](../HANDOFF.md) を読むこと。**
 > 旧記録には後から変更された計画が残るため、下記の最新方針を優先。
 
+## Phase19（2026-10-25）｜神経衰弱のオンライン退出を友達対戦メニューに統合
+
+- [実装・試験の詳細](PHASE19_MEMORY_EXIT_GOOGLE_SITES_2026-10-25.md)。神経衰弱も「← ゲーム一覧」による親子の`tc:leave-room`／`tc:leave-ack`を使用する。画面内に「退出・部屋を作り直す」を追加。
+- 退出側がオンライン接続済みなら**Supabase Broadcastの公開チャンネルに対し、ホストは`room_closed`、ゲストは`player_left`をベストエフォート送信**して短時間後に接続を閉じる。残った側は終了を受信すると対戦を閉じて新部屋を作成可能な画面に戻す。急な回線断で確実に届くという保証はない。
+- `dev/verify-collection-launcher.mjs`で**Playwright内の模擬WebSocket**を使い、Google Sites風二重iframeのChrome／WebKitで退出と相手への通知を検証。本番Supabaseにはテスト用接続を行わない。
+- Firebase3ゲームの既存4端末エミュレーターを含む回帰CIは継続。**本番Firebase・Supabase設定・Google Sites版・mainは未変更。**
+- 最優先は既存4ゲームのプレイ体験・安定性。無理なセキュリティ強化をせず、本番Firebaseと既存ゲームのルール期限を次の大きな公開ゲートとして扱う。
+
 ## Phase18（2026-10-25）｜統合ランチャーからのオンライン退出修正・完走
 
 - [実装・テスト詳細](PHASE18_BACK_TO_MENU_GRACEFUL_EXIT_2026-10-25.md)。**[CI #40200557612](https://github.com/8mahi8/trump-collection/actions/runs/40200557612)成功：Node 93/93、Chromium＋WebKit両方のWeb UI／Firebaseエミュレーター／共有Rules／局所化Rulesすべて合格。**
