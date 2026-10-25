@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {buildCollectionLabHtml} from '../dev/build-collection-lab.mjs';
 
 test('統合ランチャー: 既存の4ゲームをCOM/友達の2入口へ振り分ける',()=>{
@@ -34,4 +35,14 @@ test('統合ランチャー: 書込み可能な本番設定や自動公開は含
  assert.ok(html.includes('友達対戦'));
  assert.ok(html.includes('Firebase本番'));
  assert.ok(html.includes('srcdoc'));
+});
+
+test('保存済み統合HTMLは最新の四ゲームビルドと完全一致する',()=>{
+ const stored=readFileSync(new URL('../dist/trump-collection-integrated-lab.html',import.meta.url),'utf8');
+ const generated=buildCollectionLabHtml();
+ assert.equal(stored,generated,'GitHub配布用HTMLがソース更新に追従していること');
+ for(const key of ['id="chatToggle"','tc:leave-room','createFirebaseRoomHost','createMemoryAuthority']){
+  // Some HTML is JSON-escaped into srcdoc, so verify the original phrases survive in either form.
+  assert.ok(stored.includes(key)||stored.includes(key.replaceAll('"','\\\"')),key);
+ }
 });
