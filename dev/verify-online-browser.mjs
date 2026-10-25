@@ -107,6 +107,18 @@ try{
    await Promise.all(participants.map(p=>p.waitForFunction(
      rev=>TCFourRemote.view.revision>rev,before,{timeout:20000})));
    console.log('FIREBASE EMULATOR BROWSER PASS:',game,'4 pages, unique seats, READY, first synced move');
+   if(game==='babanuki'){
+    // Simulate host connectivity loss while all guest pages stay online.
+    await owner.route('**/heartbeat.json*',route=>
+      route.request().method()==='PUT'?route.abort('failed'):route.continue());
+    const guest=participants[1];
+    await guest.waitForFunction(
+      ()=>TCFourRemote.status.includes('ホストの応答が止まっています'),null,{timeout:35000});
+    await owner.unroute('**/heartbeat.json*');
+    await guest.waitForFunction(
+      ()=>TCFourRemote.status.includes('通信が復旧したよ'),null,{timeout:25000});
+    console.log('FIREBASE EMULATOR BROWSER PASS: host network interruption freezes guests then resumes');
+   }
   }
  }
  if(errors.length)throw Error('Uncaught browser errors:\n'+errors.join('\n'));
