@@ -14,8 +14,10 @@
 | BRAWL 1vs1 | `/rooms` | `brawl-bot-playtest/online/ipad-duel-v2-lab.html` |
 | BRAWL 2vs2 | `/rooms2v2` | `brawl-bot-playtest/online/ipad-squad-v2-lab.html` |
 | 小国戦線III | `/shokokuRooms1v1` | `shokoku-sensen/online-net.js` |
-| LEMON CLASH（候補） | `/lemonClashRoomsV1` | 過去に共有されたLEMON試作HTML。GitHubのmainには同じオンラインコード未掲載 |
+| LEMON CLASH | `/lemonClashRoomsV1` | `lemon-clash` 開発ブランチ `dev/ipad-hand-ui` の `src/online-app.js` 定数 `ROOM_ROOT`、`src/firebase-config.js`、Google Sites向け候補。**shared-rtdb モードは匿名Authなしで通信するため、旧領域を auth 必須に変更すると壊れる** |
 | トランプコレクション | `/trumpRoomsV1` | `online/firebase-room-store.mjs` |
+
+**使用領域の参照を更新（2026-10-25）:** BRAWLの `sites/BRAWL_FRIENDS_1vs1.html` / `sites/BRAWL_FRIENDS_2vs2.html`、小国戦線IIIの `online-net.js`、LEMON CLASHの開発 `src/online-app.js` でルート名を実際に確認。LEMONの `firebase/lemon-clash-lab.rules.json` は匿名Authを要求する**隔離検証用**であり、既存共用モードの設定とは異なる。これを本番共用Rulesに無断投入しない。
 
 **未確認の別ゲーム／別ブランチ／Google Sites実稼働版が追加パスを使う可能性あり。表を本番ルートの完全な目録と見なさない。**
 
