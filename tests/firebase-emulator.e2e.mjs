@@ -81,6 +81,30 @@ test('ACTUAL Firebase Emulator: UID-private hands and three four-player games', 
   await active[3].store.requestSeat(room);
   await suite.host.tick();
   assert.equal(suite.host.members.length,4);
+  if(game==='babanuki'){
+   // Real RTDB Rules: only seated people read, and only the sender can write
+   // their own bounded 10-message ring. No messages leak across rooms.
+   const hostChat=active[0].store,friendChat=active[1].store,outsider=users[4];
+   await hostChat.sendChat(room,'こんにちは！',1);
+   assert.equal((await friendChat.chat(room))[active[0].uid]['1'].text,'こんにちは！');
+   assert.ok([401,403].includes((await tryRaw(await outsider.auth.token(),room,'chat')).status),
+     'outside UID must not read room chat');
+   assert.ok([401,403].includes((await tryRaw(await outsider.auth.token(),room,
+     'chat/'+outsider.uid+'/1','PUT',{uid:outsider.uid,text:'intrude',seq:1,sentAt:Date.now()})).status),
+     'outsider cannot send without a seat');
+   assert.ok([401,403].includes((await tryRaw(await active[1].auth.token(),room,
+     'chat/'+active[0].uid+'/2','PUT',{uid:active[0].uid,text:'forgery',seq:2,sentAt:Date.now()})).status),
+     'friend cannot forge another sender');
+   await assert.rejects(()=>hostChat.sendChat(room,'x'.repeat(121),2),/INVALID_CHAT_TEXT/);
+   const oversized=await tryRaw(await active[0].auth.token(),room,
+     'chat/'+active[0].uid+'/2','PUT',{uid:active[0].uid,text:'x'.repeat(121),seq:2,sentAt:Date.now()});
+   assert.ok([401,403].includes(oversized.status),'Rules must reject oversized chat text');
+   for(let seq=2;seq<=12;seq++)await hostChat.sendChat(room,'msg '+seq,seq);
+   const ring=(await friendChat.chat(room))[active[0].uid];
+   assert.equal(Object.keys(ring).length,10,'chat remains bounded to 10 slots per player');
+   assert.equal(ring['2'].text,'msg 12');
+   console.log('FIREBASE EMULATOR CHAT PASS: seated read, own write, stranger rejected, 10-slot bound');
+  }
   // Firebase host processes joined UIDs in sorted order; signup order is NOT seat order.
   // Resolve the actual seat from each signed-in player's private snapshot.
   const clientsBySeat=Array(4);
