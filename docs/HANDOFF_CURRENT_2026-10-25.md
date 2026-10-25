@@ -5,7 +5,7 @@
 
 ## Phase24（2026-10-26）｜二重Google Sites iframe上のFirebase4人試験に合格
 
-- 直近の唯一の新規ブロッカーだった`dev/verify-configured-sites-emulator.mjs`の**実Firebase模擬設定付き・外側Google Sites sandbox＋内側srcdoc**の試験を修正。入室成功→ルーム番号の描画を待機→4人全員のREADY反映を順番に確認→開始→チャット→ホスト退出のテストが**Chromium/WebKit両エンジンで成功**。 [CI #40208972686](https://github.com/8mahi8/trump-collection/actions/runs/40208972686)（新規テスト工程は成功。全CIの最終結果は別途確認）。
+- 直近の唯一の新規ブロッカーだった`dev/verify-configured-sites-emulator.mjs`の**実Firebase模擬設定付き・外側Google Sites sandbox＋内側srcdoc**の試験を修正。入室成功→ルーム番号の描画を待機→4人全員のREADY反映を順番に確認→開始→チャット→ホスト退出のテストが**Chromium/WebKit両エンジンで成功**。 [CI #40208972686](https://github.com/8mahi8/trump-collection/actions/runs/40208972686)（**全工程成功：Node103/103、Chromium/WebKitの4人Firebase二重iframe、2人Supabaseモック、旧Rulesエミュレーター回帰すべて合格**）。
 - 失敗原因はテスト側がFirebase非同期描画・準備確認前に次の操作へ進んでいたこと。**ゲーム本体・Firebase Rules・既存の学校Google Sites公開版・mainは一切変更していない**。
 - 詳細は[Phase23追記](PHASE23_OFFLINE_CONFIGURED_SITES_GATE_2026-10-26.md)。新規4人二重iframe試験はババ抜きで実施、七並べ・大富豪は従来4人単体ページエミュレーター＋二重iframe起動試験が別々に成功している。**学校実機のテスト成功という意味ではない**。
 - ユーザー確認事項：**本番Firebase Rulesは今すぐ変更しない**。期限は現行のままなら**2026-11-08 00:00 JST**に切れるため、それまでに更新する。今は4ゲームのオンライン実機試遊と公開準備を優先。
@@ -108,7 +108,7 @@
 - GitHub: https://github.com/8mahi8/trump-collection
 - 開発ブランチ: `dev/quality-and-ui-v1-5-20261024`
 - Draft PR: https://github.com/8mahi8/trump-collection/pull/1
-- 最新確認済み GitHub Actions 成功: https://github.com/8mahi8/trump-collection/actions/runs/40205548624 （**Node 98/98件合格**、2端末神経衰弱＋4端末Firebase＋全Rules回帰）。。CIは Firebase Local Emulator と Chromium **および WebKit** を使用。本番Firebase／学校iPad実機での合格ではない。
+- 最新確認済み GitHub Actions 成功: https://github.com/8mahi8/trump-collection/actions/runs/40208972686 （**Node 103/103件合格**、2端末神経衰弱＋4端末Firebase＋全Rules回帰）。。CIは Firebase Local Emulator と Chromium **および WebKit** を使用。本番Firebase／学校iPad実機での合格ではない。
 - `main/index.html` は公開COM版 **v1.4.0**、開発ブランチの`index.html`はCOM版 **v1.5.5**。本人承認なしに公開・学校Google Sites版を上書きしない。
 
 ## ゲーム仕様・完成状況
