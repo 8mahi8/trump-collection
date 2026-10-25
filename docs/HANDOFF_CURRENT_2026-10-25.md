@@ -9,6 +9,7 @@
 - 4ゲームの「友達と遊ぶ」に共通で、**💬 チャット**開閉式パネルと120文字のテキスト送信を追加。COM戦には表示しない。送受信のテキストは`textContent`で扱い、カード対戦エンジンのrevision/手札/通信処理と分離。
 - Firebase3ゲーム：`/trumpRoomsV1/$room/chat/$uid/$slot`に**各UID10スロット・最大40件**の固定長履歴を保存、開いた間だけ約2.5秒に一回取得。`firebase/trump-rooms.rules.json`にseat所有者のみread、本人UIDだけwrite、長文拒否のルールを追加。`online/firebase-room-store.mjs`の`chat/sendChat`と`online/four-seat-remote.html`を更新、単体HTML `dist/trump-collection-online-lab.html`再生成。
 - 神経衰弱：既存Supabase Realtime Broadcastに`kind:'chat'`を追加。`online/memory-remote.html`で開閉、40件までメモリ内表示、チャット復元なし。**公開Broadcast試作でありルーム番号を知る相手に対する強いプライバシー保証はない**。本番Supabaseへのデータ書込みはせず模擬WebSocketを使用。
+- **[最新CI #40204364048](https://github.com/8mahi8/trump-collection/actions/runs/40204364048) 成功：Node97/97件、Chromium/WebKitの4人チャット受信・HTML無害化、Firebase Emulator参加者のみread/write・部外者拒否・10件固定長、神経衰弱模擬WebSocket、既存ゲームのルール共存回帰がすべて成功**。本番サーバー試験ではない。
 - 4端末Firebase EmulatorとChromium/WebKitで本人／別端末間の送受信、外部UID拒否、本文長・固定件数・HTML無害化の自動試験を追加。**学校Google Sites公開版・本番Firebase Auth/Rules/DB・既存Supabase・mainは変更していない**。本番用通信ルールの承認と実機確認が未完了。
 - ユーザーの希望「4ゲームの完成優先、無料、友達同士、過剰な不正対策不要」を維持。チャットは最小限で新しいクラウドサービスを追加しない。
 
@@ -82,7 +83,7 @@
 - GitHub: https://github.com/8mahi8/trump-collection
 - 開発ブランチ: `dev/quality-and-ui-v1-5-20261024`
 - Draft PR: https://github.com/8mahi8/trump-collection/pull/1
-- 最新確認済み GitHub Actions 成功: https://github.com/8mahi8/trump-collection/actions/runs/40202568624 （**Node 97/97件合格**）。CIは Firebase Local Emulator と Chromium **および WebKit** を使用。本番Firebase／学校iPad実機での合格ではない。
+- 最新確認済み GitHub Actions 成功: https://github.com/8mahi8/trump-collection/actions/runs/40204364048 （**Node 97/97件合格**）。CIは Firebase Local Emulator と Chromium **および WebKit** を使用。本番Firebase／学校iPad実機での合格ではない。
 - `main/index.html` は公開COM版 **v1.4.0**、開発ブランチの`index.html`はCOM版 **v1.5.5**。本人承認なしに公開・学校Google Sites版を上書きしない。
 
 ## ゲーム仕様・完成状況
