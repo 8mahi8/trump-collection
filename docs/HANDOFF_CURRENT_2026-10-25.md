@@ -1,0 +1,60 @@
+# トランプコレクション｜最新引き継ぎ（2026-10-25）
+
+> **次の開発担当AIはまずこの文書と [HANDOFF.md](../HANDOFF.md) を読むこと。**
+> 旧記録には後から変更された計画が残るため、下記の最新方針を優先。
+
+## プロジェクトと直近の検証
+
+- GitHub: https://github.com/8mahi8/trump-collection
+- 開発ブランチ: `dev/quality-and-ui-v1-5-20261024`
+- Draft PR: https://github.com/8mahi8/trump-collection/pull/1
+- 最新確認済み GitHub Actions 成功: https://github.com/8mahi8/trump-collection/actions/runs/40183559945 （**Node 88/88件合格**）。CIは Firebase Local Emulator と Chromium を使用。本番Firebase／学校iPadでの合格ではない。
+- `main/index.html` は公開COM版 **v1.4.0**、開発ブランチの`index.html`はCOM版 **v1.5.5**。本人承認なしに公開・学校Google Sites版を上書きしない。
+
+## ゲーム仕様・完成状況
+
+**学校iPad（Safari）で友達と遊ぶ、軽量なトランプゲーム集**。Google Sitesへの公開方法はGitHub PagesのURL埋め込みではなく、**HTML/CSS/JS全文をGoogle Sitesの「埋め込みコード」に直接貼る**こと。横向き・旧世代iPad・無料運用が条件。
+
+- 4種類：**ババ抜き、七並べ、神経衰弱、大富豪**。COMモードはいずれも開発版に実装。
+- **ババ抜き／七並べ／大富豪**：Firebase Auth匿名認証＋Realtime Database RESTによる**4人オンライン開発版**。ホストがルールと全手札の権威を保持。ゲストは本人のprivate手札だけ閲覧。4人入室、READY、開始、操作、勝敗、再戦、退出、ホスト一時通信断の安全停止／同一ページ内復帰をローカルエミュレーターとChromium4画面で検証済み。
+- **神経衰弱**：**2人のSupabase Realtime公開Broadcast試作**。ユーザーがPC＋スマホで試遊成功。Firebase3ゲームとは別通信・公開ルーム番号に実質的な認証はない。学校Safari未確認。
+- 4ゲーム×「COM／友達」共通選択メニューの**研究用単一HTML**を`dev/build-collection-lab.mjs`からビルド。Chromiumで全8入口を確認。本番Firebase設定はまだ入っていない。
+
+## ユーザーが確定した最新方針
+
+1. **既存のFirebase `mygame-df915` を再利用する方向**。新規Firebase作成を必須としない。既存ゲームを壊さないよう、トランプのパス`/trumpRoomsV1`を独立させる。
+2. **対局中にページ再読み込みした場合、同じ試合への復元は不要**。更新したら新部屋を作り直す。ページを開いたままの一時通信断だけ復旧可能とする。
+3. **複雑なセキュリティ機能より遊びやすさ**を優先。ただし他人の手札が見える状態、既存Firebaseの破壊、意図しない課金・公開変更は避ける。
+4. 原則、細かな確認は挟まず調査→実装→自動テスト→GitHub記録まで進める。「任せた」は継続作業の委任。**実機・管理者操作が不可欠になった場合だけユーザーに最小限の依頼**。
+5. 公開版＝**学校Google Sitesへ直接HTMLを貼り、友達が遊べる状態**。GitHubへのコミットやGitHub Pagesだけでは公開完了ではない。
+
+## Firebase共有で残る唯一の大きなブロッカー
+
+- 最新の`online/firebase-dedicated-guard.mjs`は関数`validateFirebaseConfig`で**既存`mygame-df915`を形式上許容する**よう改修済み。旧関数名は互換エイリアス。これだけで本番利用可能・プライバシー安全とは判断しない。
+- `dev/merge-existing-firebase-rules.mjs`：実際の既存Rulesを**オフライン**で読み、旧ルールを維持して`trumpRoomsV1`だけを追加するレビュー候補を生成。祖先での広い許可、ルートワイルドカードなどは自動合成を拒否。
+- `firebase/SHARED_DATABASE_RULES.md`：監査／合成手順。旧ゲームの**架空サンプルRules**に対する合成のエミュレーター試験では、旧権限維持・手札分離・3ゲーム4人戦完走を確認。
+- **重要：今、実際に`mygame-df915`へ適用されているRealtime Database Security Rules全文は未取得。** GitHub内のエミュレーターRulesは本番の代わりにならない。管理者資格情報やアクセス可能なFirebase管理コネクタが見つからない限り、ユーザーにFirebase ConsoleのRulesタブの現在の全文を送ってもらう。
+- **過去チャットの手がかり**：2026-10-22の別ゲーム開発チャットにFirebase Rules画面のスクリーンショットを送ったという履歴が見つかった。当時の会話ではルート全体を期限付きで許可するルールの可能性が指摘された。ただし**対象プロジェクト名・元画像・現在の適用状態は確認できない**。必ず現Rulesで再判定する。もしルートから読取を許可しているなら、子の非公開手札ルールでは取り消せない。
+- **本番Rulesのデプロイ／既存ゲームのデータ操作は未実施**。本番Rules全文の取得・バックアップ・差分レビュー・旧ゲーム含むEmulator検証までは接続先設定を公開HTMLへ埋め込まない。
+
+## 次の担当AIがする作業
+
+1. まず`HANDOFF.md`／`firebase/SHARED_DATABASE_RULES.md`／現開発PR、CI成功記録を確認。過去資料の「新規Firebase必須」「接続ガード未更新」等は**古い**ので優先しない。
+2. 他チャット／ユーザー接続ファイル等に**現在の本番Rulesが存在するか**調べる（過去スクショと現行の区別）。Firebase管理APIの認証がないなら、ユーザーに**Firebase Console → mygame-df915 → Realtime Database → Rules の現行ルール全文**だけ共有してもらう。APIキー、管理者秘密鍵、ログイン情報を要求しない。
+3. 現Rulesが判明したら、`dev/merge-existing-firebase-rules.mjs`で危険な親許可・既存ゲームの影響を検査。必要なら安全な改善案を検討。**無承認の本番変更はしない**。
+4. 合成候補をローカルEmulatorで旧ゲームの権限・トランプのprivate/command権限と4人戦の両方でテスト。成功後にだけ本番接続作業へ移行する。
+5. 手元で進められる残作業：旧世代Safari向け表示、軽量な放置ルーム整理、統合UIの改善とCI整備。4ゲーム統合は独立iframe研究版であり正式版への配布は未完了。
+
+## 主なコードと検証の入口
+
+- `games.mjs`：4ゲーム共通ルール
+- `online/four-seat-authority.mjs`：4人対戦のホスト権威
+- `online/firebase-room-store.mjs`／`online/firebase-room-controller.mjs`：Auth/RTDBとホスト/ゲストの操作同期
+- `online/four-seat-remote.html` → `dev/build-online-html.mjs` → `dist/trump-collection-online-lab.html`：Firebase4人開発版の単体HTML
+- `online/memory-remote.html`／`online/memory-authority.mjs`／`online/realtime-wire.mjs`：神経衰弱2人Supabase試作
+- `online/collection-launcher.template.html`／`dev/build-collection-lab.mjs`：共通4ゲームメニューと単体HTMLの研究ビルド
+- `firebase/trump-rooms.rules.json`：**単独トランプ専用**のRules。**既存本番Firebaseへファイル丸ごと適用してはいけない**。
+- `firebase.shared-emulator.json`と`tests/firebase-shared-emulator.e2e.mjs`：既存の架空ルールを合成したエミュレーター検証
+- `.github/workflows/firebase-emulator-ci.yml`：Node→単体HTML→Chromium→Firebase Auth/RTDB Emulator→共有Rules Emulator
+
+ユーザーが「任した」と言ったら**計画だけで止まらず、可能な範囲でGitHubへコミットし、CI結果の成功を確認して報告**すること。学校版・本番Rulesは独断で触らない。
