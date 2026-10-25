@@ -1,5 +1,8 @@
 # 引き継ぎ資料 — トランプコレクション
 
+**最新Phase 9（2026-10-25）：COM4ゲーム＋友達対戦4ゲームの入口を1つに統合した開発用単一HTMLを実装。** [Phase 9詳細](docs/ONLINE_COLLECTION_PHASE9_2026-10-25.md) / [GitHub Actions検証成功](https://github.com/8mahi8/trump-collection/actions/runs/40175410131)：Node67/67、Chromium4ゲーム×2モード計8入口合格。Firebase実エミュレーターで4人ゲーム3種の完走テストも継続合格。生成器`dev/build-collection-lab.mjs`、開発用単一HTML`dist/trump-collection-integrated-lab.html`（CI artifactとして保存）。**Firebase本番3ゲームはまだ未接続**、神経衰弱は既存Supabase公開Broadcast試作。学校Safari／Google Sitesは変更・実機検証していない。再読み込み後の復元は不要とのオーナー確定方針を維持。
+
+
 **最新Phase 8（2026-10-25）：身内用の退出・部屋作り直し機能を実装／実Firebase Emulator＋4画面Chromiumで検証成功。** [引き継ぎ資料](docs/ONLINE_EXIT_PHASE8_2026-10-25.md) / [成功したGitHub Actions](https://github.com/8mahi8/trump-collection/actions/runs/40173923212)。Node64/64。ホストの終了・参加者の退出要求を正しいUIDで処理し、全員がメニューへ戻って新しい部屋を作れる。**再読み込み後の対局復元はしない**。Firebase本番接続・学校Google Sites版は未実装／未変更。
 
 
