@@ -21,6 +21,10 @@ function fakeDb(){
   if(kind==='joinRequests')allow=method==='GET'?isHost:method==='PUT'&&uid===owner&&value===true&&!!host;
   if(kind==='seats')allow=method==='GET'?owner===uid||isHost:method==='PUT'&&isHost&&value===true;
   if(kind==='public')allow=method==='GET'?member:method==='PUT'&&isHost;
+  if(kind==='closed')allow=method==='GET'?true:
+    method==='PUT'&&isHost&&!map.has(path)&&['host_left','player_left'].includes(value?.reason);
+  if(kind==='leaveRequests')allow=method==='GET'?isHost:
+    method==='PUT'&&uid===owner&&member&&value===true&&!map.has(path)&&!map.has(base+'/closed');
   if(kind==='heartbeat')allow=method==='GET'?member:
     method==='PUT'&&isHost&&Number.isSafeInteger(value?.seq)&&value.seq>0&&
     (!map.has(path)||value.seq>map.get(path).seq);
@@ -148,4 +152,20 @@ test('Firebase RTDB: 心拍はホストだけが更新し、承認された本�
  await host.writeHeartbeat('67890',2);
  assert.deepEqual(await guest.readHeartbeat('67890'),{seq:2});
  assert.throws(()=>host.writeHeartbeat('67890',0),/INVALID_HEARTBEAT_SEQUENCE/);
+});
+
+test('Firebase RTDB: only host can close once, only participant can request leave once',async()=>{
+ const db=fakeDb(),host=store(db,IDS[0]),member=store(db,IDS[1]),outsider=store(db,IDS[2]);
+ await host.reserve('78901','babanuki');
+ await host.grantSeat('78901',IDS[0]);await host.grantSeat('78901',IDS[1]);
+ assert.equal(await outsider.readClosed('78901'),null);
+ await assert.rejects(()=>member.closeRoom('78901'),e=>e.code==='PERMISSION_DENIED');
+ await assert.rejects(()=>outsider.leaveRoom('78901'),e=>e.code==='PERMISSION_DENIED');
+ await member.leaveRoom('78901');
+ assert.deepEqual(await host.leaveRequests('78901'),{[IDS[1]]:true});
+ await assert.rejects(()=>member.leaveRoom('78901'),e=>e.code==='ALREADY_EXISTS');
+ await host.closeRoom('78901','player_left');
+ assert.deepEqual(await member.readClosed('78901'),{reason:'player_left'});
+ await assert.rejects(()=>host.closeRoom('78901'),e=>['ALREADY_EXISTS','PERMISSION_DENIED'].includes(e.code));
+ await assert.rejects(()=>host.closeRoom('78901','fake'),/INVALID_CLOSE_REASON/);
 });
