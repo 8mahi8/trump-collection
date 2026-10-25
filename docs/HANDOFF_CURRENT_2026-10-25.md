@@ -3,12 +3,20 @@
 > **次の開発担当AIはまずこの文書と [HANDOFF.md](../HANDOFF.md) を読むこと。**
 > 旧記録には後から変更された計画が残るため、下記の最新方針を優先。
 
+## Phase 14 更新（2026-10-25）｜七並べの確定操作・本番Rules未確認
+
+- [作業・ゲートの詳細](PHASE14_SEVEN_AND_FIREBASE_GATE_2026-10-25.md)。オンライン七並べの「タップ選択→確定ボタン」に修正し、誤タップ送信を防止。最新の単体HTMLを再生成・GitHubに保存。
+- **[GitHub Actions #40196219631](https://github.com/8mahi8/trump-collection/actions/runs/40196219631) 成功：Node 89/89、Chromium4ゲーム×COM/友達8入口、Firebase Auth/RTDB Emulator4画面、共有の合成Rules Emulatorすべて合格。**
+- 過去2026-10-22に記録された期限付きルート公開Rulesは、共有ルール合成時に拒否されることを追加テストで確認。**過去スクショを現行本番Rulesと同一視しない。**
+- 本番の `mygame-df915` Realtime Database Security Rulesの全文は今回も取得できなかった。現在のFirebase Console Rules全文の共有が、次の管理者操作の最小要件。
+- Firebase本番・学校Google Sites版・main公開COM版は未変更。PR #1はDraft継続。
+
 ## プロジェクトと直近の検証
 
 - GitHub: https://github.com/8mahi8/trump-collection
 - 開発ブランチ: `dev/quality-and-ui-v1-5-20261024`
 - Draft PR: https://github.com/8mahi8/trump-collection/pull/1
-- 最新確認済み GitHub Actions 成功: https://github.com/8mahi8/trump-collection/actions/runs/40183559945 （**Node 88/88件合格**）。CIは Firebase Local Emulator と Chromium を使用。本番Firebase／学校iPadでの合格ではない。
+- 最新確認済み GitHub Actions 成功: https://github.com/8mahi8/trump-collection/actions/runs/40196219631 （**Node 89/89件合格**）。CIは Firebase Local Emulator と Chromium を使用。本番Firebase／学校iPadでの合格ではない。
 - `main/index.html` は公開COM版 **v1.4.0**、開発ブランチの`index.html`はCOM版 **v1.5.5**。本人承認なしに公開・学校Google Sites版を上書きしない。
 
 ## ゲーム仕様・完成状況
