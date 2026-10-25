@@ -28,6 +28,12 @@ test('Shared Firebase Rules: refuse any root-level grant that could reveal priva
  fails({rules:{'.read':false,'.write':true}},'UNSAFE_ANCESTOR_WRITE');
  fails({rules:{'.read':false,'.write':"auth !== null"}},'UNSAFE_ANCESTOR_WRITE');
 });
+test('Shared Firebase Rules: historical time-limited root grants still expose private hands',()=>{
+ // Recorded in a 2026-10-22 screenshot from another game.
+ // This is NOT proof of the currently deployed mygame-df915 rules.
+ fails({rules:{'.read':'now < 1794063600000','.write':'now < 1794063600000'}},
+  'UNSAFE_ANCESTOR_READ');
+});
 test('Shared Firebase Rules: root wildcard must be reviewed, even with conditional grants',()=>{
  fails({rules:{'.read':false,'.write':false,'$room':{'.read':"auth !== null"}}},
   'ROOT_WILDCARD_REQUIRES_MANUAL_AUDIT');
