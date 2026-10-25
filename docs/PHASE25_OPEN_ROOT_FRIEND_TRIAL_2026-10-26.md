@@ -29,3 +29,13 @@
 実際の学校用Google Sitesへ試遊HTMLソース全文を貼り付けるのは本人の操作。ホストがババ抜き・七並べ・大富豪を選び「友達と遊ぶ」→5桁ルーム番号を作成、ほかの3人が入力して参加し、全員準備→ホスト開始。神経衰弱は従来のSupabase Broadcast（2人）で独立。チャットボタンでテキスト会話。
 
 **試遊で本番Firebaseへ初めて通信するのは本人がそのHTMLを開いてボタン操作した時であり、こちらから本番DBへの試し書きは行っていない**。学校iPad/Safariでの実機対戦はこれから確認。
+
+## 最終CI結果
+
+**[GitHub Actions #40210764826：全工程成功](https://github.com/8mahi8/trump-collection/actions/runs/40210764826)**
+
+- Node **106/106件**成功（試遊HTMLファイルと生成器の完全一致含む）。
+- **開放Rootの模擬Firebase RTDB + 認証なし4人対戦**：Google Sites風二重sandboxでChromium／WebKit両方とも「4人入室→READY→対局開始→チャット受信→ホスト退出」を成功。
+- **従来の匿名Firebase Authあり4人対戦**：同じ二重sandboxでChromium／WebKitとも成功。元の厳格Rules運用も破壊していない。
+- 神経衰弱2人Supabase模擬Broadcast（2ブラウザ）も両エンジン合格。旧ゲームとの共有Rules・期限延長案のエミュレーター検証も成功。
+- **これはローカルエミュレーターに接続するCI結果であり、ユーザーの実Firebaseや学校のGoogle Sites/iPad Safariでの実接続は未実施**。本人の操作で試遊して初めて実環境確認になる。
