@@ -18,10 +18,12 @@ test('4人Firebaseオンライン開発版は外部JS不要の単一HTMLに組�
 });
 test('単体HTMLはFirebase実接続を未設定のままにし、共有対象だけを名前で認識する',()=>{
  const html=buildOnlineHtml();
- for(const prohibited of ['service_role','serviceAccount','private_key','mygame-df915-default-rtdb.firebase']){
+ for(const prohibited of ['service_role','serviceAccount','private_key']){
   assert.equal(html.includes(prohibited),false,prohibited);
  }
  assert.ok(html.includes('TRUMP_FIREBASE_CONFIG'),'user-provided public project config should be required');
+ assert.ok(html.includes('TRUMP_FIREBASE_OPEN_ROOT_TRIAL'),'known-school open root is trial-only, never the default');
+ assert.ok(html.includes('const OPEN_ROOT_TRIAL=window.TRUMP_FIREBASE_OPEN_ROOT_TRIAL===true'));
  assert.ok(html.includes('FIREBASE_PROJECT_NOT_ALLOWED'));
  assert.ok(html.includes('mygame-df915'));
  assert.ok(html.includes('validateFirebaseConfig'));
