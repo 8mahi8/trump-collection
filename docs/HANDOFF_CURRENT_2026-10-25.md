@@ -3,6 +3,15 @@
 > **次の開発担当AIはまずこの文書と [HANDOFF.md](../HANDOFF.md) を読むこと。**
 > 旧記録には後から変更された計画が残るため、下記の最新方針を優先。
 
+## Phase17（2026-10-25）｜Google Sites二重iframeへのゲーム選択引継ぎ修正
+
+- [作業・検証の詳細](PHASE17_SITES_NESTED_IFRAME_2026-10-25.md)。
+- 発見した弱点：統合ランチャーの友達対戦で、子`iframe.srcdoc`内のゲーム選択を親`frame.contentDocument`から直接更新していた。Google Sitesの外側sandbox付きiframe下ではアクセス不能なことがあり、**七並べ／大富豪を選んでもババ抜きが起動するリスク**があった。
+- 修正：`online/collection-launcher.template.html`の`configureFriendsGame`が`TRUMP_INITIAL_GAME`を各子ゲームHTMLに直接注入。オンラインUIが起動時に選択ゲームを反映。親DOMアクセスの握りつぶしを廃止。Firebase接続設定なしでも選択が効く。COMは従来の`postMessage`を維持。
+- `dist/trump-collection-online-lab.html`もビルダーと一致するよう再生成、既存COM／オンラインゲームの処理を変更しない。
+- `dev/verify-collection-launcher.mjs`にGoogle Sitesを模した外側`sandbox="allow-scripts allow-forms"`付きiframe＋内側`srcdoc`の二重iframe試験を追加。**Chromium・WebKitともに8入口＋二重iframe選択／COM七並べ起動が合格**。Firebase4人ゲームとRulesの回帰は追加CIを確認。
+- **学校Google Sites公開版・本番Firebase・main未変更。** WebKitはSafari系だが、旧学校iPad実機検証ではない。
+
 ## Phase16（2026-10-25）｜学校Safari系WebKitの対戦試験成功
 
 - Playwright **WebKit + Chromium 両エンジン**でCOM4／友達4＝8入口の起動、Firebase Emulatorの**4独立ブラウザ×ババ抜き・七並べ・大富豪**のREADY→初手同期、ホスト通信断復旧、退出→新ルームが合格。
