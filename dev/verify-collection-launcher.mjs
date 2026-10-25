@@ -73,7 +73,7 @@ try{
  // Intercept the Memory Match Supabase socket in Playwright: no production
  // Supabase connection or room traffic is allowed in these browser tests.
  const memoryPackets=[];
- await sitesPage.routeWebSocket(/\\/realtime\\/v1\\/websocket/,socket=>{
+ await sitesPage.routeWebSocket('**/realtime/v1/websocket**',socket=>{
   socket.onMessage(raw=>{
    let packet;
    try{packet=JSON.parse(raw);}catch{return;}
