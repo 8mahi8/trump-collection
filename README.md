@@ -1,5 +1,7 @@
 # トランプコレクション 🃏
 
+> **最新の短縮版引き継ぎ（2026-10-25）:** [docs/HANDOFF_CURRENT_2026-10-25.md](docs/HANDOFF_CURRENT_2026-10-25.md)。次のチャットではこちらを最優先し、以下の古い作業記録で上書きしないでください。
+
 ## Phase 13｜既存Firebase向けの接続先チェックへ変更（2026-10-25）
 
 - 新規プロジェクト前提の制限を撤回し、現在の学校ゲームで利用中の `mygame-df915` にも対応。`online/firebase-dedicated-guard.mjs` の `validateFirebaseConfig()` が、正しいプロジェクトとデフォルトRealtime Databaseのペアだけを受け付ける（その他のURLや不正な設定は拒否）。
