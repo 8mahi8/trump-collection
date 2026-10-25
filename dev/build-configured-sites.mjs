@@ -43,27 +43,56 @@ export function buildConfiguredSitesHtml({config,reviewedRules}){
  if(packaged===html)throw Error('CONFIG_NOT_EMBEDDED');
  return packaged;
 }
+// A separate, explicitly acknowledged, owner-requested *trial* path.
+// Does not require modifying today's shared open-root Rules or enabling Auth.
+// This cannot hide opponents' hands from someone reading the open database.
+export function buildOpenRootTrialSitesHtml({databaseURL,acknowledgePublicData=false}={}){
+ if(acknowledgePublicData!==true)throw Error('PUBLIC_DATABASE_RISK_ACKNOWLEDGEMENT_REQUIRED');
+ const exact='https://mygame-df915-default-rtdb.firebaseio.com';
+ if(typeof databaseURL!=='string'||databaseURL.replace(/\\/$/,'')!==exact)
+  throw Error('TRIAL_MUST_USE_CONFIRMED_SCHOOL_DATABASE');
+ const config={projectId:'mygame-df915',databaseURL:exact};
+ const base=buildCollectionLabHtml();
+ const marker='const APP_HTML=';
+ if(!base.includes(marker))throw Error('LAUNCHER_CONFIG_INSERTION_POINT_MISSING');
+ const warning='試遊用：Firebaseの公開ルールでは第三者もルーム、手札、チャットを読み書きできます。個人情報は入力しないでください。11月8日のルール期限に注意。';
+ const html=base
+  .replace(marker,'window.TRUMP_FIREBASE_OPEN_ROOT_TRIAL=true;\\nwindow.TRUMP_FIREBASE_CONFIG='+JSON.stringify(config)+';\\n'+marker)
+  .replace('開発用統合試作：学校のGoogle Sites版は未変更。友達対戦のFirebase本番は未設定です。神経衰弱のみ既存Supabaseの身内用試作を利用します。',warning);
+ if(!html.includes('TRUMP_FIREBASE_OPEN_ROOT_TRIAL=true'))throw Error('TRIAL_FLAG_NOT_EMBEDDED');
+ return html;
+}
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  const args=process.argv.slice(2),flag=k=>{const p=args.indexOf(k);return p>=0?args[p+1]:null};
+ const trial=args.includes('--open-root-trial');
  const webConfig=flag('--config'),rulesFile=flag('--reviewed-rules'),target=flag('--out');
- if(!webConfig||!rulesFile||!target){
+ if(!target||(!trial&&(!webConfig||!rulesFile))){
   console.error('Usage: node dev/build-configured-sites.mjs --config firebase/local-web-config.json --reviewed-rules firebase/local-reviewed.rules.json --out dist/local-configured-trump.html');
+  console.error('OR (open-root trial ONLY): node dev/build-configured-sites.mjs --open-root-trial --acknowledge-public-db --out dist/local-configured-trump-trial.html');
   process.exitCode=2;
  }else{
   try{
    if(!/^local-configured-[A-Za-z0-9_-]+\\.html$/.test(basename(target)))
     throw Error('OUTPUT_MUST_USE_LOCAL_CONFIGURED_FILENAME');
    const dest=resolve(target);
-   if(dest===resolve(webConfig)||dest===resolve(rulesFile)||existsSync(dest))
+   if(existsSync(dest)||(!trial&&(dest===resolve(webConfig)||dest===resolve(rulesFile))))
     throw Error('REFUSING_TO_OVERWRITE_EXISTING_FILE');
-   const config=JSON.parse(readFileSync(resolve(webConfig),'utf8'));
-   const rules=JSON.parse(readFileSync(resolve(rulesFile),'utf8'));
-   const html=buildConfiguredSitesHtml({config,reviewedRules:rules});
+   let html;
+   if(trial){
+    if(!args.includes('--acknowledge-public-db'))throw Error('PUBLIC_DATABASE_RISK_ACKNOWLEDGEMENT_REQUIRED');
+    html=buildOpenRootTrialSitesHtml({databaseURL:'https://mygame-df915-default-rtdb.firebaseio.com/',acknowledgePublicData:true});
+   }else{
+    const config=JSON.parse(readFileSync(resolve(webConfig),'utf8'));
+    const rules=JSON.parse(readFileSync(resolve(rulesFile),'utf8'));
+    html=buildConfiguredSitesHtml({config,reviewedRules:rules});
+   }
    mkdirSync(dirname(dest),{recursive:true});
    writeFileSync(dest,html,{encoding:'utf8',flag:'wx',mode:0o600});
    console.log('OFFLINE ONLY: wrote local Google Sites HTML:',dest,'bytes:',Buffer.byteLength(html));
    console.log('NOT VERIFIED: deployed Firebase Rules, Anonymous Auth, actual Google Sites, school iPad.');
-   console.log('Do not publish until the live Rules match the reviewed file and the owner approves.');
+   console.log(trial
+    ?'TRIAL WARNING: PUBLIC DATABASE. Hands/chat can be read or written by outsiders. Do not share private information or treat this as a secure deployment.'
+    :'Do not publish until the live Rules match the reviewed file and the owner approves.');
   }catch(e){console.error('BLOCKED:',e.message);process.exitCode=1;}
  }
 }
