@@ -1,3 +1,7 @@
 _push_*
 verify-shots/
 node_modules/
+
+# Optional local-only Firebase browser config for isolated future project
+firebase/local-web-config.json
+firebase/local-production-config.json
