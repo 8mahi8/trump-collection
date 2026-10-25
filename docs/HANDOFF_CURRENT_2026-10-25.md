@@ -20,7 +20,7 @@
 - [検証詳細](PHASE27_IPAD_GAMEPLAY_UI_DEBUG_2026-10-26.md)。Google Sites風の**二重iframe＋4ブラウザ**試験を、初手の**カード選択・確定ボタン・全4人の公開revision一致・チャット・退出・800×450横画面での横はみ出し**まで拡張。
 - ババ抜き、七並べ、大富豪を**通常認証なしの現行公開Rules試遊版**で各Chromium/WebKit両方実行。通常認証版もババ抜きで両エンジン実行。実操作は`hasTouch:true`＋Playwrightの`tap()`によるタッチエミュレーション。
 - 調査時の`MOVE_NOT_SYNCED`は**テスト側が`locator.evaluate`の第1引数DOM要素をrevision引数と誤解していた**ことが原因。診断ログでは**ババ抜きの操作前revision8→4人全員revision9（privateも9）**で通信は正常と判明。判定を修正。
-- 最初の通常版＋試遊版3種×2ブラウザの`click()`検証は [Actions #40212479567](https://github.com/8mahi8/trump-collection/actions/runs/40212479567) の該当各工程が合格。タッチ操作版は [Actions #40212870356](https://github.com/8mahi8/trump-collection/actions/runs/40212870356) の結果を確認して記録。学校iPad実機・本番Firebaseは未実施。
+- 最初の通常版＋試遊版3種×2ブラウザの`click()`検証は [Actions #40212479567](https://github.com/8mahi8/trump-collection/actions/runs/40212479567) の該当各工程が合格。**[タッチ操作版全CI #40212870356 成功](https://github.com/8mahi8/trump-collection/actions/runs/40212870356)：Node106/106、認証版ババ抜き＋公開試遊版3ゲームをChromium/WebKit各4画面でタップ→全員同期→チャット→退出まで全8ケース成功**。学校iPad実機・本番Firebaseは未実施。
 - ゲームソースと学校版、本番Firebase Rulesは変更しない。11月8日失効までに期限延長が別途必要。
 
 ## Phase26（2026-10-26）｜現行公開ルールで遊ぶ学校試遊HTMLの生成・検証完了
