@@ -348,6 +348,17 @@ $('ready').onclick=()=>send('ready',{ready:!publicState.seats[mySeat].ready});
 $('start').onclick=()=>send('start');
 $('rematch').onclick=()=>{selected.clear();send('rematch');};
 $('leave').onclick=()=>leaveRoom();
+// Google Sites collection launcher can be in a sandboxed parent iframe.
+// postMessage still works even when direct child DOM access is forbidden.
+window.addEventListener('message',async event=>{
+ if(event.source!==window.parent||event.data?.type!=='tc:leave-room')return;
+ const requestId=event.data.requestId;
+ if(typeof requestId!=='string'||!/^back-[0-9]{1,12}$/.test(requestId))return;
+ try{await leaveRoom();}
+ finally{
+  window.parent.postMessage({type:'tc:leave-ack',requestId},'*');
+ }
+});
 window.addEventListener('pagehide',()=>{session++;clearTimeout(tickTimer);});
 window.TCFourRemote={get phase(){return publicState?.phase},get view(){return publicState},
  get privateView(){return privateState},get seat(){return mySeat},get role(){return stateName()},
