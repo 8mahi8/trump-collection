@@ -138,7 +138,21 @@ try{
    }
    // A friend or host quits; the remaining pages return to the simple room menu.
    const quitter=game==='babanuki'?owner:participants[1];
-   await quitter.locator('#leave').click();
+   if(game==='babanuki'||game==='shichinarabe'){
+    // Exercise the same cross-frame leave message used by Google Sites Back.
+    // This top-level harness posts to self; in the collection the parent
+    // frame posts the identical message to its sandboxed game child.
+    await quitter.evaluate(()=>new Promise((resolve,reject)=>{
+     const requestId='back-123';
+     const timeout=setTimeout(()=>{window.removeEventListener('message',onReply);reject(Error('NO_LEAVE_ACK'));},12000);
+     const onReply=event=>{
+      if(event.data?.type!=='tc:leave-ack'||event.data.requestId!==requestId)return;
+      clearTimeout(timeout);window.removeEventListener('message',onReply);resolve();
+     };
+     window.addEventListener('message',onReply);
+     window.postMessage({type:'tc:leave-room',requestId},'*');
+    }));
+   }else await quitter.locator('#leave').click();
    await quitter.waitForFunction(
      ()=>document.getElementById('lobby').hidden&&
           !document.getElementById('create').disabled,null,{timeout:20000});
