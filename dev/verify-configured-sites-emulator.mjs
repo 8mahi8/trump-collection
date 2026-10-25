@@ -34,7 +34,8 @@ const server=createServer((req,res)=>{
 await new Promise((resolve,reject)=>server.listen(8893,'127.0.0.1',e=>e?reject(e):resolve()));
 const browserType=engine==='webkit'?webkit:chromium;
 const browser=await browserType.launch(engine==='chromium'?{headless:true,args:['--no-sandbox']}:{headless:true});
-const context=await browser.newContext({viewport:{width:800,height:450}});
+// Exercise touch events at a landscape 800x450 school-iPad-like viewport.
+const context=await browser.newContext({viewport:{width:800,height:450},hasTouch:true});
 const errors=[],pages=[];
 function cors(){
  return {'Access-Control-Allow-Origin':'*',
@@ -131,35 +132,35 @@ try{
  }));
  const cardId=c=>c.joker?'JK':c.suit+'-'+c.rank;
  if(requestedGame==='babanuki'){
-  await player.game.locator('#board button.card.back').first().click({timeout:12000});
+  await player.game.locator('#board button.card.back').first().tap({timeout:12000});
  }else if(requestedGame==='shichinarabe'){
   const legal=state.privateView?.legalIds||[];
   if(legal.length){
    const i=state.privateView.hand.findIndex(c=>cardId(c)===legal[0]);
    assert.ok(i>=0,'legal 7s card must exist in own hand');
-   await hand.nth(i).click({timeout:12000});
+   await hand.nth(i).tap({timeout:12000});
    const confirm=player.game.locator('#actions button').filter({hasText:'選択カードを出す'});
    assert.equal(await confirm.isDisabled(),false,'card is selected, submit button enabled');
    assert.equal(await player.game.locator('body').evaluate(()=>window.TCFourRemote.view.revision),before,
     'touching the card alone must NOT submit the move');
-   await confirm.click({timeout:12000});
-  }else await player.game.locator('#actions button').filter({hasText:'パス'}).click();
+   await confirm.tap({timeout:12000});
+  }else await player.game.locator('#actions button').filter({hasText:'パス'}).tap();
  }else{
   const moves=state.privateView?.legalMoves||[];
   if(moves.length){
    for(const id of moves[0]){
     const i=state.privateView.hand.findIndex(c=>cardId(c)===id);
     assert.ok(i>=0,'legal daifugo card must exist in own hand');
-    await hand.nth(i).click({timeout:12000});
+    await hand.nth(i).tap({timeout:12000});
    }
    const confirm=player.game.locator('#actions button').filter({hasText:'選択カードを出す'});
    assert.equal(await confirm.isDisabled(),false,'legal daifugo combination accepted');
    assert.equal(await player.game.locator('body').evaluate(()=>window.TCFourRemote.view.revision),before,
     'selecting a hand must NOT submit the move');
-   await confirm.click({timeout:12000});
+   await confirm.tap({timeout:12000});
   }else{
    assert.ok(state.view.field,'cannot pass empty Daifugo field without a move');
-   await player.game.locator('#actions button').filter({hasText:'パス'}).click();
+   await player.game.locator('#actions button').filter({hasText:'パス'}).tap();
   }
  }
  await Promise.all(players.map(p=>p.game.locator('#state').filter({hasText:'通信 OK'}).waitFor({timeout:22000})));
