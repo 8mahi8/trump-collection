@@ -106,6 +106,14 @@ export function createFirebaseRoomStore({databaseURL,auth,fetchImpl=globalThis.f
     seat:room=>request('GET',fullPath(room,'seats',uid)),
     joinRequests:room=>request('GET',fullPath(room,'joinRequests')),
     // Only the authenticated host may update this heartbeat. Readers must occupy a room seat.
+    // Closed matches are terminal. Never expose hands in this public-to-seated-user flag.
+    readClosed:room=>request('GET',fullPath(room,'closed')),
+    closeRoom:(room,reason='host_left')=>{
+      if(!['host_left','player_left'].includes(reason))throw Error('INVALID_CLOSE_REASON');
+      return request('PUT',fullPath(room,'closed'),{reason},true);
+    },
+    leaveRoom:room=>request('PUT',fullPath(room,'leaveRequests',uid),true,true),
+    leaveRequests:room=>request('GET',fullPath(room,'leaveRequests')),
     readHeartbeat:room=>request('GET',fullPath(room,'heartbeat')),
     writeHeartbeat:(room,seq)=>{
       if(!Number.isSafeInteger(seq)||seq<=0)throw Error('INVALID_HEARTBEAT_SEQUENCE');
