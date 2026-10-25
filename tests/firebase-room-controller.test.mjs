@@ -182,15 +182,17 @@ test('Firebase 4人コントローラー: ロビー状態配信に失敗して�
 });
 
 test('Firebase 4人コントローラー: ホスト停止中はゲスト操作を止め、復帰後に再開',async()=>{
- const s=setup('shichinarabe',123);
+ const s=fakeNetwork();
  let clock=100000;
+ const host=createFirebaseRoomHost({store:s.makeStore(IDS[0]),roomCode:'28371',
+  game:'shichinarabe',seedSource:()=>123,now:()=>clock,heartbeatIntervalMs:2800});
  // Recreate one authenticated guest with a deterministic monotonic clock.
  const p=1,guest=createFirebaseRoomGuest({store:s.makeStore(IDS[p]),roomCode:'28371',
   game:'shichinarabe',now:()=>clock,hostTimeoutMs:10000,
   actionIdSource:()=>String(++clock).padStart(6,'0')});
- await s.host.bootstrap();
+ await host.bootstrap();
  await guest.requestJoin();
- await s.host.tick();
+ await host.tick();
  assert.equal((await guest.poll()).status,'ready');
  const first=guest.snapshot.publicView.revision;
  clock+=9900;
@@ -199,11 +201,11 @@ test('Firebase 4人コントローラー: ホスト停止中はゲスト操作�
  assert.equal((await guest.poll()).status,'host_unavailable');
  await assert.rejects(()=>guest.act('ready',{ready:true}),/NO_SYNCED_VIEW/);
  // Same Firebase user and existing seat can resume without creating a new room.
- await s.host.tick();
+ await host.tick();
  assert.equal((await guest.poll()).status,'ready');
  assert.equal(guest.snapshot.publicView.revision,first);
  const id=await guest.act('ready',{ready:true});
- await s.host.tick();
+ await host.tick();
  assert.equal((await guest.receipt(id)).ok,true);
 });
 test('Firebase 4人コントローラー: heartbeatに問題が出たら古い状態では操作しない',async()=>{
