@@ -21,6 +21,9 @@ function fakeDb(){
   if(kind==='joinRequests')allow=method==='GET'?isHost:method==='PUT'&&uid===owner&&value===true&&!!host;
   if(kind==='seats')allow=method==='GET'?owner===uid||isHost:method==='PUT'&&isHost&&value===true;
   if(kind==='public')allow=method==='GET'?member:method==='PUT'&&isHost;
+  if(kind==='heartbeat')allow=method==='GET'?member:
+    method==='PUT'&&isHost&&Number.isSafeInteger(value?.seq)&&value.seq>0&&
+    (!map.has(path)||value.seq>map.get(path).seq);
   if(kind==='private')allow=method==='GET'?member&&owner===uid:method==='PUT'&&isHost;
   if(kind==='commands')allow=method==='GET'?isHost:
     (method==='PUT'&&uid===owner&&member&&value?.actor===uid)||(method==='DELETE'&&isHost);
@@ -130,4 +133,19 @@ test('RTDB Rules: root and ancestors deny reads; private view requires matching 
  assert.match(room.private['$uid']['.read'],/seats/);
  assert.match(room.public['.read'],/seats/);
  assert.match(room.commands['$uid']['$command']['.write'],/newData\.child\('actor'\)/);
+});
+
+test('Firebase RTDB: 心拍はホストだけが更新し、承認された本人だけ読める',async()=>{
+ const db=fakeDb(),host=store(db,IDS[0]),guest=store(db,IDS[1]),stranger=store(db,IDS[2]);
+ await host.reserve('67890','babanuki');
+ await host.grantSeat('67890',IDS[0]);await host.grantSeat('67890',IDS[1]);
+ assert.equal(await guest.readHeartbeat('67890'),null);
+ await assert.rejects(()=>guest.writeHeartbeat('67890',1),e=>e.code==='PERMISSION_DENIED');
+ await assert.rejects(()=>stranger.readHeartbeat('67890'),e=>e.code==='PERMISSION_DENIED');
+ await host.writeHeartbeat('67890',1);
+ assert.deepEqual(await guest.readHeartbeat('67890'),{seq:1});
+ await assert.rejects(()=>host.writeHeartbeat('67890',1),e=>e.code==='PERMISSION_DENIED');
+ await host.writeHeartbeat('67890',2);
+ assert.deepEqual(await guest.readHeartbeat('67890'),{seq:2});
+ assert.throws(()=>host.writeHeartbeat('67890',0),/INVALID_HEARTBEAT_SEQUENCE/);
 });
