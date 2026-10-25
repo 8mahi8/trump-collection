@@ -20,13 +20,15 @@ function bundledScript(){
  const controller=stripExports(noImport(read('online/firebase-room-controller.mjs'),
   "import {createFourSeatAuthority,makeFourSeatCommand} from './four-seat-authority.mjs';",'controller'));
  const store=stripExports(read('online/firebase-room-store.mjs'));
+ const guard=stripExports(read('online/firebase-dedicated-guard.mjs'));
  const html=read('online/four-seat-remote.html');
  const match=html.match(/<script type="module">([\s\S]*?)<\/script>/);
  if(!match)throw Error('Remote script missing');
  let ui=match[1];
  ui=noImport(ui,"import {createFirebaseAnonymousAuth,createFirebaseRoomStore} from './firebase-room-store.mjs';",'firebase store');
  ui=noImport(ui,"import {createFirebaseRoomHost,createFirebaseRoomGuest} from './firebase-room-controller.mjs';",'firebase controller');
- return {html,script:logic+authority+'\n'+controller+'\n'+store+'\n'+ui};
+ ui=noImport(ui,"import {validateDedicatedFirebaseConfig} from './firebase-dedicated-guard.mjs';",'dedicated Firebase preflight');
+ return {html,script:logic+authority+'\n'+controller+'\n'+store+'\n'+guard+'\n'+ui};
 }
 export function buildOnlineHtml(){
  const {html,script}=bundledScript();
