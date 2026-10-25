@@ -3,6 +3,14 @@
 > **次の開発担当AIはまずこの文書と [HANDOFF.md](../HANDOFF.md) を読むこと。**
 > 旧記録には後から変更された計画が残るため、下記の最新方針を優先。
 
+## Phase16（2026-10-25）｜学校Safari系WebKitの対戦試験成功
+
+- Playwright **WebKit + Chromium 両エンジン**でCOM4／友達4＝8入口の起動、Firebase Emulatorの**4独立ブラウザ×ババ抜き・七並べ・大富豪**のREADY→初手同期、ホスト通信断復旧、退出→新ルームが合格。
+- **[GitHub Actions #40198456792](https://github.com/8mahi8/trump-collection/actions/runs/40198456792) 成功、Node 93/93、失敗0**。詳細は[Phase16資料](PHASE16_WEBKIT_SAFARI_REGRESSION_2026-10-25.md)。`TC_BROWSER_ENGINE=webkit`でUIテストを再現できる。
+- LEMON CLASHの開発ブランチ `dev/ipad-hand-ui` にて実際の `/lemonClashRoomsV1` 使用・旧Firebase共用時の**Authなし**接続を確認。Phase15を更新。旧ゲームのアクセスをAuth必須に変更してはいけない。
+- 本番Firebase・Google Sites・学校Safari実機は**未変更／未検証**。WebKitの合格はiOS実機合格を意味しない。繰り返しのRulesスクリーンショット要求はしない。
+- 次は実校内Google Sitesで使用中のパスの全件確認、期限切れ（11月8日）の対応案、既存ユーザーの負担を減らす小さなUI改善。高度な不正対策は作らない。
+
 ## 最優先のユーザー方針追記（2026-10-25）｜身内対戦、不正対策は軽量でよい
 
 - 利用者は学校の友達だけ。**対戦相手の悪意ある不正・チート対策に時間をかけすぎない**。開発優先順位は「友達と4ゲームで遊べる → 操作が簡単 → iPad Safari/Google Sitesで軽く安定 → 必要最小限の権限と通信費対策」。
@@ -31,7 +39,7 @@
 - GitHub: https://github.com/8mahi8/trump-collection
 - 開発ブランチ: `dev/quality-and-ui-v1-5-20261024`
 - Draft PR: https://github.com/8mahi8/trump-collection/pull/1
-- 最新確認済み GitHub Actions 成功: https://github.com/8mahi8/trump-collection/actions/runs/40196219631 （**Node 89/89件合格**）。CIは Firebase Local Emulator と Chromium を使用。本番Firebase／学校iPadでの合格ではない。
+- 最新確認済み GitHub Actions 成功: https://github.com/8mahi8/trump-collection/actions/runs/40198456792 （**Node 93/93件合格**）。CIは Firebase Local Emulator と Chromium **および WebKit** を使用。本番Firebase／学校iPad実機での合格ではない。
 - `main/index.html` は公開COM版 **v1.4.0**、開発ブランチの`index.html`はCOM版 **v1.5.5**。本人承認なしに公開・学校Google Sites版を上書きしない。
 
 ## ゲーム仕様・完成状況
@@ -78,6 +86,6 @@
 - `online/collection-launcher.template.html`／`dev/build-collection-lab.mjs`：共通4ゲームメニューと単体HTMLの研究ビルド
 - `firebase/trump-rooms.rules.json`：**単独トランプ専用**のRules。**既存本番Firebaseへファイル丸ごと適用してはいけない**。
 - `firebase.shared-emulator.json`と`tests/firebase-shared-emulator.e2e.mjs`：既存の架空ルールを合成したエミュレーター検証
-- `.github/workflows/firebase-emulator-ci.yml`：Node→単体HTML→Chromium→Firebase Auth/RTDB Emulator→共有Rules Emulator
+- `.github/workflows/firebase-emulator-ci.yml`：Node→単体HTML→Chromium＋WebKit→Firebase Auth/RTDB Emulator（両エンジン）→共有Rules Emulator
 
 ユーザーが「任した」と言ったら**計画だけで止まらず、可能な範囲でGitHubへコミットし、CI結果の成功を確認して報告**すること。学校版・本番Rulesは独断で触らない。
