@@ -1,5 +1,11 @@
 # 引き継ぎ資料 — トランプコレクション
 
+## Phase 12｜既存Firebase共有のオフライン合成・実エミュレーター検証（2026-10-25）
+
+**君の方針に合わせ、新規Firebaseプロジェクト必須案は撤回。既存Firebase再利用を第一候補にする。** [共有手順](firebase/SHARED_DATABASE_RULES.md) / [実行成功したActions](https://github.com/8mahi8/trump-collection/actions/runs/40180826430)。Node**84/84**、共有合成したサンプルRulesで**旧ゲームの権限維持＋トランプのprivate手札隔離＋3ゲーム4人対戦完走**をFirebase Auth/RTDB Emulatorで確認。合成ツール`dev/merge-existing-firebase-rules.mjs`は本番のルート許可・ワイルドカード・既存トランプパスを拒否し、旧Rulesを消さない。**最重要未完了：本当に使っているFirebaseの現行Rulesを取得していない。サンプルテストの合格では本番を保証できない。** `online/firebase-dedicated-guard.mjs`は従来の専用Firebase限定のまま。ライブRules監査後に共有用へ変更。現行BRAWL・小国戦線のRules／DB／Google Sitesと、main／COM版は一切未変更。
+
+
+
 ## 2026-10-25｜Firebase運用方針の見直し（最新）
 
 **オーナー意向：新規Firebaseを作るより、他の学校ゲームで既に使っているFirebaseの再利用を優先する。** 新規Sparkプロジェクトを作ることは必須条件ではない。トランプ用データは`trumpRoomsV1`という独立パスで管理する。既存ゲームの本番データとアクセス権は変更しない。
