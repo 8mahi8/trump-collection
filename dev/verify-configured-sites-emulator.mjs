@@ -83,6 +83,8 @@ try{
  const host=await launch();players.push(host);
  await host.game.locator('#create').click();
  await host.game.locator('#lobby').waitFor({state:'visible',timeout:22000});
+ // Lobby visibility happens before the next Firebase poll populates the code.
+ await host.game.locator('#roomCode').filter({hasText:/^[0-9]{5}$/}).waitFor({timeout:22000});
  const room=await host.game.locator('#roomCode').textContent();
  assert.match(room,/^[0-9]{5}$/);
  for(let i=1;i<4;i++){
