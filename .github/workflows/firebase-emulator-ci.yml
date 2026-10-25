@@ -59,3 +59,8 @@ jobs:
         run: node dev/merge-existing-firebase-rules.mjs --existing tests/fixtures/existing-school.rules.json --out dist/review-merged-school.rules.json
       - name: Emulator regression on merged legacy + private-trump Rules
         run: npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.shared-emulator.json --only auth,database "node --test tests/firebase-shared-emulator.e2e.mjs && node --test tests/firebase-emulator.e2e.mjs"
+
+      - name: Build scoped migration draft from SYNTHETIC open root (never deploy)
+        run: node dev/plan-open-root-migration.mjs --existing tests/fixtures/open-root.example.rules.json --legacy-roots rooms,rooms2v2,shokokuRooms1v1,lemonClashRoomsV1 --out dist/review-scoped-open-root.rules.json
+      - name: Emulator regression for scoped legacy roots and private trump rooms
+        run: npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.scoped-emulator.json --only auth,database "node --test tests/firebase-scoped-emulator.e2e.mjs && node --test tests/firebase-emulator.e2e.mjs"
