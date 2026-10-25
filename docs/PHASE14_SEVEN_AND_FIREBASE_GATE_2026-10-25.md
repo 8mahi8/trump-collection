@@ -26,5 +26,5 @@
 
 ## 検証
 - 過去の成功記録: [Actions #40183559945](https://github.com/8mahi8/trump-collection/actions/runs/40183559945)（Node 88/88）。
-- 今回の最新CI: [Actions #40196219631](https://github.com/8mahi8/trump-collection/actions/runs/40196219631)。成功／失敗はActionsの実際の結果を正として扱う。未完了の結果を成功とは記載しない。
+- 今回の最新CI: [Actions #40196219631](https://github.com/8mahi8/trump-collection/actions/runs/40196219631) **成功**。Node **89/89**、Chromium COM/友達8入口、Firebase4画面のババ抜き・七並べ・大富豪初手同期、ホスト通信断・復旧、共有Rules Emulatorすべて合格。
 - 全ブラウザ試験はChromium。学校iPad/Safari実機、実Firebaseは未検証。
