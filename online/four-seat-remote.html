@@ -50,7 +50,7 @@ select,input{background:#fafff5;color:#223128}input{max-width:140px}
  <form id="chatCompose"><input id="chatInput" maxlength="120" autocomplete="off" aria-label="チャットメッセージ" placeholder="メッセージ（120文字まで）"><button id="chatSend" type="submit">送信</button></form>
  <div id="chatStatus" role="status"></div>
 </section><script type="module">
-import {createFirebaseAnonymousAuth,createFirebaseRoomStore} from './firebase-room-store.mjs';
+import {createFirebaseAnonymousAuth,createFirebaseOpenRootTrialIdentity,createFirebaseRoomStore} from './firebase-room-store.mjs';
 import {validateFirebaseConfig} from './firebase-dedicated-guard.mjs';
 import {nextFirebasePollDelay} from './firebase-poll-policy.mjs';
 import {createFirebaseRoomHost,createFirebaseRoomGuest} from './firebase-room-controller.mjs';
@@ -58,6 +58,18 @@ import {createFirebaseRoomHost,createFirebaseRoomGuest} from './firebase-room-co
 // PUBLIC Firebase Web API key and RTDB URL only. Do not put admin credentials here.
 // For isolated tests this object may be set before the module executes.
 const CONFIG=window.TRUMP_FIREBASE_CONFIG||{apiKey:'',databaseURL:''};
+const OPEN_ROOT_TRIAL=window.TRUMP_FIREBASE_OPEN_ROOT_TRIAL===true;
+// Only the previously owner-confirmed open Realtime Database may use a
+// temporary unsigned ID. All other environments keep Firebase Anonymous Auth.
+const OPEN_ROOT_PROJECT='mygame-df915';
+const OPEN_ROOT_DB='https://mygame-df915-default-rtdb.firebaseio.com';
+if(OPEN_ROOT_TRIAL){
+ document.querySelector('main > small').textContent=
+  '友達との試遊専用：現在のFirebaseルールでは誰でもルーム・手札・チャットを読み書きできます。個人情報は送らないでください。ルールの期限は11月8日です。';
+}else if(CONFIG.apiKey&&CONFIG.databaseURL){
+ document.querySelector('main > small').textContent=
+  '4人オンライン対戦。友達の5桁ルーム番号で参加できます。更新したら新しい部屋を作り直してください。';
+}
 const $=id=>document.getElementById(id);
 const UI_SUITS=['♠','♥','♦','♣'];
 const CARD_NAMES={1:'A',11:'J',12:'Q',13:'K'};
@@ -107,18 +119,28 @@ async function leaveRoom(){
 }
 function shouldRun(epoch){return epoch===session&&!!guestRunner;}
 async function connectAuth(){
- if(!CONFIG.apiKey||!CONFIG.databaseURL)throw Error('FIREBASE_CONFIG_MISSING');
+ if(!CONFIG.databaseURL||(!OPEN_ROOT_TRIAL&&!CONFIG.apiKey))throw Error('FIREBASE_CONFIG_MISSING');
  // The emulator injects a fake transport. Real network access requires
  // a known Firebase project and exactly matching DB (including the existing school Firebase).
  const emulatorTransport=Boolean(window.TRUMP_FIREBASE_TEST_FETCH);
  if(emulatorTransport&&!['127.0.0.1','localhost'].includes(location.hostname))
    throw Error('FIREBASE_TEST_TRANSPORT_FORBIDDEN');
- if(!emulatorTransport)validateFirebaseConfig(CONFIG);
+ if(OPEN_ROOT_TRIAL){
+  // Opt-in test mode only; never bypass the host/project check.
+  if(CONFIG.projectId!==OPEN_ROOT_PROJECT||
+    new URL(CONFIG.databaseURL).origin!==OPEN_ROOT_DB||
+    Object.keys(CONFIG).some(k=>!['projectId','databaseURL'].includes(k)))
+    throw Error('TRIAL_PROJECT_MISMATCH');
+ }else if(!emulatorTransport)validateFirebaseConfig(CONFIG);
  if(!auth){
-  const opts={apiKey:CONFIG.apiKey};
-  // Only used by local CI pages, never on GitHub Pages.
-  if(window.TRUMP_FIREBASE_TEST_FETCH)opts.fetchImpl=window.TRUMP_FIREBASE_TEST_FETCH;
-  auth=createFirebaseAnonymousAuth(opts);
+  if(OPEN_ROOT_TRIAL){
+   auth=createFirebaseOpenRootTrialIdentity();
+  }else{
+   const opts={apiKey:CONFIG.apiKey};
+   // Only used by local CI pages, never on GitHub Pages.
+   if(window.TRUMP_FIREBASE_TEST_FETCH)opts.fetchImpl=window.TRUMP_FIREBASE_TEST_FETCH;
+   auth=createFirebaseAnonymousAuth(opts);
+  }
   await auth.signIn();
  }
  if(!store){
@@ -177,6 +199,7 @@ function describe(e){
  const key=e?.code||e?.message||String(e);
  return ({
   FIREBASE_CONFIG_MISSING:'Firebase接続先が未設定（開発用画面）',
+  TRIAL_PROJECT_MISMATCH:'試遊用のFirebase接続先が一致しません',
   FIREBASE_PROJECT_NOT_ALLOWED:'トランプ用または確認済みの既存Firebaseプロジェクトを指定してください',
   FIREBASE_PROJECT_DATABASE_MISMATCH:'Firebaseプロジェクト名とDBアドレスが一致しません',
   FIREBASE_TEST_TRANSPORT_FORBIDDEN:'テスト用の通信設定はローカルの検証環境でのみ使用可能です',
