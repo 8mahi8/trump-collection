@@ -90,7 +90,7 @@ try{
   await guest.game.locator('#code').fill(room);
   await guest.game.locator('#join').click();
  }
- await Promise.all(players.map(p=>p.game.locator('#roster').getByText('4/4人',{exact:false}).waitFor({timeout:22000})));
+ await Promise.all(players.map(p=>p.game.locator('#roster').filter({hasText:'4/4人'}).waitFor({timeout:22000})));
  for(const p of players)await p.game.locator('#ready').click();
  await host.game.locator('#start:not([disabled])').click({timeout:22000});
  await Promise.all(players.map(p=>p.game.locator('#match').waitFor({state:'visible',timeout:22000})));
