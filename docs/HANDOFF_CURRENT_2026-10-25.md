@@ -7,7 +7,7 @@
 
 - 本人の説明：以前確認した `mygame-df915` の期限付きルート全体の読書き許可が**現在も変わっていない**。10/22の記録の期限は **2026-11-08 00:00 JST**。この本人確認を受けて**同じスクリーンショットの再提出は求めない**（管理APIで現行Rulesを独立に再読込したわけではない）。
 - 親ルートの許可は子で拒否できないため、いまのまま `/trumpRoomsV1` に非公開手札を置くことはできない。既存Firebaseを再利用しつつ、旧ゲームのルートへ権限を局所化してトランプ専用ルートに別権限を用意する**移行案**を開発ブランチに追加。
-- [Phase 15作業内容](PHASE15_OPEN_ROOT_MIGRATION_2026-10-25.md)／`dev/plan-open-root-migration.mjs`／`tests/plan-open-root-migration.test.mjs`／`tests/firebase-scoped-emulator.e2e.mjs`。架空ルールからレビュー用候補を作り、実FirebaseではなくFirebase Emulatorで旧ルート／手札分離を検証する。
+- [Phase 15作業内容](PHASE15_OPEN_ROOT_MIGRATION_2026-10-25.md)／`dev/plan-open-root-migration.mjs`／`tests/plan-open-root-migration.test.mjs`／`tests/firebase-scoped-emulator.e2e.mjs`。架空ルールからレビュー用候補を作り、実FirebaseではなくFirebase Emulatorで旧ルート／手札分離を検証する。**[CI #40197234549](https://github.com/8mahi8/trump-collection/actions/runs/40197234549)成功（Node 93/93、旧4ルートの権限維持＋トランプ手札分離のEmulator確認）**。
 - 本番未解決：実際の全ゲーム利用パスの網羅性、匿名Firebase Auth、旧ゲームのルール期限切れ対処、オーナーの本番変更承認。**本番のFirebase・Google Sites版・main・PRのDraft状態は変更しない**。
 
 ## Phase 14 更新（2026-10-25）｜七並べの確定操作・本番Rules未確認
