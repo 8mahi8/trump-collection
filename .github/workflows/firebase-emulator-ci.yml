@@ -36,10 +36,10 @@ jobs:
         run: node --test tests/*.test.mjs
       - name: Build standalone Google Sites compatible four-player HTML
         run: node dev/build-online-html.mjs
-      - name: Prepare Playwright Chromium
+      - name: Prepare Playwright Chromium and WebKit (Safari engine)
         run: |
           npm install --no-save playwright@1.56.1
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium webkit
       - name: Build integrated COM and friends launcher (research-only)
         run: node dev/build-collection-lab.mjs
       - name: Browser tests for all 4 COM and friend entry points
@@ -52,8 +52,12 @@ jobs:
           retention-days: 7
       - name: Browser UI smoke test (offline config guard)
         run: node dev/verify-online-browser.mjs
-      - name: Emulator authorization and four-browser UI integration
-        run: npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.emulator.json --only auth,database "node --test tests/firebase-emulator.e2e.mjs && TC_BROWSER_EMULATOR=1 node dev/verify-online-browser.mjs"
+      - name: WebKit launcher smoke test (all 4 COM and friend entry points)
+        run: TC_BROWSER_ENGINE=webkit node dev/verify-collection-launcher.mjs
+      - name: WebKit standalone four-seat smoke (no live Firebase)
+        run: TC_BROWSER_ENGINE=webkit node dev/verify-online-browser.mjs
+      - name: Emulator authorization and four-browser UI integration (Chromium + WebKit)
+        run: npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.emulator.json --only auth,database "node --test tests/firebase-emulator.e2e.mjs && TC_BROWSER_EMULATOR=1 node dev/verify-online-browser.mjs && TC_BROWSER_EMULATOR=1 TC_BROWSER_ENGINE=webkit node dev/verify-online-browser.mjs"
 
       - name: Build synthetic merged Rules offline (never deploy)
         run: node dev/merge-existing-firebase-rules.mjs --existing tests/fixtures/existing-school.rules.json --out dist/review-merged-school.rules.json
