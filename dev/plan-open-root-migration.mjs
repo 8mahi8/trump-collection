@@ -12,7 +12,7 @@ const name=/^[A-Za-z][A-Za-z0-9_-]{0,80}$/;
 // It may only extend the old legacy window by 1..90 days and is NEVER implicit.
 function plannedLegacyPermission(permission,legacyExpiryDate){
  const previousExpiry=Number(permission.match(/[0-9]{13}$/)?.[0]);
- if(!legacyExpiryDate)return {permission,previousExpiry,newExpiry:previousExpiry,expirationUnchanged:true};
+ if(legacyExpiryDate===null)return {permission,previousExpiry,newExpiry:previousExpiry,expirationUnchanged:true};
  if(typeof legacyExpiryDate!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(legacyExpiryDate))
   throw Error('LEGACY_EXPIRY_DATE_MUST_BE_YYYY_MM_DD');
  const iso=legacyExpiryDate+'T00:00:00+09:00';
