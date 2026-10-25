@@ -8,7 +8,23 @@ const own=(v,k)=>Object.prototype.hasOwnProperty.call(v,k);
 const obj=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
 const name=/^[A-Za-z][A-Za-z0-9_-]{0,80}$/;
 
-export function planOpenRootMigration(existing,trump,legacyRoots){
+// Optional expiry review date is interpreted at midnight Japan Standard Time.
+// It may only extend the old legacy window by 1..90 days and is NEVER implicit.
+function plannedLegacyPermission(permission,legacyExpiryDate){
+ const previousExpiry=Number(permission.match(/[0-9]{13}$/)?.[0]);
+ if(!legacyExpiryDate)return {permission,previousExpiry,newExpiry:previousExpiry,expirationUnchanged:true};
+ if(typeof legacyExpiryDate!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(legacyExpiryDate))
+  throw Error('LEGACY_EXPIRY_DATE_MUST_BE_YYYY_MM_DD');
+ const iso=legacyExpiryDate+'T00:00:00+09:00';
+ const newExpiry=Date.parse(iso);
+ if(!Number.isSafeInteger(newExpiry)||new Date(newExpiry).toLocaleDateString('en-CA',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'})!==legacyExpiryDate)
+  throw Error('INVALID_LEGACY_EXPIRY_DATE');
+ if(newExpiry<=previousExpiry||newExpiry-previousExpiry>90*24*60*60*1000)
+  throw Error('LEGACY_EXPIRY_EXTENSION_OUT_OF_RANGE');
+ return {permission:'now < '+newExpiry,previousExpiry,newExpiry,expirationUnchanged:false};
+}
+
+export function planOpenRootMigration(existing,trump,legacyRoots,{legacyExpiryDate=null}={}){
  if(!obj(existing)||!obj(existing.rules))throw Error('EXISTING_RULES_REQUIRED');
  if(!obj(trump)||!obj(trump.rules)||!obj(trump.rules.trumpRoomsV1)||
    trump.rules['.read']!==false||trump.rules['.write']!==false||
@@ -31,8 +47,9 @@ export function planOpenRootMigration(existing,trump,legacyRoots){
    throw Error('INVALID_OR_DUPLICATE_LEGACY_ROOT');
   unique.add(path);
  }
+ const timing=plannedLegacyPermission(permission,legacyExpiryDate);
  const candidate={rules:{'.read':false,'.write':false}};
- for(const path of unique){candidate.rules[path]={'.read':permission,'.write':permission};}
+ for(const path of unique){candidate.rules[path]={'.read':timing.permission,'.write':timing.permission};}
  candidate.rules.trumpRoomsV1=JSON.parse(JSON.stringify(trump.rules.trumpRoomsV1));
  return {
   combinedRules:candidate,
@@ -41,7 +58,10 @@ export function planOpenRootMigration(existing,trump,legacyRoots){
   productionApproved:false,
   liveRulesVerified:false,
   allLegacyRootsVerified:false,
-  expirationUnchanged:true
+  expirationUnchanged:timing.expirationUnchanged,
+  previousLegacyExpiryMs:timing.previousExpiry,
+  proposedLegacyExpiryMs:timing.newExpiry,
+  legacyExpiryDateJST:legacyExpiryDate||null
  };
 }
 
@@ -49,17 +69,19 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  const argv=process.argv.slice(2);
  const param=key=>argv.includes(key)?argv[argv.indexOf(key)+1]:null;
  const existingPath=param('--existing'),legacyParam=param('--legacy-roots'),out=param('--out');
+ const legacyExpiryDate=param('--legacy-expiry-date');
  if(!existingPath||!legacyParam){
-  console.error('Usage: node dev/plan-open-root-migration.mjs --existing RULES.json --legacy-roots rooms,rooms2v2 [--out NEW-REVIEW.json]');
+  console.error('Usage: node dev/plan-open-root-migration.mjs --existing RULES.json --legacy-roots rooms,rooms2v2 [--legacy-expiry-date YYYY-MM-DD (JST, <=90 days extension)] [--out NEW-REVIEW.json]');
   process.exitCode=2;
  }else{
   try{
    const existing=JSON.parse(readFileSync(resolve(existingPath),'utf8'));
    const trump=JSON.parse(readFileSync(new URL('../firebase/trump-rooms.rules.json',import.meta.url),'utf8'));
-   const result=planOpenRootMigration(existing,trump,legacyParam.split(','));
+   const result=planOpenRootMigration(existing,trump,legacyParam.split(','),{legacyExpiryDate});
    console.log('REVIEW ONLY: root-wide grants replaced with scoped legacy candidates.');
    console.log('Legacy roots:',result.legacyRoots.join(', '));
-   console.log('Known expiry kept; production NOT approved, actual root inventory NOT verified.');
+   console.log('Legacy expiry:',new Date(result.previousLegacyExpiryMs).toISOString(),'→',new Date(result.proposedLegacyExpiryMs).toISOString());
+   console.log('Production NOT approved; current live Rules and all existing paths NOT independently verified.');
    if(out){
     const target=resolve(out);
     if(target===resolve(existingPath)||existsSync(target))throw Error('REFUSING_TO_OVERWRITE_EXISTING_FILE');
