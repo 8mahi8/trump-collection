@@ -135,6 +135,12 @@ test('ACTUAL Firebase Emulator: UID-private hands and three four-player games', 
    }
    const id=await client.act(kind,extra);
    const processed=await suite.host.tick();
+   if(processed.rejected)console.error('REJECTED MATCH COMMAND',{
+     game,steps,seat:p,kind,extra,publicRevision:v.revision,
+     newRevision:suite.host.authority.revision,
+     receipt:await client.receipt(id),
+     currentTurn:suite.host.authority.publicView().turn
+   });
    assert.equal(processed.rejected,0,game+' action '+steps);
    assert.equal((await client.receipt(id)).ok,true);
    if(steps%20===0)console.log(game,'moves',steps);
