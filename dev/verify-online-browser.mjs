@@ -55,6 +55,8 @@ try{
  assert.ok(await page.locator('button#ready').count());
  assert.ok(await page.locator('button#rematch').count());
  assert.ok(await page.locator('button#leave').count());
+ assert.ok(await page.locator('button#chatToggle').count());
+ assert.equal(await page.locator('#chatPanel').isVisible(),false);
  if(!emulator){
   await page.locator('#create').click();
   await page.waitForFunction(()=>document.getElementById('status').textContent.includes('Firebase接続先が未設定'));
@@ -78,6 +80,19 @@ try{
    await Promise.all(participants.map(p=>p.waitForFunction(()=>window.TCFourRemote?.seat>=0,null,{timeout:20000})));
    const seats=await Promise.all(participants.map(p=>p.evaluate(()=>TCFourRemote.seat)));
    assert.deepEqual([...seats].sort(),[0,1,2,3]);
+   if(game==='babanuki'){
+    // Chat is a room-scoped independent interaction, not a turn/action.
+    await owner.locator('#chatToggle').click();
+    await owner.locator('#chatInput').fill('<img src=x onerror=alert(1)> こんにちは');
+    await owner.locator('#chatSend').click();
+    await participants[1].locator('#chatToggle').click();
+    await participants[1].locator('#chatList').getByText('<img src=x onerror=alert(1)> こんにちは',{exact:false}).waitFor({timeout:18000});
+    assert.equal(await participants[1].locator('#chatList img').count(),0,'chat must render as text, not HTML');
+    assert.equal(await owner.locator('#chatInput').inputValue(),'');
+    await owner.locator('#chatClose').click();
+    await participants[1].locator('#chatClose').click();
+    console.log('FIREBASE EMULATOR CHAT UI ['+engine+']: remote peer received escaped room message');
+   }
    for(const p of participants){
     await p.locator('#ready').click();
     await p.waitForFunction(()=>!document.getElementById('ready').disabled,null,{timeout:20000});
