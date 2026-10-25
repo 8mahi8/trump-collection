@@ -67,18 +67,24 @@ function choose(game){
   ?'友達対戦は2人用Supabase試作。PC・スマホで試遊実績あり（学校Safariは未確認）'
   :'友達対戦は4人用Firebase開発版。実Firebase本番への接続は未設定です';
 }
-function configureFirebase(html){
+function configureFriendsGame(html,game){
+ // In a Google Sites iframe, the nested srcdoc may have an opaque origin.
+ // Pass game selection *inside* the child HTML instead of reaching into
+ // frame.contentDocument from the parent after load.
  const config=window.TRUMP_FIREBASE_CONFIG;
- if(!config||!config.apiKey||!config.databaseURL)return html;
- // The Web API key is public; admin credentials must NEVER be embedded here.
- const json=JSON.stringify({projectId:config.projectId,apiKey:config.apiKey,databaseURL:config.databaseURL}).replace(/</g,'\\u003c');
- return html.replace('<script>',()=>'<script>window.TRUMP_FIREBASE_CONFIG='+json+';</'+'script><script>');
+ let setup='window.TRUMP_INITIAL_GAME='+JSON.stringify(game)+';';
+ if(config&&config.apiKey&&config.databaseURL){
+  // The Web API key is public; admin credentials must NEVER be embedded here.
+  const json=JSON.stringify({projectId:config.projectId,apiKey:config.apiKey,databaseURL:config.databaseURL}).replace(/</g,'\\u003c');
+  setup+='window.TRUMP_FIREBASE_CONFIG='+json+';';
+ }
+ return html.replace('<script>',()=>'<script>'+setup+'</'+'script><script>');
 }
 function show(game,mode){
  if(!Object.prototype.hasOwnProperty.call(GAME_NAMES,game))return;
  if(mode!=='com'&&mode!=='friends')return;
  const frame=q('play');
- let src=mode==='com'?APP_HTML.com:game==='shinkei'?APP_HTML.memory:configureFirebase(APP_HTML.friends4);
+ let src=mode==='com'?APP_HTML.com:game==='shinkei'?APP_HTML.memory:configureFriendsGame(APP_HTML.friends4,game);
  q('viewerTitle').textContent=GAME_NAMES[game]+'｜'+(mode==='com'?'COM対戦':'友達対戦（開発版）');
  q('viewer').classList.add('open');
  openMode=mode;
@@ -100,8 +106,6 @@ q('play').addEventListener('load',()=>{
  const frame=q('play');
  if(openMode==='com'){
   frame.contentWindow?.postMessage({type:'tc:launch-com',game:selected},'*');
- }else if(selected!=='shinkei'){
-  try{frame.contentDocument.querySelector('#game').value=selected;}catch{}
  }
 });
 choose('babanuki');
