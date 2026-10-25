@@ -7,6 +7,7 @@ on:
       - '.github/workflows/firebase-emulator-ci.yml'
       - 'firebase/**'
       - 'firebase.emulator.json'
+      - 'firebase.extended-emulator.json'
       - 'online/**'
       - 'games.mjs'
       - 'tests/**'
@@ -68,3 +69,8 @@ jobs:
         run: node dev/plan-open-root-migration.mjs --existing tests/fixtures/open-root.example.rules.json --legacy-roots rooms,rooms2v2,shokokuRooms1v1,lemonClashRoomsV1 --out dist/review-scoped-open-root.rules.json
       - name: Emulator regression for scoped legacy roots and private trump rooms
         run: npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.scoped-emulator.json --only auth,database "node --test tests/firebase-scoped-emulator.e2e.mjs && node --test tests/firebase-emulator.e2e.mjs"
+
+      - name: Generate 30-day JST extension draft from owner-reported SYNTHETIC fixture (never deploy)
+        run: node dev/plan-open-root-migration.mjs --existing tests/fixtures/owner-reported-open-root.example.rules.json --legacy-roots rooms,rooms2v2,shokokuRooms1v1,lemonClashRoomsV1 --legacy-expiry-date 2026-12-08 --out dist/review-scoped-open-root-extended.rules.json
+      - name: Validate extended legacy roots and private trump in local emulator only
+        run: npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.extended-emulator.json --only auth,database "node --test tests/firebase-scoped-emulator.e2e.mjs && node --test tests/firebase-emulator.e2e.mjs"
