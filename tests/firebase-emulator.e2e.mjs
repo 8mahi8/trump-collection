@@ -171,5 +171,25 @@ test('ACTUAL Firebase Emulator: UID-private hands and three four-player games', 
   assert.equal((await suite.guests[0].receipt(rematch)).ok,true);
   assert.equal(suite.host.authority.phase,'lobby');
   console.log('EMULATOR COMPLETED',game,'moves',steps);
+  if(game==='babanuki'){
+   // Host explicitly exits after rematch. All seats see the same reason.
+   const guestAttempt=await tryRaw(await active[1].auth.token(),room,'closed','PUT',{reason:'host_left'});
+   assert.ok([401,403].includes(guestAttempt.status),'guest must not close directly');
+   await suite.host.closeRoom('host_left');
+  }else{
+   // One member leaves: the authoritative host terminates the whole table.
+   await suite.guests[1].leaveRoom();
+   assert.equal((await suite.host.tick()).closed,true);
+  }
+  const reason=game==='babanuki'?'host_left':'player_left';
+  for(const guest of suite.guests){
+   const ended=await guest.poll();
+   assert.equal(ended.status,'room_closed');
+   assert.equal(ended.reason,reason);
+  }
+  const newcomer=createFirebaseRoomGuest({store:users[4].store,roomCode:room,game,
+    actionIdSource:()=>String(Date.now())});
+  await assert.rejects(()=>newcomer.requestJoin(),/ROOM_ALREADY_CLOSED/);
+  console.log('EMULATOR CLOSED',game,reason);
  }
 });
