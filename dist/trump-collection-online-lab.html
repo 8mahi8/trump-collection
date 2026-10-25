@@ -609,7 +609,7 @@ function createFirebaseRoomGuest({store,roomCode,game,actionIdSource,
   now=Date.now,hostTimeoutMs=15000}){
   if(!store?.uid)throw Error('AUTH_REQUIRED');
   if(typeof actionIdSource!=='function')throw Error('ACTION_ID_SOURCE_REQUIRED');
-  let lastSnapshot=null,lastHostSeq=null,lastHostProgressAt=0;
+  let lastSnapshot=null,lastHostSeq=null,lastHostProgressAt=0,seatConfirmed=false;
   async function requestJoin(){
     const meta=await store.meta(roomCode);
     if(!meta||meta.game!==game||meta.protocol!==2)throw Error('ROOM_NOT_FOUND_OR_WRONG_GAME');
@@ -625,8 +625,14 @@ function createFirebaseRoomGuest({store,roomCode,game,actionIdSource,
   }
   async function poll(){
     const ended=await store.readClosed(roomCode);
-    if(ended){lastSnapshot=null;return {status:'room_closed',reason:ended.reason};}
-    if(await store.seat(roomCode)!==true){lastSnapshot=null;return {status:'waiting_for_host'};}
+    if(ended){lastSnapshot=null;seatConfirmed=false;return {status:'room_closed',reason:ended.reason};}
+    // A seat can only be granted (never revoked) in this friends-only room.
+    // Once authenticated by RTDB Rules, avoid repeating its GET every poll.
+    // Public/private/heartbeat reads still enforce auth.uid on every request.
+    if(!seatConfirmed){
+      if(await store.seat(roomCode)!==true){lastSnapshot=null;return {status:'waiting_for_host'};}
+      seatConfirmed=true;
+    }
     const [publicView,privateView,pulse]=await Promise.all([
       store.readPublic(roomCode),store.readPrivate(roomCode),store.readHeartbeat(roomCode)]);
     // Compare server-authenticated monotonically increasing heartbeat sequence,
@@ -851,6 +857,23 @@ function validateDedicatedFirebaseConfig(config){
   return Object.freeze({projectId,apiKey,databaseURL:u.origin});
 }
 
+// Limit idle RTDB REST polling on older school iPads and Firebase Spark.
+// No timers or state here: callers choose when to schedule a fresh tick.
+// Gameplay and ACK traffic stay responsive; retry traffic uses backoff.
+function nextFirebasePollDelay({phase='lobby',isHost=false,pendingAction=false,
+ status='ready',failCount=0,myTurn=false}={}){
+ if(!Number.isSafeInteger(failCount)||failCount<0)throw Error('INVALID_FAILURE_COUNT');
+ if(failCount>0)return Math.min(1200+failCount*700,6000);
+ if(pendingAction)return 250;
+ if(status==='host_unavailable')return 2300;
+ if(status==='waiting_for_host')return 1500;
+ if(status==='syncing'||status==='stale')return 700;
+ if(phase==='playing')return isHost||myTurn?650:900;
+ if(phase==='finished')return isHost?1600:2000;
+ return isHost?1000:1500;
+}
+
+
 
 
 
@@ -870,7 +893,7 @@ const cardText=c=>c?.joker?'JOKER':UI_SUITS[c.suit]+(CARD_NAMES[c.rank]||c.rank)
 let session=0,auth=null,store=null,hostRunner=null,guestRunner=null;
 let roomCode='',game='',mySeat=-1,isHost=false,publicState=null,privateState=null;
 let busy=false,pendingAction='',failCount=0,selected=new Set(),lastRender='',online=true;
-let tickTimer=null,pollWorking=false;
+let tickTimer=null,pollWorking=false,lastPollStatus='waiting_for_host';
 const stateName=()=>isHost?'host':guestRunner?'guest':'menu';
 
 function status(message){$('status').textContent=message;}
@@ -878,7 +901,7 @@ function setupInfo(message){$('notice').textContent=message;}
 function clear(){
  session++;clearTimeout(tickTimer);tickTimer=null;
  hostRunner=guestRunner=null;roomCode='';publicState=privateState=null;
- mySeat=-1;isHost=false;busy=false;pendingAction='';failCount=0;selected.clear();lastRender='';
+ mySeat=-1;isHost=false;busy=false;pendingAction='';failCount=0;lastPollStatus='waiting_for_host';selected.clear();lastRender='';
  $('lobby').hidden=true;$('match').hidden=true;
  $('create').disabled=false;$('join').disabled=false;$('game').disabled=false;
 }
@@ -1010,6 +1033,7 @@ async function poll(epoch){
    return;
   }
   if(result.status==='ready'){
+   lastPollStatus='ready';
    publicState=result.publicView;privateState=result.privateView;
    mySeat=privateState.seat;
    const resumed=!online;
@@ -1026,7 +1050,7 @@ async function poll(epoch){
    }
    render();
   }else{
-   online=false;
+   online=false;lastPollStatus=result.status;
    status(result.status==='waiting_for_host'?'ホストの入室承認を待っています…':
     result.status==='host_unavailable'?'ホストの応答が止まっています。復帰するまで操作を停止します…':
     '状態を同期しています…');
@@ -1034,12 +1058,15 @@ async function poll(epoch){
   }
  }catch(e){
   if(!shouldRun(epoch))return;
-  online=false;failCount++;
+  online=false;lastPollStatus='error';failCount++;
   status('通信を再確認しています ('+failCount+')：'+describe(e));
   render();
  }finally{
   pollWorking=false;
-  if(shouldRun(epoch))schedule(epoch,online?650:Math.min(1200+failCount*700,5000));
+  if(shouldRun(epoch))schedule(epoch,nextFirebasePollDelay({
+   phase:publicState?.phase,isHost,pendingAction:Boolean(pendingAction),
+   status:lastPollStatus,failCount,myTurn:publicState?.turn===mySeat
+  }));
  }
 }
 async function send(type,extra={}){
