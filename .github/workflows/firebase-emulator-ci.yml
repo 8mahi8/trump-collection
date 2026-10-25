@@ -12,6 +12,8 @@ on:
       - 'tests/**'
       - 'dev/**'
       - 'dist/trump-collection-online-lab.html'
+      - 'dist/trump-collection-integrated-lab.html'
+      - 'index.html'
   workflow_dispatch:
 permissions:
   contents: read
@@ -38,6 +40,16 @@ jobs:
         run: |
           npm install --no-save playwright@1.56.1
           npx playwright install --with-deps chromium
+      - name: Build integrated COM and friends launcher (research-only)
+        run: node dev/build-collection-lab.mjs
+      - name: Browser tests for all 4 COM and friend entry points
+        run: node dev/verify-collection-launcher.mjs
+      - name: Retain test-only integrated single HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: trump-collection-integrated-lab
+          path: dist/trump-collection-integrated-lab.html
+          retention-days: 7
       - name: Browser UI smoke test (offline config guard)
         run: node dev/verify-online-browser.mjs
       - name: Emulator authorization and four-browser UI integration
