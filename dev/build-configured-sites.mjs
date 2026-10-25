@@ -57,7 +57,7 @@ export function buildOpenRootTrialSitesHtml({databaseURL,acknowledgePublicData=f
  if(!base.includes(marker))throw Error('LAUNCHER_CONFIG_INSERTION_POINT_MISSING');
  const warning='試遊用：Firebaseの公開ルールでは第三者もルーム、手札、チャットを読み書きできます。個人情報は入力しないでください。11月8日のルール期限に注意。';
  const html=base
-  .replace(marker,'window.TRUMP_FIREBASE_OPEN_ROOT_TRIAL=true;\\nwindow.TRUMP_FIREBASE_CONFIG='+JSON.stringify(config)+';\\n'+marker)
+  .replace(marker,'window.TRUMP_FIREBASE_OPEN_ROOT_TRIAL=true;window.TRUMP_FIREBASE_CONFIG='+JSON.stringify(config)+';'+marker)
   .replace('開発用統合試作：学校のGoogle Sites版は未変更。友達対戦のFirebase本番は未設定です。神経衰弱のみ既存Supabaseの身内用試作を利用します。',warning);
  if(!html.includes('TRUMP_FIREBASE_OPEN_ROOT_TRIAL=true'))throw Error('TRIAL_FLAG_NOT_EMBEDDED');
  return html;
