@@ -10,6 +10,8 @@ on:
       - 'online/**'
       - 'games.mjs'
       - 'tests/**'
+      - 'dev/**'
+      - 'dist/trump-collection-online-lab.html'
   workflow_dispatch:
 permissions:
   contents: read
