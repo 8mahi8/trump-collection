@@ -3,6 +3,15 @@
 > **次の開発担当AIはまずこの文書と [HANDOFF.md](../HANDOFF.md) を読むこと。**
 > 旧記録には後から変更された計画が残るため、下記の最新方針を優先。
 
+## Phase21（2026-10-25）｜4ゲーム共通・ルーム内テキストチャット
+
+- 本人の新要望：「同じルーム内の人間でチャットできるように」。**[実装・仕様・制限](PHASE21_ROOM_CHAT_2026-10-25.md)**。
+- 4ゲームの「友達と遊ぶ」に共通で、**💬 チャット**開閉式パネルと120文字のテキスト送信を追加。COM戦には表示しない。送受信のテキストは`textContent`で扱い、カード対戦エンジンのrevision/手札/通信処理と分離。
+- Firebase3ゲーム：`/trumpRoomsV1/$room/chat/$uid/$slot`に**各UID10スロット・最大40件**の固定長履歴を保存、開いた間だけ約2.5秒に一回取得。`firebase/trump-rooms.rules.json`にseat所有者のみread、本人UIDだけwrite、長文拒否のルールを追加。`online/firebase-room-store.mjs`の`chat/sendChat`と`online/four-seat-remote.html`を更新、単体HTML `dist/trump-collection-online-lab.html`再生成。
+- 神経衰弱：既存Supabase Realtime Broadcastに`kind:'chat'`を追加。`online/memory-remote.html`で開閉、40件までメモリ内表示、チャット復元なし。**公開Broadcast試作でありルーム番号を知る相手に対する強いプライバシー保証はない**。本番Supabaseへのデータ書込みはせず模擬WebSocketを使用。
+- 4端末Firebase EmulatorとChromium/WebKitで本人／別端末間の送受信、外部UID拒否、本文長・固定件数・HTML無害化の自動試験を追加。**学校Google Sites公開版・本番Firebase Auth/Rules/DB・既存Supabase・mainは変更していない**。本番用通信ルールの承認と実機確認が未完了。
+- ユーザーの希望「4ゲームの完成優先、無料、友達同士、過剰な不正対策不要」を維持。チャットは最小限で新しいクラウドサービスを追加しない。
+
 ## Phase20（2026-10-25）｜11月8日のFirebase旧ルール期限切れ対策（候補のみ）
 
 - [実装とリスクの詳細](PHASE20_LEGACY_RULE_EXPIRY_EXTENSION_REVIEW_2026-10-25.md)。オーナー報告の現行Root Rulesは **`now < 1794063600000`、2026-11-08 00:00 JST失効**。そのままでは旧ゲームが停止する恐れがある。
