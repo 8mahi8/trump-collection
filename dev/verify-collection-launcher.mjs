@@ -7,9 +7,16 @@ if(!['chromium','webkit'].includes(engine))throw Error('INVALID_BROWSER_ENGINE: 
 const browserType=engine==='webkit'?webkit:chromium;
 import {buildCollectionLabHtml} from './build-collection-lab.mjs';
 
+const labHtml=buildCollectionLabHtml();
+const sitesWrapper=`<!doctype html><html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>html,body{margin:0;width:100%;height:100%;overflow:hidden}
+iframe{width:100%;height:100%;border:0}</style></head><body>
+<iframe id="sites-embed" title="Google Sites mock" sandbox="allow-scripts allow-forms"></iframe>
+<script>document.getElementById('sites-embed').srcdoc=${JSON.stringify(labHtml).replace(/</g,'\\u003c')};</`+`script></body></html>`;
 const server=createServer((req,res)=>{
  res.setHeader('Content-Type','text/html; charset=utf-8');
- res.end(buildCollectionLabHtml());
+ res.end(req.url==='/sites-wrapper'?sitesWrapper:labHtml);
 });
 await new Promise((resolve,reject)=>server.listen(8877,'127.0.0.1',err=>err?reject(err):resolve()));
 const browser=await browserType.launch(engine==='chromium'?{headless:true,args:['--no-sandbox']}:{headless:true});
@@ -57,6 +64,33 @@ try{
   await page.waitForFunction(()=>window.TCCollectionLab?.openMode===null);
  }
  console.log('COLLECTION BROWSER ['+engine+']: all 4 friends entry points pass (Supabase memory trial; Firebase config guarded)');
+
+ // Google Sites embeds custom HTML in a sandboxed iframe. Inside the collection
+ // is a second srcdoc iframe, which can be cross-origin to its parent.
+ // This must never silently launch Babanuki when Seven/Daifugo was selected.
+ const sitesPage=await browser.newPage({viewport:{width:800,height:450}});
+ sitesPage.on('pageerror',err=>errors.push('Google Sites sandbox: '+err.message));
+ try{
+  await sitesPage.goto('http://127.0.0.1:8877/sites-wrapper');
+  const sites=sitesPage.frameLocator('#sites-embed');
+  for(const game of ['shichinarabe','daifugo','babanuki']){
+   await sites.locator('[data-game="'+game+'"]').click();
+   await sites.locator('#friends').click();
+   const inner=sites.frameLocator('#play');
+   await inner.locator('#game').waitFor({timeout:12000});
+   assert.equal(await inner.locator('#game').inputValue(),game,
+    'Nested sandbox must open the requested game: '+game);
+   await inner.locator('#create').click();
+   await inner.locator('#status').getByText('Firebase接続先が未設定',{exact:false}).waitFor({timeout:12000});
+   await sites.locator('#back').click();
+   await sites.locator('#viewer:not(.open)').waitFor({timeout:12000});
+  }
+  await sites.locator('[data-game="shichinarabe"]').click();
+  await sites.locator('#com').click();
+  await sites.frameLocator('#play').locator('#gameTitle').getByText('七並べ',{exact:true}).waitFor({timeout:12000});
+  await sites.locator('#back').click();
+  console.log('GOOGLE SITES NESTED SANDBOX ['+engine+']: correct friend-game routing + COM launch pass');
+ }finally{await sitesPage.close();}
  assert.deepEqual(errors,[]);
 }finally{
  await page.close();await browser.close();server.close();
