@@ -6,9 +6,10 @@ import {readFileSync} from 'node:fs';
 import {createServer} from 'node:http';
 import {chromium,webkit} from 'playwright';
 import {planOpenRootMigration} from './plan-open-root-migration.mjs';
-import {buildConfiguredSitesHtml} from './build-configured-sites.mjs';
+import {buildConfiguredSitesHtml,buildOpenRootTrialSitesHtml} from './build-configured-sites.mjs';
 
 const engine=process.env.TC_BROWSER_ENGINE||'chromium';
+const openRootTrial=process.env.TC_OPEN_ROOT_TRIAL==='1';
 if(!['chromium','webkit'].includes(engine))throw Error('INVALID_ENGINE');
 const sample=JSON.parse(readFileSync(new URL('../tests/fixtures/owner-reported-open-root.example.rules.json',import.meta.url),'utf8'));
 const trump=JSON.parse(readFileSync(new URL('../firebase/trump-rooms.rules.json',import.meta.url),'utf8'));
@@ -17,7 +18,9 @@ const scoped=planOpenRootMigration(sample,trump,
  {legacyExpiryDate:'2026-12-08'}).combinedRules;
 const config={projectId:'mygame-df915',apiKey:'firebase-emulator-api-key',
  databaseURL:'https://mygame-df915-default-rtdb.firebaseio.com'};
-const configured=buildConfiguredSitesHtml({config,reviewedRules:scoped});
+const configured=openRootTrial
+ ?buildOpenRootTrialSitesHtml({databaseURL:config.databaseURL,acknowledgePublicData:true})
+ :buildConfiguredSitesHtml({config,reviewedRules:scoped});
 const wrapper=`<!doctype html><html lang="ja"><head><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0"><iframe id="sites-embed" sandbox="allow-scripts allow-forms"
 style="border:0;width:100vw;height:100vh"></iframe>
@@ -41,8 +44,10 @@ await context.route('**/*',async route=>{
  const req=route.request(),u=new URL(req.url());
  let target;
  if(u.hostname==='identitytoolkit.googleapis.com'||u.hostname==='securetoken.googleapis.com'){
+  if(openRootTrial)errors.push('Trial made an unexpected auth request: '+u.hostname);
   target='http://127.0.0.1:9099/'+u.hostname+u.pathname+u.search;
  }else if(u.hostname.endsWith('.firebasedatabase.app')||u.hostname.endsWith('.firebaseio.com')){
+  if(openRootTrial&&u.searchParams.has('auth'))errors.push('Trial must not send Firebase Auth token');
   u.searchParams.set('ns','demo-trumpcards-default-rtdb');
   target='http://127.0.0.1:9000'+u.pathname+u.search;
  }else if(u.hostname==='127.0.0.1'&&u.port==='8893'){
@@ -110,7 +115,8 @@ try{
  await host.sites.locator('#back').click();
  await Promise.all(players.slice(1).map(p=>p.game.locator('#lobby').waitFor({state:'hidden',timeout:25000})));
  assert.deepEqual(errors,[]);
- console.log('CONFIGURED SITES FIREBASE EMULATOR PASS ['+engine+']: nested sandbox, four seats, READY, chat, graceful host exit');
+ console.log((openRootTrial?'OPEN-ROOT FRIEND TRIAL':'CONFIGURED SITES FIREBASE')+
+  ' EMULATOR PASS ['+engine+']: nested sandbox, four seats, READY, chat, graceful host exit');
 }finally{
  for(const page of pages)await page.close();
  await context.close();await browser.close();server.close();
