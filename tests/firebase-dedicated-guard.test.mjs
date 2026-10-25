@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validateDedicatedFirebaseConfig as validate} from '../online/firebase-dedicated-guard.mjs';
+import {validateFirebaseConfig as validate} from '../online/firebase-dedicated-guard.mjs';
 
 const safe={
  projectId:'trump-collection-school-qa',
@@ -19,12 +19,24 @@ test('Firebase dedicated preflight: legacy *.firebaseio.com hostname allowed whe
  const u=validate({...safe,databaseURL:'https://trump-collection-school-qa-default-rtdb.firebaseio.com'});
  assert.ok(u.databaseURL.endsWith('.firebaseio.com'));
 });
-test('Firebase dedicated preflight: known existing game and non-dedicated names blocked',()=>{
- rejects({projectId:'mygame-df915',databaseURL:'https://mygame-df915-default-rtdb.firebaseio.com'},
-  'FIREBASE_DEDICATED_PROJECT_REQUIRED');
- rejects({projectId:'brawl-online'},'FIREBASE_DEDICATED_PROJECT_REQUIRED');
- rejects({projectId:'trump-collection-xy'},'FIREBASE_DEDICATED_PROJECT_REQUIRED');
- rejects({projectId:'trump-collection-school-qa-'},'FIREBASE_DEDICATED_PROJECT_REQUIRED');
+test('Firebase shared preflight: known existing school Firebase URL is valid in shape only',()=>{
+ const a=validate({projectId:'mygame-df915',
+  apiKey:safe.apiKey,databaseURL:'https://mygame-df915-default-rtdb.firebaseio.com/'});
+ assert.equal(a.projectId,'mygame-df915');
+ assert.equal(a.databaseURL,'https://mygame-df915-default-rtdb.firebaseio.com');
+});
+test('Firebase preflight: other or misnamed projects are blocked',()=>{
+ rejects({projectId:'brawl-online'},'FIREBASE_PROJECT_NOT_ALLOWED');
+ rejects({projectId:'trump-collection-xy'},'FIREBASE_PROJECT_NOT_ALLOWED');
+ rejects({projectId:'trump-collection-school-qa-'},'FIREBASE_PROJECT_NOT_ALLOWED');
+});
+test('Firebase shared preflight: reject cross-database configuration and lookalike domains',()=>{
+ const shared={...safe,projectId:'mygame-df915'};
+ for(const databaseURL of [
+  safe.databaseURL,
+  'https://mygame-df915-default-rtdb.firebaseio.com.attacker.test',
+  'https://mygame-df915-other.firebaseio.com'
+ ])rejects({...shared,databaseURL},'FIREBASE_PROJECT_DATABASE_MISMATCH');
 });
 test('Firebase dedicated preflight: reject mismatch, wrong or spoofed host suffix',()=>{
  rejects({databaseURL:'https://mygame-df915-default-rtdb.firebaseio.com'},'FIREBASE_PROJECT_DATABASE_MISMATCH');
