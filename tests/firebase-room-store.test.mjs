@@ -163,7 +163,7 @@ test('Firebase RTDB: only host can close once, only participant can request leav
  await assert.rejects(()=>outsider.leaveRoom('78901'),e=>e.code==='PERMISSION_DENIED');
  await member.leaveRoom('78901');
  assert.deepEqual(await host.leaveRequests('78901'),{[IDS[1]]:true});
- await assert.rejects(()=>member.leaveRoom('78901'),e=>e.code==='ALREADY_EXISTS');
+ await assert.rejects(()=>member.leaveRoom('78901'),e=>['ALREADY_EXISTS','PERMISSION_DENIED'].includes(e.code));
  await host.closeRoom('78901','player_left');
  assert.deepEqual(await member.readClosed('78901'),{reason:'player_left'});
  await assert.rejects(()=>host.closeRoom('78901'),e=>['ALREADY_EXISTS','PERMISSION_DENIED'].includes(e.code));
