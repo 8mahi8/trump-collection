@@ -99,6 +99,22 @@ try{
    assert.equal(await sites.locator('#choices').evaluate(()=>window.__returnAcks),expectedAcks,
     'Back must receive a graceful-exit ACK from the selected friend game');
   }
+  // A blocked/crashed child might never ACK. Back must still finish quickly.
+  await sites.locator('[data-game="daifugo"]').click();
+  await sites.locator('#friends').click();
+  await sites.frameLocator('#play').locator('#game').waitFor({timeout:12000});
+  await sites.locator('#play').evaluate(frame=>{
+   frame.srcdoc='<!doctype html><html><body><p id="no-ack">Child unresponsive</p></body></html>';
+  });
+  await sites.frameLocator('#play').locator('#no-ack').waitFor({timeout:12000});
+  const beforeFallback=Date.now();
+  await sites.locator('#back').click();
+  await sites.locator('#viewer:not(.open)').waitFor({state:'attached',timeout:4500});
+  assert.ok(Date.now()-beforeFallback<4000,'Back should recover even when child ignores leave');
+  assert.equal(await sites.locator('#back').isDisabled(),false);
+  assert.equal(await sites.locator('#choices').evaluate(()=>window.__returnAcks),expectedAcks,
+   'Timed-out exit must not invent a child acknowledgement');
+
   await sites.locator('[data-game="shichinarabe"]').click();
   await sites.locator('#com').click();
   await sites.frameLocator('#play').locator('#gameTitle').getByText('七並べ',{exact:true}).waitFor({timeout:12000});
