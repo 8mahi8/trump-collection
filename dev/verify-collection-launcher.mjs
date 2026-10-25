@@ -1,7 +1,10 @@
 // Smoke test the combined four-game COM/Friends launcher in a real browser.
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
-import {chromium} from 'playwright';
+import {chromium,webkit} from 'playwright';
+const engine=process.env.TC_BROWSER_ENGINE||'chromium';
+if(!['chromium','webkit'].includes(engine))throw Error('INVALID_BROWSER_ENGINE: '+engine);
+const browserType=engine==='webkit'?webkit:chromium;
 import {buildCollectionLabHtml} from './build-collection-lab.mjs';
 
 const server=createServer((req,res)=>{
@@ -9,7 +12,7 @@ const server=createServer((req,res)=>{
  res.end(buildCollectionLabHtml());
 });
 await new Promise((resolve,reject)=>server.listen(8877,'127.0.0.1',err=>err?reject(err):resolve()));
-const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+const browser=await browserType.launch(engine==='chromium'?{headless:true,args:['--no-sandbox']}:{headless:true});
 const page=await browser.newPage({viewport:{width:800,height:450}});
 const errors=[];
 page.on('pageerror',err=>errors.push(err.message));
@@ -34,7 +37,7 @@ try{
   await page.locator('#back').click();
   await page.waitForFunction(()=>window.TCCollectionLab?.openMode===null);
  }
- console.log('COLLECTION BROWSER: all 4 COM entry points pass');
+ console.log('COLLECTION BROWSER ['+engine+']: all 4 COM entry points pass');
  for(let i=0;i<games.length;i++){
   await page.locator('[data-game="'+games[i]+'"]').click();
   await page.locator('#friends').click();
@@ -53,7 +56,7 @@ try{
   await page.locator('#back').click();
   await page.waitForFunction(()=>window.TCCollectionLab?.openMode===null);
  }
- console.log('COLLECTION BROWSER: all 4 friends entry points pass (Supabase memory trial; Firebase config guarded)');
+ console.log('COLLECTION BROWSER ['+engine+']: all 4 friends entry points pass (Supabase memory trial; Firebase config guarded)');
  assert.deepEqual(errors,[]);
 }finally{
  await page.close();await browser.close();server.close();
