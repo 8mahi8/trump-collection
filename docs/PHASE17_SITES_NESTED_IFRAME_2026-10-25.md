@@ -23,4 +23,4 @@
 ## 制限と次の進め方
 この試験は`srcdoc`構成のサンドボックス再現であり、学校のGoogle Sites/iPad Safariそのものではない。利用中Google Sitesの実際のiframe属性や学校Wi-Fiの制限は実機検査が必要。今回はオンライン対戦の正本処理・Firebase通信プロトコルには変更を加えず、起動の確実性のみ向上させた。学校公開版の貼り替えはオーナーの実機検査と承認まで禁止する。
 
-完了CI実績はHANDOFFのPhase17項目に追記する。
+**[GitHub Actions #40199559696](https://github.com/8mahi8/trump-collection/actions/runs/40199559696) 成功**：Node 93/93件合格、ChromiumおよびWebKitの4ゲーム×COM／友達8入口成功、**Google Sites風二重iframeの選択・戻る・COM起動も両エンジン成功**、Firebase Emulator4端末×3ゲームの同期・退出・ホスト回線復帰、および合成共有Rules／権限局所化Rules Emulatorが全て成功。学校実機・本番Firebase接続は未検証。
