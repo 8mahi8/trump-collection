@@ -15,6 +15,7 @@ on:
       - 'dev/**'
       - 'dist/trump-collection-online-lab.html'
       - 'dist/trump-collection-integrated-lab.html'
+      - 'dist/trump-collection-open-root-trial.html'
       - 'index.html'
   workflow_dispatch:
 permissions:
