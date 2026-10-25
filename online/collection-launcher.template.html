@@ -123,13 +123,16 @@ q('back').onclick=async()=>{
  q('back').disabled=true;
  const frame=q('play');
  try{
-  if(openMode==='friends'&&selected!=='shinkei')
+  if(openMode==='friends'&&selected!=='shinkei'){
+   q('back').textContent='退出中…';
    await askFriendsToLeave(frame);
+  }
  }finally{
   frame.removeAttribute('srcdoc');
   frame.src='about:blank';
   q('viewer').classList.remove('open');
   openMode=null;
+  q('back').textContent='← ゲーム一覧';
   q('back').disabled=false;
   backWorking=false;
   q('com').focus();
