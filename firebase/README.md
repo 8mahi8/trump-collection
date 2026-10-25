@@ -58,7 +58,7 @@ CIにJava 21、Node 22を導入済み。ローカルのこの作業環境はCLI�
 ## Phase 6：実ブラウザGUIの確認（2026-10-25）
 
 - [開発用オンラインUI](../online/four-seat-remote.html)と[Google Sites直接貼付け用単体HTML候補](../dist/trump-collection-online-lab.html)を生成（Firebase本番設定未投入）。
-- [Actions成功記録](https://github.com/8mahi8/trump-collection/actions/runs/40166268484)：Node60/60、実Firebase Emulatorの3ゲーム完走、Chromium4画面で**3ゲームそれぞれのカード操作同期**も成功。未設定Configの場合の案内表示、800×450の画面起動も合格。
+- [Actions成功記録](https://github.com/8mahi8/trump-collection/actions/runs/40166268484)：Node56/56、実Firebase Emulatorの3ゲーム完走、Chromium4画面で**3ゲームそれぞれのカード操作同期**も成功。未設定Configの場合の案内表示、800×450の画面起動も合格。
 - 詳細は[Phase 6開発ノート](../docs/ONLINE_UI_PHASE6_2026-10-25.md)。
 - 学校SafariやGoogle Sites、実Firebase本番での検証はまだ実施していない。ページ更新後の認証UIDとホスト状態の復旧も未実装。
 
