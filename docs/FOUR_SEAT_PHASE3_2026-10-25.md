@@ -65,3 +65,11 @@ trumpRoomsV1/<code>/
 - Node全**48テスト合格（失敗0）**。Firebaseの追加テストはREST/Authモックと4人通信の疑似実装であり、**実Firebase EmulatorでRulesが正常に働くことは未確認**。
 - **警告：Rulesは完全な単体JSON。既存Firebaseへファイル全体を適用すると、他ゲームのRulesを消す危険がある。上書き禁止。** 検証方法は [Firebase README](../firebase/README.md) に記載。
 - 本人による頻繁な試遊を求めず、AIの自動テストを先行する。完成版の学校Safari検証以外で実機依頼を繰り返さない。
+
+## Phase 5更新（2026-10-25）
+
+- 実Firebase Local Emulator SuiteをGitHub Actionsに導入。Auth/RTDBエミュレーターで4人が実際にログイン・状態共有し、ババ抜き28手、七並べ52手、大富豪97手を完走・再戦成功。
+- Nodeテスト**52/52成功**＋実エミュレーターE2E**1/1成功**。実行確認は[Actions run](https://github.com/8mahi8/trump-collection/actions/runs/40158460489)。
+- 実Rulesにより他人のprivateとcommand取得が拒否されることを検証。本人のcommand条件付きPUTのためUID自身のreadのみ明示的に許可。
+- 4人の正式席はサーバー配属の`privateView.seat`から判別すること。Clientの参加順と一致しない。
+- 本番Firebase／Google Sites／学校Safariで動作成功したという意味ではない。次は孤立環境の設定とブラウザGUI統合。
