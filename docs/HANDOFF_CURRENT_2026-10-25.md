@@ -3,6 +3,15 @@
 > **次の開発担当AIはまずこの文書と [HANDOFF.md](../HANDOFF.md) を読むこと。**
 > 旧記録には後から変更された計画が残るため、下記の最新方針を優先。
 
+## Phase23（2026-10-26）｜本番設定用Google Sites HTMLのオフライン生成準備
+
+- [実装・操作詳細](PHASE23_OFFLINE_CONFIGURED_SITES_GATE_2026-10-26.md)。`dev/build-configured-sites.mjs`を追加。公開Web APIキー、projectId、databaseURL、レビュー用Rules JSONから**ローカル専用HTML**を生成する。元の設定未投入`dist/trump-collection-integrated-lab.html`は変えない。
+- **本番Rootが`.read/.write=false`でない場合、トランプのprivate/チャット権限が正本と一致しない場合、共有Firebaseで旧4ゲームの名前空間が欠けた場合、設定プロジェクトとURLが不一致の場合に生成を拒否**。旧ゲームデータや本番ルールを更新しない。静的な候補ルール照合であり、**実サーバーへ配備済みと証明するものではない**。
+- `dist/local-configured-*.html`は`.gitignore`対象で、名前衝突時に上書き拒否。**本番の管理者認証トークンや秘密鍵は絶対にHTMLへ入れない**。
+- `tests/configured-sites-package.test.mjs`でRoot公開・private/chat改変・旧ゲームパス欠落・接続先誤り等の拒否と正しい単一HTML生成を検査。
+- `dev/verify-configured-sites-emulator.mjs`で、**本番設定を模したHTMLを二重Google Sites sandboxで4独立ページ起動**し、4人入室・準備・チャット・退出をChromium/WebKit＋ローカルFirebase Emulatorで検証するCIを追加。外部Firebase APIはブラウザレベルで遮断し、ローカルエミュレーターだけに中継。本番接続なし。
+- 今後の作業は**現行Rulesと旧ゲーム全パス確認・本人の承認後に設定版HTML生成→Google Sites実機試遊**。Firebase/Supabase通信方式は当面変更しない。11月8日の期限を放置しない。
+
 ## Phase22（2026-10-26）｜Google Sites統合1HTML保存＋2端末の神経衰弱対局検証
 
 - [詳細](PHASE22_SITES_PACKAGE_AND_TWO_DEVICE_MEMORY_2026-10-26.md)。**4ゲーム統合HTMLを開発ブランチの `dist/trump-collection-integrated-lab.html` に保存**（約201KB、COM4種・友達Firebase3種・神経衰弱Supabase・チャット・退出）。`tests/collection-launcher.test.mjs`で**最新ソースの再ビルド結果と保存ファイルの完全一致をCI検査**。設定未投入のFirebase4人対戦は依然として本番に接続できない。
