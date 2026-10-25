@@ -1,5 +1,8 @@
 # 引き継ぎ資料 — トランプコレクション
 
+**最新Phase 11（2026-10-25）：Firebase REST通信の無駄を減らす改善を完了。** [詳細](docs/ONLINE_TRAFFIC_PHASE11_2026-10-25.md) / [CI成功](https://github.com/8mahi8/trump-collection/actions/runs/40178100590)。Node**79/79合格**。承認済み席GETのキャッシュ、ロビー／終了後の低頻度ポーリング、通信失敗のバックオフを追加。対戦中のホスト／手番の650ms間隔は維持。Firebase実エミュレーターのババ抜き・七並べ・大富豪4人対戦、Chromium4画面の同期・通信断復帰・退出もすべて成功。**実Firebase本番は未接続／学校Google Sites版は未変更**。通信量の実測削減率は未計測。再読み込み復元不要の方針を維持。
+
+
 **最新Phase 10（2026-10-25）：他ゲームのFirebaseへの誤接続を防ぐ事前検査を実装・テスト成功。** [専用Sparkプロジェクト手順](firebase/DEDICATED_SPARK_SETUP.md) / [成功したGitHub Actions](https://github.com/8mahi8/trump-collection/actions/runs/40176489466)。Node**73/73**、Chromiumで4ゲーム×COM/友達8入口成功、実Auth+RTDBエミュレーターで4人対戦3ゲーム完走・切断復旧・退出も再確認。新規`online/firebase-dedicated-guard.mjs`で`trump-collection-...`専用プロジェクトIDとdefault RTDBのURL整合性を確認し、接続不一致ならFirebaseへの匿名ログイン前に拒否。設定確認CLIは`dev/check-firebase-config.mjs`（ローカル文字列のみ、ネットワーク・デプロイなし）。**本番Firebaseの新プロジェクト作成も接続もまだ行っていない**。学校版・既存FirebaseのRules・公開COM版は未変更。
 
 
