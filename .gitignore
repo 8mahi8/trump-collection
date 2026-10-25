@@ -5,3 +5,9 @@ node_modules/
 # Optional local-only Firebase browser config for isolated future project
 firebase/local-web-config.json
 firebase/local-production-config.json
+
+# Review-only snapshots and generated Firebase Rules; never commit live Rules backups
+firebase/local-current.rules.json
+firebase/current-*.rules.json
+dist/review-merged-school.rules.json
+dist/review-merged-*.rules.json
