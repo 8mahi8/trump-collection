@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {buildOnlineHtml} from '../dev/build-online-html.mjs';
+import {readFileSync} from 'node:fs';
 test('4人Firebaseオンライン開発版は外部JS不要の単一HTMLに組み立て可能',()=>{
  const html=buildOnlineHtml();
  assert.match(html,/<html lang="ja">/);
@@ -26,4 +27,9 @@ test('ホスト再接続や学校版更新が未完成であることをUIで明
  const html=buildOnlineHtml();
  assert.ok(html.includes('ページ更新による席の復元はまだ未対応'));
  assert.ok(html.includes('学校のGoogle Sites版・公開版は変更せず'));
+});
+
+test('GitHubに保存した開発用単体HTMLが最新のビルド結果と一致',()=>{
+ const saved=readFileSync(new URL('../dist/trump-collection-online-lab.html',import.meta.url),'utf8');
+ assert.equal(saved,buildOnlineHtml());
 });
