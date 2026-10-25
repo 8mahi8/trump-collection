@@ -1,0 +1,29 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {buildOnlineHtml} from '../dev/build-online-html.mjs';
+test('4人Firebaseオンライン開発版は外部JS不要の単一HTMLに組み立て可能',()=>{
+ const html=buildOnlineHtml();
+ assert.match(html,/<html lang="ja">/);
+ assert.match(html,/<script>/);
+ assert.doesNotMatch(html,/<script[^>]+src=/);
+ assert.doesNotMatch(html,/type="module"/);
+ assert.doesNotMatch(html,/^\s*import /m);
+ for(const name of ['createFirebaseRoomHost','createFirebaseRoomGuest','createFirebaseAnonymousAuth',
+  'createFirebaseRoomStore','createFourSeatAuthority','createBabanuki','createDaifugo']){
+  assert.ok(html.includes(name),name+' not bundled');
+ }
+ for(const key of ['id="create"','id="join"','id="ready"','id="start"','id="rematch"',
+  'id="hand"','id="board"','id="actions"'])assert.ok(html.includes(key));
+});
+test('単体HTMLに管理者資格情報や既存ゲームの本番DB URLを含めない',()=>{
+ const html=buildOnlineHtml();
+ for(const prohibited of ['service_role','serviceAccount','private_key','mygame-df915-default-rtdb.firebase']){
+  assert.equal(html.includes(prohibited),false,prohibited);
+ }
+ assert.ok(html.includes('TRUMP_FIREBASE_CONFIG'),'user-provided public project config should be required');
+});
+test('ホスト再接続や学校版更新が未完成であることをUIで明示',()=>{
+ const html=buildOnlineHtml();
+ assert.ok(html.includes('ページ更新による席の復元はまだ未対応'));
+ assert.ok(html.includes('学校のGoogle Sites版・公開版は変更せず'));
+});
