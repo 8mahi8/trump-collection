@@ -52,7 +52,7 @@
           ".read": "auth !== null && auth.uid === root.child('trumpRoomsV1/' + $room + '/meta/hostUid').val()",
           "$uid": {
             "$command": {
-              ".write": "auth !== null && ((auth.uid === $uid && root.child('trumpRoomsV1/' + $room + '/seats/' + $uid).val() === true && !data.exists() && newData.exists() && newData.child('actor').val() === $uid) || (auth.uid === root.child('trumpRoomsV1/' + $room + '/meta/hostUid').val() && !newData.exists()))",
+              ".write": "auth !== null && !root.child('trumpRoomsV1/' + $room + '/closed').exists() && ((auth.uid === $uid && root.child('trumpRoomsV1/' + $room + '/seats/' + $uid).val() === true && !data.exists() && newData.exists() && newData.child('actor').val() === $uid) || (auth.uid === root.child('trumpRoomsV1/' + $room + '/meta/hostUid').val() && !newData.exists()))",
               ".validate": "newData.hasChildren(['actor','actionId','type','protocol','roomCode','round','expectedRevision','game']) && newData.child('protocol').val() === 2 && newData.child('roomCode').val() === $room && newData.child('actor').val() === $uid && newData.child('actionId').isString() && newData.child('type').isString() && newData.child('expectedRevision').isNumber()"
             },
             ".read": "auth !== null && auth.uid === $uid && root.child('trumpRoomsV1/' + $room + '/seats/' + $uid).val() === true"
@@ -80,6 +80,24 @@
           },
           "seq": {
             ".validate": "newData.isNumber() && newData.val() > 0"
+          }
+        },
+        "closed": {
+          ".read": "auth !== null && root.child('trumpRoomsV1/' + $room + '/seats/' + auth.uid).val() === true",
+          ".write": "auth !== null && auth.uid === root.child('trumpRoomsV1/' + $room + '/meta/hostUid').val() && !data.exists() && newData.exists()",
+          ".validate": "newData.hasChildren(['reason']) && (newData.child('reason').val() === 'host_left' || newData.child('reason').val() === 'player_left')",
+          "$other": {
+            ".validate": false
+          },
+          "reason": {
+            ".validate": "newData.isString()"
+          }
+        },
+        "leaveRequests": {
+          ".read": "auth !== null && auth.uid === root.child('trumpRoomsV1/' + $room + '/meta/hostUid').val()",
+          "$uid": {
+            ".read": "auth !== null && auth.uid === $uid",
+            ".write": "auth !== null && auth.uid === $uid && root.child('trumpRoomsV1/' + $room + '/seats/' + auth.uid).val() === true && !root.child('trumpRoomsV1/' + $room + '/closed').exists() && !data.exists() && newData.val() === true"
           }
         }
       }
