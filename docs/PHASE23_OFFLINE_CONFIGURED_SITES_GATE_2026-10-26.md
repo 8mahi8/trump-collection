@@ -42,3 +42,13 @@ Google Sitesでは、できあがった**HTMLのソース全文**を「埋め込
 - 遅い既存総合CIの終盤で診断が遅れないよう、新しい4人二重sandboxテストをブラウザセットアップの直後へ移動した。
 - **[Actions #40208972686](https://github.com/8mahi8/trump-collection/actions/runs/40208972686)** で **Google Sites風二重iframe＋FirebaseローカルEmulatorの4人同時入室・準備・対局開始・チャット送受信・退出テストがChromium/WebKitの両方で成功**。これは**ババ抜きの統合テスト**。七並べ・大富豪の4人対戦は従来の単体ページエミュレーターと二重iframeの起動検査で別々に検証している。
 - 本番のFirebase接続、匿名Auth設定・セキュリティルール変更、学校Google Sitesでの実機確認は今回も**未実施**。ユーザーの決定どおり、今は本番Rulesを変更しない（ただし11月8日JST期限までの対応は別途必要）。
+
+## 最終全工程CI結果（2026-10-26）
+
+**[GitHub Actions #40208972686：全工程成功](https://github.com/8mahi8/trump-collection/actions/runs/40208972686)**。
+
+- Node自動テスト **103件／103件成功、失敗0**。
+- 追加した**公開設定を模した統合HTML＋Google Sites風二重iframe＋Firebaseエミュレーターの4画面ババ抜きテストは Chromium と WebKit 双方で合格**。4人入室、READY、開始、チャット、ホスト退出の全工程。
+- 神経衰弱2画面のGoogle Sites風ルーム入室→準備→初手同期→チャット→退出もChromium/WebKitで継続成功。
+- 従来のFirebase3ゲームのエミュレーター4画面同期、手札/チャット権限、共有旧ゲーム領域、ルート局所化、30日期限延長の**合成ルール**検証も全て合格。
+- **本番Firebase Web設定とRules、匿名Authの有効性、および学校のiPad Safari/Google Sitesでの実動作はまだ未検証**。本番サーバーやGoogle Sitesを更新していない。
