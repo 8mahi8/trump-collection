@@ -25,6 +25,16 @@
 - 神経衰弱の現在のSupabaseは**公開Broadcastの身内試作**。5桁の部屋番号を知る第三者をシステム的に排除する認証はない。厳密なプライベートチャットではないことを認識し、個人情報や秘密情報は送らない。
 - 模擬WebSocketで送受信とHTML文字列をテキスト扱いすることを検査。実Supabaseサービスや学校iPadでの通信完了を意味しない。
 
+## 最終CI確認
+
+**[GitHub Actions #40204364048：成功](https://github.com/8mahi8/trump-collection/actions/runs/40204364048)**
+
+- Node **97/97件成功、失敗0**。ChromiumとWebKitのGoogle Sites風二重iframe、4ゲームのCOM／友達入口も合格。
+- Firebase Auth/RTDB Emulatorでは、実際にルームの別4人ブラウザへチャットが届き、文字列`<img ...>`がHTML実行されずテキスト表示されることを**Chromium・WebKit両方**で確認。
+- Firebase Security Rules Emulatorでは**参加UIDの読み書き成功、部外者／別UID書込み拒否、120文字超の拒否、10スロット上限**を確認。共有旧ゲームのルール局所化案・期限延長案のEmulator試験も合格。
+- 神経衰弱は本番Supabaseに接続せず、Playwrightの**模擬WebSocket**でチャットの送信と受信テキスト表示を検証。
+- **学校iPad Safariと実Supabase・本番Firebaseへの接続は未検証**。本番Rules・Google Sites版は変更していない。
+
 ## 動作確認・残るゲート
 - ビルドで単体HTMLと開発ソースの一致を確認する。
 - ChromiumとWebKitの画面テスト、Firebase Auth/RTDB Emulatorで複数プレイヤー間の同期・ルール制御、神経衰弱の模擬WebSocketを検証する。
