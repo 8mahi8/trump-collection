@@ -3,6 +3,15 @@
 > **次の開発担当AIはまずこの文書と [HANDOFF.md](../HANDOFF.md) を読むこと。**
 > 旧記録には後から変更された計画が残るため、下記の最新方針を優先。
 
+## Phase20（2026-10-25）｜11月8日のFirebase旧ルール期限切れ対策（候補のみ）
+
+- [実装とリスクの詳細](PHASE20_LEGACY_RULE_EXPIRY_EXTENSION_REVIEW_2026-10-25.md)。オーナー報告の現行Root Rulesは **`now < 1794063600000`、2026-11-08 00:00 JST失効**。そのままでは旧ゲームが停止する恐れがある。
+- `dev/plan-open-root-migration.mjs`に、明示的な`--legacy-expiry-date 2026-12-08`を渡した場合だけ、**確認済み旧ゲーム4ルート**のread/write期限を **12月8日00:00 JST（30日延長）**へ変えるレビュー専用機能を追加。元の期限のままの既存オプションも維持。延長は**最大90日**、入力が想定外・期限の短縮・不正な日付・Root公開の不一致を拒否。
+- 過去の実Rulesを直接取得したのではなく`tests/fixtures/owner-reported-open-root.example.rules.json`はユーザー報告を模した**合成フィクスチャ**。ルートの権限局所化・トランプprivate Rules維持をテスト。Firebase CLIの本番操作やdeployは実装していない。
+- `firebase.extended-emulator.json`とGitHub Actionsへ既存4旧ルートの匿名読書き・トランプ手札権限と4人戦の追加検査を導入。**本番Rules・Auth・Database・Google Sites・mainは無変更**。
+- **重要**：確認済みのRTDBパスは旧4領域だが、学校公開版の実利用ルートが網羅される保証はない。元ルール全体のバックアップ、本番実ルール照合、別旧パスの有無、匿名Firebase Auth、本人の**本番変更の明示承認**が次のゲート。旧領域は認証なしの暫定権限で、無期限公開とは異なる。
+- 原則は不正対策よりも**学校iPadで友達と遊べること**。今回の対策はトランプ追加と旧ゲーム停止防止の必要最小限。
+
 ## Phase19（2026-10-25）｜神経衰弱のオンライン退出を友達対戦メニューに統合
 
 - [実装・試験の詳細](PHASE19_MEMORY_EXIT_GOOGLE_SITES_2026-10-25.md)。神経衰弱も「← ゲーム一覧」による親子の`tc:leave-room`／`tc:leave-ack`を使用する。画面内に「退出・部屋を作り直す」を追加。
