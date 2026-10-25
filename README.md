@@ -34,7 +34,7 @@ v1.5.5の通常本体はCOM対戦のみ。別ページの神経衰弱2人オン�
 
 - `index.html` … 画面（UI）
 - `games.mjs` … ゲームのルールと COM の思考（画面なしでテスト可能）
-- `tests/games.test.mjs` … ルールの自動テスト（`node --test "tests/*.mjs"`、計52件（既存・4席共通・Firebaseモックの統合テスト））
+- `tests/games.test.mjs` … ルールの自動テスト（`node --test "tests/*.mjs"`、計56件（既存・4席共通・Firebaseモックの統合テスト））
 - `build-embed.mjs` … 単体ファイル版 `dist/trump-collection.html` の生成
 - `dev/verify.mjs` … 総合検証（テスト→ビルド→フック駆動の通しプレイ→スクショ→基準画像との差分）
 - `docs/research-*.md` … ルール／カード選択UI／カード品質の調査メモ
@@ -62,9 +62,15 @@ v1.5.5の通常本体はCOM対戦のみ。別ページの神経衰弱2人オン�
 - 自動検証：`node --test tests/*.mjs`、`python dev/verify_four_seat_browser.py`（Python PlaywrightとChromiumが必要）
 - [4席検証結果とFirebase移行設計](docs/FOUR_SEAT_PHASE3_2026-10-25.md)。**Firebaseへはまだ接続していない**ため、手札の非公開を保証するRules/Authを先にテストする。
 
+## Phase 6｜4人用オンラインUI＋Chromium4画面検証（2026-10-25）
+
+- [4人用Firebase開発画面](online/four-seat-remote.html) と [Google Sites用の単体HTML候補](dist/trump-collection-online-lab.html) を追加（Firebase設定未投入のため**本番接続不可**）。ビルド元は`dev/build-online-html.mjs`。
+- [実行成功したActions](https://github.com/8mahi8/trump-collection/actions/runs/40166268484)で**Node56/56合格**、Chromium4画面×ババ抜き・七並べ・大富豪のルーム作成→READY→開始→実カード操作同期に成功。Firebaseエミュレーター3ゲーム完走も再確認。
+- 本人に毎回試遊を求めない。現在の本番・学校Google Sites・COM版は変更しない。詳細：[Phase 6検証と制限事項](docs/ONLINE_UI_PHASE6_2026-10-25.md)。
+
 ## Phase 5｜Firebase実エミュレーターで4人対戦完走（2026-10-25）
 
-- [GitHub Actions実行成功](https://github.com/8mahi8/trump-collection/actions/runs/40158460489)：既存Nodeテスト**52/52合格**、Firebase Local Emulator SuiteのAuth + RTDB Rules上でも4人が匿名認証→参加→READY→開始→対戦→決着→再戦。
+- [GitHub Actions実行成功](https://github.com/8mahi8/trump-collection/actions/runs/40158460489)：既存Nodeテスト**56/56合格**、Firebase Local Emulator SuiteのAuth + RTDB Rules上でも4人が匿名認証→参加→READY→開始→対戦→決着→再戦。
 - ババ抜き28手、七並べ52手、大富豪97手で**実エミュレーター上の対戦完走**。他人の非公開手札とコマンドキューの取得は拒否。
 - 命令キューの権限と正式席番号を修正。詳しくは[Firebase設計／実エミュレーター検証記録](firebase/README.md)。
 - **実Firebase本番と学校Safari/Google Sitesはまだ未検証**。専用Rulesは既存Firebaseへ勝手に適用しない。
@@ -73,7 +79,7 @@ v1.5.5の通常本体はCOM対戦のみ。別ページの神経衰弱2人オン�
 
 - [専用Firebase設計と未完了ゲート](firebase/README.md)。匿名認証・トークン更新・UIDごとの手札・公開情報・操作命令・結果ACKを**SDK/CDN不要のRESTアダプター**として開発。
 - `online/firebase-room-store.mjs` と `online/firebase-room-controller.mjs` を追加。ホスト／ゲスト4人の模擬通信で3ゲームを最後まで進行、切断相当の書込失敗・再送・古い操作・非公開手札の同期チェックを確認。
-- `node --test tests/*.mjs` で**52/52合格**（Firebase REST/Auth部分はモック）。**実Firebase RTDB EmulatorでのRules評価、本番接続は未完了**。他ゲームのFirebaseデータやRulesは変更していない。
+- `node --test tests/*.mjs` で**56/56合格**（Firebase REST/Auth部分はモック）。**実Firebase RTDB EmulatorでのRules評価、本番接続は未完了**。他ゲームのFirebaseデータやRulesは変更していない。
 
 ## Phase 2｜オンライン試作（2026-10-25）
 
