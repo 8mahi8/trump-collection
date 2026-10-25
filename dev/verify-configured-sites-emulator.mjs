@@ -168,7 +168,7 @@ try{
   await p.game.locator('#state').waitFor({state:'visible',timeout:22000});
   const deadline=Date.now()+22000;
   while(Date.now()<deadline){
-   if(await p.game.locator('body').evaluate(rev=>window.TCFourRemote?.view?.revision>rev,before))return;
+   if(await p.game.locator('body').evaluate((body,rev)=>window.TCFourRemote?.view?.revision>rev,before))return;
    await new Promise(resolve=>setTimeout(resolve,250));
   }
   const states=await Promise.all(players.map(async(p,i)=>{
