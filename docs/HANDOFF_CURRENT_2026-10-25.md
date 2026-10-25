@@ -3,6 +3,14 @@
 > **次の開発担当AIはまずこの文書と [HANDOFF.md](../HANDOFF.md) を読むこと。**
 > 旧記録には後から変更された計画が残るため、下記の最新方針を優先。
 
+## Phase18（2026-10-25）｜統合ランチャーからのオンライン退出修正・完走
+
+- [実装・テスト詳細](PHASE18_BACK_TO_MENU_GRACEFUL_EXIT_2026-10-25.md)。**[CI #40200557612](https://github.com/8mahi8/trump-collection/actions/runs/40200557612)成功：Node 93/93、Chromium＋WebKit両方のWeb UI／Firebaseエミュレーター／共有Rules／局所化Rulesすべて合格。**
+- 統合ランチャーの「← ゲーム一覧」でFirebase友達対戦の子`iframe`を即破棄していた問題を改善。親→子`tc:leave-room`、子→親`tc:leave-ack`で退出終了を待つ。ホストの部屋閉鎖・ゲストの退出は既存の`leaveRoom()`経路へ委譲。通信不調／子画面無応答時は**最大1.8秒**でメニューへ戻す。ユーザーに「退出中…」を表示。
+- Google Sites風二重sandboxで3ゲームの退出ACK（Chromium＋WebKit）と、ACKが返らない場合のフォールバックを検証。Firebase Emulator4端末ではホスト／ゲスト両方の退出メッセージで相手側が部屋終了を検知することも確認。
+- Google Sites学校版／本番Firebase／Auth／Rules／mainには変更なし。身内用途に過剰な認証や不正対策を増やさない。実学校iPad Safari検証は未実施。
+- **次の優先**：既存Firebase Rulesの2026-11-08期限と他ゲーム利用領域を壊さない最終準備、許可された実接続テスト、Google Sites貼付版仕上げ。
+
 ## Phase17（2026-10-25）｜Google Sites二重iframeへのゲーム選択引継ぎ修正
 
 - [作業・検証の詳細](PHASE17_SITES_NESTED_IFRAME_2026-10-25.md)。
@@ -48,7 +56,7 @@
 - GitHub: https://github.com/8mahi8/trump-collection
 - 開発ブランチ: `dev/quality-and-ui-v1-5-20261024`
 - Draft PR: https://github.com/8mahi8/trump-collection/pull/1
-- 最新確認済み GitHub Actions 成功: https://github.com/8mahi8/trump-collection/actions/runs/40199559696 （**Node 93/93件合格**）。CIは Firebase Local Emulator と Chromium **および WebKit** を使用。本番Firebase／学校iPad実機での合格ではない。
+- 最新確認済み GitHub Actions 成功: https://github.com/8mahi8/trump-collection/actions/runs/40200557612 （**Node 93/93件合格**）。CIは Firebase Local Emulator と Chromium **および WebKit** を使用。本番Firebase／学校iPad実機での合格ではない。
 - `main/index.html` は公開COM版 **v1.4.0**、開発ブランチの`index.html`はCOM版 **v1.5.5**。本人承認なしに公開・学校Google Sites版を上書きしない。
 
 ## ゲーム仕様・完成状況
