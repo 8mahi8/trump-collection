@@ -55,6 +55,10 @@ jobs:
         run: node dev/verify-online-browser.mjs
       - name: WebKit launcher smoke test (all 4 COM and friend entry points)
         run: TC_BROWSER_ENGINE=webkit node dev/verify-collection-launcher.mjs
+      - name: Two-device Supabase Memory Match through Google Sites mock (no live service)
+        run: node dev/verify-memory-peers.mjs
+      - name: WebKit two-device Supabase Memory Match through Google Sites mock
+        run: TC_BROWSER_ENGINE=webkit node dev/verify-memory-peers.mjs
       - name: WebKit standalone four-seat smoke (no live Firebase)
         run: TC_BROWSER_ENGINE=webkit node dev/verify-online-browser.mjs
       - name: Emulator authorization and four-browser UI integration (Chromium + WebKit)
