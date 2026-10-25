@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>トランプコレクション｜COM・友達対戦統合研究版</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:system-ui,"Hiragino Sans",sans-serif;background:#093c2a;color:#faf9ea}
+button{font:inherit;cursor:pointer;min-height:44px}
+button:focus-visible{outline:3px solid #ffdb69;outline-offset:3px}
+#launcher{min-height:100dvh;padding:12px;max-width:1100px;margin:0 auto}
+header{text-align:center;margin:4px auto 15px}
+h1{font-size:clamp(21px,4.5vw,34px);margin:0 0 4px}
+header p{font-size:13px;color:#cfe6d1;margin:4px}
+#choices{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.game{border:2px solid #5c9b75;border-radius:13px;background:#165a3d;color:#fff;padding:10px 6px;box-shadow:0 4px 12px #082b1c}
+.game[aria-pressed="true"]{border-color:#ffda6a;background:#20744b}
+.game .symbol{display:block;font-size:clamp(21px,4vw,36px);line-height:1.15}
+.game .name{display:block;font-weight:800;font-size:clamp(13px,2.3vw,18px);margin:5px 0}
+.game .count{display:block;font-size:11px;color:#d4e8d2}
+#mode{margin:14px auto 0;max-width:740px;background:#155337;border:1px solid #5b9169;border-radius:14px;padding:14px;text-align:center}
+#selection{font-weight:800;font-size:18px;margin-bottom:10px}
+#actions{display:flex;justify-content:center;flex-wrap:wrap;gap:9px}
+#actions button{background:#ffdc6b;color:#243225;border:0;border-radius:10px;padding:10px 18px;font-weight:800}
+#actions #friends{background:#e8f6e7}
+#hint{font-size:12px;line-height:1.55;color:#d8e9d6;margin-top:10px}
+#caution{margin:10px auto 0;font-size:12px;color:#f4dda5;text-align:center;line-height:1.5;max-width:800px}
+#viewer{position:fixed;inset:0;background:#092d20;z-index:9;display:none;flex-direction:column}
+#viewer.open{display:flex}
+#viewerTop{min-height:48px;display:flex;align-items:center;gap:8px;padding:4px 9px;background:#0b452f}
+#viewerTop button{background:#f0f1e5;color:#1e3b2a;border:0;border-radius:9px;padding:5px 12px;font-weight:bold}
+#viewerTitle{font-size:14px;font-weight:700;flex:1}
+#viewer iframe{border:0;display:block;flex:1;min-height:0;width:100%;background:#0d4d2e}
+@media(max-width:650px){#launcher{padding:6px}#choices{gap:5px}.game{padding:7px 2px;border-radius:9px}#mode{padding:9px;margin-top:8px}#selection{font-size:15px}#caution{margin-top:5px}#mode button{font-size:14px;padding:8px 11px}}
+@media(max-height:440px){header{margin:0 auto 5px}header p{display:none}#mode{margin-top:6px}#hint{margin-top:4px}#caution{margin-top:4px}}
+</style></head><body>
+<main id="launcher">
+<header><h1>🃏 トランプコレクション</h1><p>ゲームを選んで、COMか友達と対戦しよう</p></header>
+<nav id="choices" aria-label="ゲームの選択">
+ <button class="game" type="button" data-game="babanuki" aria-pressed="true"><span class="symbol">🃏</span><span class="name">ババ抜き</span><span class="count">4人</span></button>
+ <button class="game" type="button" data-game="shichinarabe" aria-pressed="false"><span class="symbol">7️⃣</span><span class="name">七並べ</span><span class="count">4人</span></button>
+ <button class="game" type="button" data-game="shinkei" aria-pressed="false"><span class="symbol">🧠</span><span class="name">神経衰弱</span><span class="count">2人</span></button>
+ <button class="game" type="button" data-game="daifugo" aria-pressed="false"><span class="symbol">👑</span><span class="name">大富豪</span><span class="count">4人</span></button>
+</nav>
+<section id="mode" aria-live="polite">
+ <div id="selection">ババ抜き</div>
+ <div id="actions"><button id="com" type="button">COMと遊ぶ</button><button id="friends" type="button">友達と遊ぶ</button></div>
+ <div id="hint"></div>
+</section>
+<p id="caution">開発用統合試作：学校のGoogle Sites版は未変更。友達対戦のFirebase本番は未設定です。神経衰弱のみ既存Supabaseの身内用試作を利用します。</p>
+</main>
+<section id="viewer" aria-label="プレイ画面">
+ <div id="viewerTop"><button id="back" type="button">← ゲーム一覧</button><span id="viewerTitle">トランプコレクション</span></div>
+ <iframe id="play" title="トランプゲーム" referrerpolicy="no-referrer"></iframe>
+</section>
+<script>
+const APP_HTML=__EMBEDDED_HTML__;
+const GAME_NAMES={babanuki:'ババ抜き',shichinarabe:'七並べ',shinkei:'神経衰弱',daifugo:'大富豪'};
+const q=id=>document.getElementById(id);
+let selected='babanuki',openMode=null;
+function choose(game){
+ if(!Object.prototype.hasOwnProperty.call(GAME_NAMES,game))return;
+ selected=game;
+ for(const item of document.querySelectorAll('[data-game]'))
+  item.setAttribute('aria-pressed',String(item.dataset.game===game));
+ q('selection').textContent=GAME_NAMES[game];
+ q('hint').textContent=game==='shinkei'
+  ?'友達対戦は2人用Supabase試作。PC・スマホで試遊実績あり（学校Safariは未確認）'
+  :'友達対戦は4人用Firebase開発版。実Firebase本番への接続は未設定です';
+}
+function configureFirebase(html){
+ const config=window.TRUMP_FIREBASE_CONFIG;
+ if(!config||!config.apiKey||!config.databaseURL)return html;
+ // The Web API key is public; admin credentials must NEVER be embedded here.
+ const json=JSON.stringify({apiKey:config.apiKey,databaseURL:config.databaseURL}).replace(/</g,'\\u003c');
+ return html.replace('<script>',()=>'<script>window.TRUMP_FIREBASE_CONFIG='+json+';</'+'script><script>');
+}
+function show(game,mode){
+ if(!Object.prototype.hasOwnProperty.call(GAME_NAMES,game))return;
+ if(mode!=='com'&&mode!=='friends')return;
+ const frame=q('play');
+ let src=mode==='com'?APP_HTML.com:game==='shinkei'?APP_HTML.memory:configureFirebase(APP_HTML.friends4);
+ q('viewerTitle').textContent=GAME_NAMES[game]+'｜'+(mode==='com'?'COM対戦':'友達対戦（開発版）');
+ q('viewer').classList.add('open');
+ openMode=mode;
+ frame.srcdoc=src;
+}
+q('back').onclick=()=>{
+ q('play').removeAttribute('srcdoc');
+ q('play').src='about:blank';
+ q('viewer').classList.remove('open');
+ openMode=null;
+ q('com').focus();
+};
+q('com').onclick=()=>show(selected,'com');
+q('friends').onclick=()=>show(selected,'friends');
+for(const btn of document.querySelectorAll('[data-game]'))
+ btn.onclick=()=>choose(btn.dataset.game);
+q('play').addEventListener('load',()=>{
+ if(!openMode)return;
+ const frame=q('play');
+ if(openMode==='com'){
+  frame.contentWindow?.postMessage({type:'tc:launch-com',game:selected},'*');
+ }else if(selected!=='shinkei'){
+  try{frame.contentDocument.querySelector('#game').value=selected;}catch{}
+ }
+});
+choose('babanuki');
+window.TCCollectionLab={choose,show,get selected(){return selected},get openMode(){return openMode}};
+</script></body></html>
