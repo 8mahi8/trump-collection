@@ -48,6 +48,12 @@ CIにJava 21、Node 22を導入済み。ローカルのこの作業環境はCLI�
 
 本番では、独立Firebaseプロジェクト／DBを使うか、現在のRulesを安全に保ったままトランプ専用の子パスだけを合成して必要なテストをすること。他ゲームの本番データ、Rulesは変更していない。
 
+## Phase 8：身内向けの部屋終了と作り直し（2026-10-25）
+
+- `closed`はホスト認証UIDが一度だけ書き込む終了理由（`host_left`／`player_left`）。`leaveRequests/$uid`は参加者本人だけが書き込み、ホストが受け取って全員終了させる。終了後のゲーム操作は拒否する。
+- [成功GitHub Actions](https://github.com/8mahi8/trump-collection/actions/runs/40173923212)：Node**64/64**、実Auth+RTDB Emulatorの3ゲーム完走・退出・終了処理、独立Chromium4画面で各ゲームの退出→新規ルーム画面復帰まで合格。
+- [Phase 8詳細](../docs/ONLINE_EXIT_PHASE8_2026-10-25.md)。**Firebase本番ルールへ適用しない**、他ゲームの既存Rulesを書き換えない。
+
 ## Phase 7：ホスト心拍による一時通信断の判定（2026-10-25）
 
 - RTDBの`heartbeat: {seq}`はホスト認証UIDのみ書込み、入室済みユーザーだけ読取。シーケンスを単調増加させる[ルール](trump-rooms.rules.json)を実Firebase Emulatorで検証。
