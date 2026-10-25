@@ -90,7 +90,17 @@ test('ACTUAL Firebase Emulator: UID-private hands and three four-player games', 
   for(const client of suite.guests)assert.equal((await client.poll()).status,'ready');
   for(let p=0;p<4;p++){
    const client=suite.guests[p];
-   const id=await client.act('ready',{ready:true});
+   let id;
+   try{id=await client.act('ready',{ready:true});}
+   catch(e){
+     console.error('EMULATOR READY REJECTED', {game,room,p,uid:active[p].uid,reason:e.code});
+     const url='http://127.0.0.1:9000/.inspect/coverage.json?ns='+NS;
+     try{
+       const debug=await (await fetch(url)).text();
+       console.error('RULES COVERAGE',debug.slice(-16000));
+     }catch(failure){console.error('COVERAGE UNAVAILABLE',String(failure))}
+     throw e;
+   }
    await suite.host.tick();assert.equal((await client.receipt(id)).ok,true);
    // Client must fetch fresh revision before its next action.
    await client.poll();
