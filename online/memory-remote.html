@@ -37,6 +37,13 @@ body.inMatch #board{width:min(560px,calc((100dvh - 155px) * 1.2),94vw);gap:min(4
 body.inMatch #gameArea .row{font-size:13px}
 body.inMatch .tile{border-radius:5px}
 @supports not (height:100dvh){body.inMatch #board{width:min(560px,calc((100vh - 155px) * 1.2),94vw)}}
+#chatPanel{position:fixed;bottom:8px;right:8px;z-index:20;width:min(350px,calc(100vw - 16px));max-height:68vh;padding:9px;background:#12442e;border:2px solid #a5e1bd;border-radius:12px;display:flex;flex-direction:column;gap:6px;box-shadow:0 7px 30px #082c1e}
+#chatPanel[hidden]{display:none}
+#chatList{min-height:90px;max-height:210px;overflow:auto;overscroll-behavior:contain;background:#073020;border-radius:7px;padding:6px;font-size:13px;overflow-wrap:anywhere}
+.chat-msg{margin:5px 0}.chat-name{font-weight:800;color:#ffe27b;margin-right:6px}
+#chatCompose{display:flex;gap:4px}#chatInput{flex:1;min-width:0;width:auto}#chatSend{flex:none}
+#chatStatus{font-size:12px;color:#ffe5a2;min-height:14px}
+@media(max-height:460px){#chatList{max-height:105px;min-height:50px}}
 </style></head>
 <body><main>
 <header><h1>🃏 神経衰弱｜オンライン試作</h1><aside>PCとスマホで同じ5桁の番号を入力。外部CDN・ログイン不要。<strong>身内向け実験版：公開ルームで、番号は認証ではありません。</strong></aside></header>
@@ -45,14 +52,19 @@ body.inMatch .tile{border-radius:5px}
   <div id="status" aria-live="polite">ホストで部屋作成 → 別端末から5桁で参加（接続先は検証用Supabase）</div>
 </section>
 <section id="lobby" class="panel">
-  <div class="row"><span>ルーム：<span id="room"></span></span><span id="seat"></span><span id="players"></span><button id="leave" class="alt" type="button">退出・部屋を作り直す</button></div>
+  <div class="row"><span>ルーム：<span id="room"></span></span><span id="seat"></span><span id="players"></span><button id="leave" class="alt" type="button">退出・部屋を作り直す</button><button id="chatToggle" type="button" aria-expanded="false">💬 チャット</button></div>
   <div class="row"><button id="ready">準備OK</button><button id="start">対戦開始</button><button id="again">再戦ロビーへ</button></div>
   <div id="notice"></div>
 </section>
 <section id="gameArea" class="panel">
   <div class="row"><span id="turn"></span><span id="score"></span></div><div id="board" aria-label="神経衰弱のカード24枚"></div>
 </section>
-</main>
+</main><section id="chatPanel" aria-label="ルーム内チャット" hidden>
+ <div class="row" style="justify-content:space-between"><strong>💬 ルーム内チャット</strong><button id="chatClose" type="button">閉じる</button></div>
+ <div id="chatList" role="log" aria-live="polite"></div>
+ <form id="chatCompose" class="row"><input id="chatInput" maxlength="120" autocomplete="off" aria-label="チャットメッセージ" placeholder="メッセージ（120文字まで）"><button id="chatSend" type="submit">送信</button></form>
+ <div id="chatStatus" role="status"></div>
+</section>
 <script type="module">
 import {ROOM_PROTOCOL,createMemoryAuthority,makeRoomCommand} from './memory-authority.mjs';
 import {makeRealtimeWire} from './realtime-wire.mjs';
@@ -64,8 +76,11 @@ const $=id=>document.getElementById(id), suits=['♠','♥','♦','♣'];
 const token=()=>{if(!crypto?.getRandomValues)throw Error('CRYPTO_UNAVAILABLE');const v=new Uint32Array(3);crypto.getRandomValues(v);return [...v].map(x=>x.toString(36)).join('-')};
 const randomRoom=()=>{const v=new Uint32Array(1);crypto.getRandomValues(v);return String(10000+v[0]%90000)};
 let authority=null,wire=null,currentView=null,code='',isHost=false,actor='',sequence=0,settleTimer=null,heartbeatTimer=null,joinWait=null,connected=false,lastHostAt=0,roomGeneration=0,leaving=false;
+let chatOpen=false,chatSeq=0,chatHistory=[];
 function status(text){$('status').textContent=text}
 function closeRoom(){roomGeneration++;if(wire)wire.stop();wire=null;
+ chatOpen=false;chatSeq=0;chatHistory=[];$('chatPanel').hidden=true;$('chatList').replaceChildren();$('chatInput').value='';
+ $('chatToggle').setAttribute('aria-expanded','false');$('chatStatus').textContent='';
  for(const t of [settleTimer,heartbeatTimer,joinWait])clearTimeout(t);
  clearInterval(heartbeatTimer);settleTimer=heartbeatTimer=joinWait=null;
  authority=null;currentView=null;connected=false;lastHostAt=0;}
@@ -95,6 +110,47 @@ async function leaveMemoryRoom(){
   endLocalRoom('部屋を退出しました。新しい部屋を作って遊べます');
  }finally{leaving=false;}
 }
+// Tiny room-only Broadcast chat; does not enter game authority or reveal cards.
+function appendChat(message){
+ if(!message||message.kind!=='chat'||message.protocol!==ROOM_PROTOCOL||message.roomCode!==code||
+    typeof message.actor!=='string'||typeof message.text!=='string'||
+    !message.text.trim()||message.text.length>120||typeof message.id!=='string')return;
+ if(chatHistory.some(m=>m.id===message.id))return;
+ chatHistory.push({id:message.id,actor:message.actor,text:message.text});
+ if(chatHistory.length>40)chatHistory.splice(0,chatHistory.length-40);
+ renderChat();
+}
+function renderChat(){
+ if(!chatOpen)return;
+ const log=$('chatList'),atBottom=log.scrollHeight-log.scrollTop-log.clientHeight<28;
+ log.replaceChildren();
+ for(const item of chatHistory){
+  const row=document.createElement('div');row.className='chat-msg';
+  const author=document.createElement('span');author.className='chat-name';
+  author.textContent=item.actor===actor?'自分':'友達 '+item.actor.slice(-3);
+  const body=document.createElement('span');body.textContent=item.text;
+  row.append(author,body);log.appendChild(row);
+ }
+ if(atBottom)log.scrollTop=log.scrollHeight;
+}
+function setChatOpen(open){
+ chatOpen=Boolean(open);$('chatPanel').hidden=!chatOpen;
+ $('chatToggle').setAttribute('aria-expanded',String(chatOpen));
+ if(chatOpen){renderChat();$('chatInput').focus();}
+}
+function sendChat(e){
+ e.preventDefault();
+ const text=$('chatInput').value.trim();
+ if(!text||text.length>120)return;
+ if(!wire?.connected){$('chatStatus').textContent='通信の復帰を待っています';return;}
+ const packet={kind:'chat',protocol:ROOM_PROTOCOL,roomCode:code,actor,
+   id:actor+'-'+(++chatSeq),text};
+ if(!wire.send(packet)){$('chatStatus').textContent='送信できません';return;}
+ appendChat(packet);$('chatInput').value='';$('chatStatus').textContent='';
+}
+$('chatToggle').onclick=()=>setChatOpen(!chatOpen);
+$('chatClose').onclick=()=>setChatOpen(false);
+$('chatCompose').onsubmit=sendChat;
 function sendView(){
  if(!authority)return;
  currentView=authority.publicView();render();
@@ -102,6 +158,7 @@ function sendView(){
 }
 function receive(m){
  if(!m||m.protocol!==ROOM_PROTOCOL||m.roomCode!==code||leaving)return;
+ if(m.kind==='chat'){appendChat(m);return;}
  if(!isHost&&m.kind==='room_closed'){
   endLocalRoom('ホストが部屋を終了しました。新しい部屋を作って遊べます');
   return;
