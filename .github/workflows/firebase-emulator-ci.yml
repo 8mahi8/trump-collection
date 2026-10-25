@@ -46,8 +46,8 @@ jobs:
       - name: Four-seat Firebase inside actual configured Google Sites-style sandbox (Chromium + WebKit)
         run: npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.emulator.json --only auth,database "node dev/verify-configured-sites-emulator.mjs && TC_BROWSER_ENGINE=webkit node dev/verify-configured-sites-emulator.mjs"
 
-      - name: Four friends without Auth on already-open reported RTDB Rules (Chromium + WebKit, emulator only)
-        run: npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.open-trial-emulator.json --only database "TC_OPEN_ROOT_TRIAL=1 node dev/verify-configured-sites-emulator.mjs && TC_OPEN_ROOT_TRIAL=1 TC_BROWSER_ENGINE=webkit node dev/verify-configured-sites-emulator.mjs"
+      - name: Four friends without Auth on already-open reported RTDB Rules (3 games, Chromium + WebKit, emulator only)
+        run: npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.open-trial-emulator.json --only database "TC_OPEN_ROOT_TRIAL=1 node dev/verify-configured-sites-emulator.mjs && TC_OPEN_ROOT_TRIAL=1 TC_BROWSER_ENGINE=webkit node dev/verify-configured-sites-emulator.mjs && TC_OPEN_ROOT_TRIAL=1 TC_SITES_GAME=shichinarabe node dev/verify-configured-sites-emulator.mjs && TC_OPEN_ROOT_TRIAL=1 TC_BROWSER_ENGINE=webkit TC_SITES_GAME=shichinarabe node dev/verify-configured-sites-emulator.mjs && TC_OPEN_ROOT_TRIAL=1 TC_SITES_GAME=daifugo node dev/verify-configured-sites-emulator.mjs && TC_OPEN_ROOT_TRIAL=1 TC_BROWSER_ENGINE=webkit TC_SITES_GAME=daifugo node dev/verify-configured-sites-emulator.mjs"
 
 
       - name: Build integrated COM and friends launcher (research-only)
