@@ -57,41 +57,57 @@ try{
   assert.equal(await page.locator('#create').isDisabled(),false);
   console.log('BROWSER SMOKE PASS: 800×450 UI + missing-config guard');
  }else{
-  const participants=[page];
-  await page.locator('#game').selectOption('shichinarabe');
-  await page.locator('#create').click();
-  await page.waitForFunction(()=>window.TCFourRemote?.view?.seats?.length===4, null,{timeout:20000});
-  const code=await page.locator('#roomCode').textContent();
-  assert.match(code,/^\d{5}$/);
-  for(let i=1;i<4;i++){
-   const guest=await setup();
-   participants.push(guest);
-   await guest.locator('#code').fill(code);
-   await guest.locator('#join').click();
+  for(const game of ['babanuki','shichinarabe','daifugo']){
+   const owner=game==='babanuki'?page:await setup();
+   const participants=[owner];
+   await owner.locator('#game').selectOption(game);
+   await owner.locator('#create').click();
+   await owner.waitForFunction(()=>window.TCFourRemote?.view?.seats?.length===4,null,{timeout:20000});
+   const code=await owner.locator('#roomCode').textContent();
+   assert.match(code,/^\d{5}$/);
+   for(let i=1;i<4;i++){
+    const guest=await setup();
+    participants.push(guest);
+    await guest.locator('#code').fill(code);
+    await guest.locator('#join').click();
+   }
+   await Promise.all(participants.map(p=>p.waitForFunction(()=>window.TCFourRemote?.seat>=0,null,{timeout:20000})));
+   const seats=await Promise.all(participants.map(p=>p.evaluate(()=>TCFourRemote.seat)));
+   assert.deepEqual([...seats].sort(),[0,1,2,3]);
+   for(const p of participants){
+    await p.locator('#ready').click();
+    await p.waitForFunction(()=>!document.getElementById('ready').disabled,null,{timeout:20000});
+   }
+   await owner.waitForFunction(()=>!document.getElementById('start').disabled,null,{timeout:20000});
+   await owner.locator('#start').click();
+   await owner.waitForFunction(()=>TCFourRemote.phase==='playing',null,{timeout:20000});
+   const view=await owner.evaluate(()=>TCFourRemote.view);
+   const actor=participants[seats.indexOf(view.turn)];
+   await actor.waitForFunction(()=>TCFourRemote.phase==='playing'&&TCFourRemote.view.turn===TCFourRemote.seat,null,{timeout:20000});
+   const before=view.revision,priv=await actor.evaluate(()=>TCFourRemote.privateView);
+   if(game==='babanuki'){
+    await actor.locator('#board button.card.back').first().click();
+   }else if(game==='shichinarabe'){
+    if(priv.legalIds?.length)await actor.locator('.hand-cards button:not([disabled])').first().click();
+    else await actor.locator('#actions button').filter({hasText:'パス'}).click();
+   }else{
+    const moves=priv.legalMoves||[];
+    if(moves.length){
+     await actor.evaluate(ids=>{
+      const hand=TCFourRemote.privateView.hand;
+      for(const id of ids){
+       const n=hand.findIndex(c=>(c.joker?'JK':c.suit+'-'+c.rank)===id);
+       if(n<0)throw Error('Missing card: '+id);
+       document.querySelectorAll('.hand-cards button.card')[n].click();
+      }
+     },moves[0]);
+     await actor.locator('#actions button').filter({hasText:'選択カードを出す'}).click();
+    }else await actor.locator('#actions button').filter({hasText:'パス'}).click();
+   }
+   await Promise.all(participants.map(p=>p.waitForFunction(
+     rev=>TCFourRemote.view.revision>rev,before,{timeout:20000})));
+   console.log('FIREBASE EMULATOR BROWSER PASS:',game,'4 pages, unique seats, READY, first synced move');
   }
-  await Promise.all(participants.map(p=>p.waitForFunction(()=>window.TCFourRemote?.seat>=0, null,{timeout:20000})));
-  const seats=await Promise.all(participants.map(p=>p.evaluate(()=>TCFourRemote.seat)));
-  assert.deepEqual([...seats].sort(),[0,1,2,3]);
-  for(const p of participants){
-   await p.locator('#ready').click();
-   await p.waitForFunction(()=>!document.getElementById('ready').disabled, null,{timeout:20000});
-  }
-  await page.waitForFunction(()=>!document.getElementById('start').disabled,null,{timeout:20000});
-  await page.locator('#start').click();
-  await page.waitForFunction(()=>TCFourRemote.phase==='playing',null,{timeout:20000});
-  // Play one legitimate card from the active seat, verify revision reaches all clients.
-  const v=await page.evaluate(()=>TCFourRemote.view);
-  const idx=seats.indexOf(v.turn),actor=participants[idx];
-  await actor.waitForFunction(()=>TCFourRemote.phase==='playing'&&TCFourRemote.view.turn===TCFourRemote.seat);
-  const before=v.revision;
-  const priv=await actor.evaluate(()=>TCFourRemote.privateView);
-  if(priv.legalIds?.length)await actor.locator('.hand-cards button:not([disabled])').first().click();
-  else await actor.locator('#actions button').filter({hasText:'パス'}).click();
-  await page.waitForFunction(rev=>TCFourRemote.view.revision>rev,before,{timeout:20000});
-  for(const p of participants){
-   await p.waitForFunction(rev=>TCFourRemote.view.revision>rev,before,{timeout:20000});
-  }
-  console.log('FIREBASE EMULATOR BROWSER PASS: 4 pages, unique seats, READY, first synced move');
  }
  if(errors.length)throw Error('Uncaught browser errors:\n'+errors.join('\n'));
 }finally{
