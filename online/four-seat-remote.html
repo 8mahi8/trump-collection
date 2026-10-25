@@ -37,13 +37,13 @@ import {createFirebaseRoomHost,createFirebaseRoomGuest} from './firebase-room-co
 // For isolated tests this object may be set before the module executes.
 const CONFIG=window.TRUMP_FIREBASE_CONFIG||{apiKey:'',databaseURL:''};
 const $=id=>document.getElementById(id);
-const SUITS=['♠','♥','♦','♣'];
+const UI_SUITS=['♠','♥','♦','♣'];
 const CARD_NAMES={1:'A',11:'J',12:'Q',13:'K'};
 const GAMES={babanuki:'ババ抜き',shichinarabe:'七並べ',daifugo:'大富豪'};
 const randomRoom=()=>{const u=new Uint32Array(1);crypto.getRandomValues(u);return String(10000+u[0]%90000)};
 const randomAction=()=>{const u=new Uint32Array(2);crypto.getRandomValues(u);return [...u].map(n=>n.toString(36)).join('-')};
-const cardId=c=>c?.joker?'JK':c.suit+'-'+c.rank;
-const cardText=c=>c?.joker?'JOKER':SUITS[c.suit]+(CARD_NAMES[c.rank]||c.rank);
+const uiCardId=c=>c?.joker?'JK':c.suit+'-'+c.rank;
+const cardText=c=>c?.joker?'JOKER':UI_SUITS[c.suit]+(CARD_NAMES[c.rank]||c.rank);
 let session=0,auth=null,store=null,hostRunner=null,guestRunner=null;
 let roomCode='',game='',mySeat=-1,isHost=false,publicState=null,privateState=null;
 let busy=false,pendingAction='',failCount=0,selected=new Set(),lastRender='',online=true;
@@ -245,7 +245,7 @@ function render(){
   const placed=v.placed||[];
   for(let suit=0;suit<4;suit++){
    const line=document.createElement('div');line.className='board-line';
-   appendText(line,SUITS[suit]+' ','mini');
+   appendText(line,UI_SUITS[suit]+' ','mini');
    for(let rank=1;rank<=13;rank++){
     const inField=placed[suit]&&rank>=placed[suit].low&&rank<=placed[suit].high;
     appendText(line,inField?(CARD_NAMES[rank]||rank)+'':'·',inField?'field-card':'field-empty');
@@ -265,7 +265,7 @@ function render(){
  appendText(hand,'あなたの手札（'+cards.length+'枚）','mini');
  const row=document.createElement('div');row.className='hand-cards';
  for(const c of cards){
-  const id=cardId(c),canPlay=usable&&acting&&
+  const id=uiCardId(c),canPlay=usable&&acting&&
     (game==='shichinarabe'&&(privateState?.legalIds||[]).includes(id)||game==='daifugo');
   const b=card(c,canPlay,canPlay?()=>{
    if(game==='shichinarabe')send('play',{id});
