@@ -60,6 +60,21 @@ export function createFirebaseAnonymousAuth({apiKey,fetchImpl=globalThis.fetch,n
     clear(){session=null;}
   };
 }
+// For a short-lived FRIEND-ONLY trial against an already publicly writable
+// database. This is NOT Firebase Authentication and grants NO privacy.
+// Requires an explicit opt-in in the Sites launcher. Never persisted on disk.
+export function createFirebaseOpenRootTrialIdentity(random=bytes=>globalThis.crypto.getRandomValues(bytes)){
+ if(typeof random!=='function')throw Error('INVALID_TRIAL_RANDOM');
+ const bytes=new Uint8Array(16);
+ random(bytes);
+ const uid='tc'+Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+ return Object.freeze({
+  uid,authenticated:false,
+  async signIn(){return {uid}},
+  async token(){return null},
+  clear(){}
+ });
+}
 export function createFirebaseRoomStore({databaseURL,auth,fetchImpl=globalThis.fetch}){
   if(typeof databaseURL!=='string'||!/^https:\/\/[A-Za-z0-9._-]+(?:\.firebaseio\.com|\.firebasedatabase\.app)\/?$/.test(databaseURL))
     throw Error('INVALID_DATABASE_URL');
@@ -74,7 +89,11 @@ export function createFirebaseRoomStore({databaseURL,auth,fetchImpl=globalThis.f
   };
   async function request(method,path,value,precondition=false){
     const url=new URL(root+'/'+path+'.json');
-    url.searchParams.set('auth',await auth.token());
+    const bearer=await auth.token();
+    if(bearer!==null){
+      if(typeof bearer!=='string'||!bearer)throw Error('INVALID_AUTH_TOKEN');
+      url.searchParams.set('auth',bearer);
+    }
     const headers={'Accept':'application/json'};
     if(method!=='GET'&&method!=='DELETE')headers['Content-Type']='application/json';
     if(precondition)headers['if-match']='null_etag';
