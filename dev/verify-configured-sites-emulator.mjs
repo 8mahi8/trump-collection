@@ -114,11 +114,11 @@ try{
  const info=await host.game.locator('#state').textContent();
  assert.ok(info.includes({babanuki:'ババ抜き',shichinarabe:'七並べ',daifugo:'大富豪'}[requestedGame]),
   'launcher must open the selected game');
- const before=await host.game.evaluate(()=>window.TCFourRemote.view.revision);
- const turn=await host.game.evaluate(()=>window.TCFourRemote.view.turn);
+ const before=await host.game.locator('body').evaluate(()=>window.TCFourRemote.view.revision);
+ const turn=await host.game.locator('body').evaluate(()=>window.TCFourRemote.view.turn);
  const acting=async()=>{
   for(const p of players){
-   const seat=await p.game.evaluate(()=>window.TCFourRemote.seat);
+   const seat=await p.game.locator('body').evaluate(()=>window.TCFourRemote.seat);
    if(seat===turn)return p;
   }
   throw Error('NO_ACTIVE_SEAT');
@@ -126,7 +126,7 @@ try{
  const player=await acting();
  await player.game.locator('#state').filter({hasText:'あなたの番'}).waitFor({timeout:22000});
  const hand=player.game.locator('#hand .hand-cards button.card');
- const state=await player.game.evaluate(()=>({
+ const state=await player.game.locator('body').evaluate(()=>({
   view:window.TCFourRemote.view,privateView:window.TCFourRemote.privateView
  }));
  const cardId=c=>c.joker?'JK':c.suit+'-'+c.rank;
@@ -140,7 +140,7 @@ try{
    await hand.nth(i).click({timeout:12000});
    const confirm=player.game.locator('#actions button').filter({hasText:'選択カードを出す'});
    assert.equal(await confirm.isDisabled(),false,'card is selected, submit button enabled');
-   assert.equal(await player.game.evaluate(()=>window.TCFourRemote.view.revision),before,
+   assert.equal(await player.game.locator('body').evaluate(()=>window.TCFourRemote.view.revision),before,
     'touching the card alone must NOT submit the move');
    await confirm.click({timeout:12000});
   }else await player.game.locator('#actions button').filter({hasText:'パス'}).click();
@@ -154,7 +154,7 @@ try{
    }
    const confirm=player.game.locator('#actions button').filter({hasText:'選択カードを出す'});
    assert.equal(await confirm.isDisabled(),false,'legal daifugo combination accepted');
-   assert.equal(await player.game.evaluate(()=>window.TCFourRemote.view.revision),before,
+   assert.equal(await player.game.locator('body').evaluate(()=>window.TCFourRemote.view.revision),before,
     'selecting a hand must NOT submit the move');
    await confirm.click({timeout:12000});
   }else{
@@ -168,7 +168,7 @@ try{
   await p.game.locator('#state').waitFor({state:'visible',timeout:22000});
   const deadline=Date.now()+22000;
   while(Date.now()<deadline){
-   if(await p.game.evaluate(rev=>window.TCFourRemote?.view?.revision>rev,before))return;
+   if(await p.game.locator('body').evaluate(rev=>window.TCFourRemote?.view?.revision>rev,before))return;
    await new Promise(resolve=>setTimeout(resolve,250));
   }
   throw Error('MOVE_NOT_SYNCED_TO_EVERY_SEAT '+requestedGame);
