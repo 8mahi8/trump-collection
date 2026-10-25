@@ -7,7 +7,7 @@ const IDS=['hostPlayer001','guestPlayer001','guestPlayer002','guestPlayer003'];
 function fakeNetwork(){
  const state={meta:null,seats:{},joinRequests:{},public:null,private:{},commands:{},receipts:{},
    failPublishOnce:false,publishCount:0,seatWrites:0,heartbeat:null,failHeartbeatOnce:false,
-   closed:null,leaveRequests:{}};
+   closed:null,leaveRequests:{},seatReads:{}};
  const clone=v=>v===undefined?null:JSON.parse(JSON.stringify(v));
  const makeStore=uid=>({
   uid,
@@ -27,7 +27,7 @@ function fakeNetwork(){
    state.leaveRequests[uid]=true;
   },
   async leaveRequests(){assert.equal(uid,state.meta.hostUid);return clone(state.leaveRequests);},
-  async seat(){return state.seats[uid]||null;},
+  async seat(){state.seatReads[uid]=(state.seatReads[uid]||0)+1;return state.seats[uid]||null;},
   async writeHeartbeat(room,seq){
    assert.equal(uid,state.meta.hostUid);
    if(state.failHeartbeatOnce){state.failHeartbeatOnce=false;throw Error('SIMULATED_HEARTBEAT_DROP');}
@@ -275,4 +275,20 @@ test('Firebase friends-only: closed room cannot accept new joins',async()=>{
  await s.host.closeRoom();
  await assert.rejects(()=>s.clients[1].requestJoin(),/ROOM_ALREADY_CLOSED/);
  assert.equal(s.state.joinRequests[IDS[1]],undefined);
+});
+
+test('Firebase guest: seat confirmation is reused without another REST GET during the same match',async()=>{
+ const s=setup('shichinarabe',42);
+ await s.host.bootstrap();
+ const guest=s.clients[1];
+ await guest.requestJoin();
+ assert.equal((await guest.poll()).status,'waiting_for_host');
+ const before=s.state.seatReads[IDS[1]];
+ assert.equal(before,1);
+ await s.host.tick();
+ for(let n=0;n<8;n++)assert.equal((await guest.poll()).status,'ready');
+ assert.equal(s.state.seatReads[IDS[1]],2,'eight successful polls require only one additional seat GET');
+ await s.host.closeRoom('host_left');
+ assert.equal((await guest.poll()).status,'room_closed');
+ assert.equal(s.state.seatReads[IDS[1]],2,'closed room does not fetch or expose old seat');
 });
