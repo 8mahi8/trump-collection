@@ -1,5 +1,8 @@
 # 引き継ぎ資料 — トランプコレクション
 
+**最新Phase 10（2026-10-25）：他ゲームのFirebaseへの誤接続を防ぐ事前検査を実装・テスト成功。** [専用Sparkプロジェクト手順](firebase/DEDICATED_SPARK_SETUP.md) / [成功したGitHub Actions](https://github.com/8mahi8/trump-collection/actions/runs/40176489466)。Node**73/73**、Chromiumで4ゲーム×COM/友達8入口成功、実Auth+RTDBエミュレーターで4人対戦3ゲーム完走・切断復旧・退出も再確認。新規`online/firebase-dedicated-guard.mjs`で`trump-collection-...`専用プロジェクトIDとdefault RTDBのURL整合性を確認し、接続不一致ならFirebaseへの匿名ログイン前に拒否。設定確認CLIは`dev/check-firebase-config.mjs`（ローカル文字列のみ、ネットワーク・デプロイなし）。**本番Firebaseの新プロジェクト作成も接続もまだ行っていない**。学校版・既存FirebaseのRules・公開COM版は未変更。
+
+
 **最新Phase 9（2026-10-25）：COM4ゲーム＋友達対戦4ゲームの入口を1つに統合した開発用単一HTMLを実装。** [Phase 9詳細](docs/ONLINE_COLLECTION_PHASE9_2026-10-25.md) / [GitHub Actions検証成功](https://github.com/8mahi8/trump-collection/actions/runs/40175410131)：Node67/67、Chromium4ゲーム×2モード計8入口合格。Firebase実エミュレーターで4人ゲーム3種の完走テストも継続合格。生成器`dev/build-collection-lab.mjs`、開発用単一HTML`dist/trump-collection-integrated-lab.html`（CI artifactとして保存）。**Firebase本番3ゲームはまだ未接続**、神経衰弱は既存Supabase公開Broadcast試作。学校Safari／Google Sitesは変更・実機検証していない。再読み込み後の復元は不要とのオーナー確定方針を維持。
 
 
