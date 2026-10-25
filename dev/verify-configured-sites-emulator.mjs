@@ -10,6 +10,8 @@ import {buildConfiguredSitesHtml,buildOpenRootTrialSitesHtml} from './build-conf
 
 const engine=process.env.TC_BROWSER_ENGINE||'chromium';
 const openRootTrial=process.env.TC_OPEN_ROOT_TRIAL==='1';
+const requestedGame=process.env.TC_SITES_GAME||'babanuki';
+if(!['babanuki','shichinarabe','daifugo'].includes(requestedGame))throw Error('INVALID_SITES_GAME');
 if(!['chromium','webkit'].includes(engine))throw Error('INVALID_ENGINE');
 const sample=JSON.parse(readFileSync(new URL('../tests/fixtures/owner-reported-open-root.example.rules.json',import.meta.url),'utf8'));
 const trump=JSON.parse(readFileSync(new URL('../firebase/trump-rooms.rules.json',import.meta.url),'utf8'));
@@ -77,7 +79,7 @@ async function launch(){
  page.on('pageerror',e=>errors.push('page error '+e.message));
  await page.goto('http://127.0.0.1:8893/');
  const sites=page.frameLocator('#sites-embed');
- await sites.locator('[data-game="babanuki"]').click();
+ await sites.locator('[data-game="'+requestedGame+'"]').click();
  await sites.locator('#friends').click();
  const game=sites.frameLocator('#play');
  await game.locator('#create').waitFor({timeout:15000});
@@ -107,6 +109,79 @@ try{
  }
  await host.game.locator('#start:not([disabled])').click({timeout:22000});
  await Promise.all(players.map(p=>p.game.locator('#match').waitFor({state:'visible',timeout:22000})));
+ // Exercise the actual touch-driven move UI, not only the room protocol.
+ // The first turn is selected from authoritative room state (UIDs are sorted).
+ const info=await host.game.locator('#state').textContent();
+ assert.ok(info.includes({babanuki:'ババ抜き',shichinarabe:'七並べ',daifugo:'大富豪'}[requestedGame]),
+  'launcher must open the selected game');
+ const before=await host.game.evaluate(()=>window.TCFourRemote.view.revision);
+ const turn=await host.game.evaluate(()=>window.TCFourRemote.view.turn);
+ const acting=async()=>{
+  for(const p of players){
+   const seat=await p.game.evaluate(()=>window.TCFourRemote.seat);
+   if(seat===turn)return p;
+  }
+  throw Error('NO_ACTIVE_SEAT');
+ };
+ const player=await acting();
+ await player.game.locator('#state').filter({hasText:'あなたの番'}).waitFor({timeout:22000});
+ const hand=player.game.locator('#hand .hand-cards button.card');
+ const state=await player.game.evaluate(()=>({
+  view:window.TCFourRemote.view,privateView:window.TCFourRemote.privateView
+ }));
+ const cardId=c=>c.joker?'JK':c.suit+'-'+c.rank;
+ if(requestedGame==='babanuki'){
+  await player.game.locator('#board button.card.back').first().click({timeout:12000});
+ }else if(requestedGame==='shichinarabe'){
+  const legal=state.privateView?.legalIds||[];
+  if(legal.length){
+   const i=state.privateView.hand.findIndex(c=>cardId(c)===legal[0]);
+   assert.ok(i>=0,'legal 7s card must exist in own hand');
+   await hand.nth(i).click({timeout:12000});
+   const confirm=player.game.locator('#actions button').filter({hasText:'選択カードを出す'});
+   assert.equal(await confirm.isDisabled(),false,'card is selected, submit button enabled');
+   assert.equal(await player.game.evaluate(()=>window.TCFourRemote.view.revision),before,
+    'touching the card alone must NOT submit the move');
+   await confirm.click({timeout:12000});
+  }else await player.game.locator('#actions button').filter({hasText:'パス'}).click();
+ }else{
+  const moves=state.privateView?.legalMoves||[];
+  if(moves.length){
+   for(const id of moves[0]){
+    const i=state.privateView.hand.findIndex(c=>cardId(c)===id);
+    assert.ok(i>=0,'legal daifugo card must exist in own hand');
+    await hand.nth(i).click({timeout:12000});
+   }
+   const confirm=player.game.locator('#actions button').filter({hasText:'選択カードを出す'});
+   assert.equal(await confirm.isDisabled(),false,'legal daifugo combination accepted');
+   assert.equal(await player.game.evaluate(()=>window.TCFourRemote.view.revision),before,
+    'selecting a hand must NOT submit the move');
+   await confirm.click({timeout:12000});
+  }else{
+   assert.ok(state.view.field,'cannot pass empty Daifugo field without a move');
+   await player.game.locator('#actions button').filter({hasText:'パス'}).click();
+  }
+ }
+ await Promise.all(players.map(p=>p.game.locator('#state').filter({hasText:'通信 OK'}).waitFor({timeout:22000})));
+ // Revision must propagate to every client, including players not on turn.
+ await Promise.all(players.map(async p=>{
+  await p.game.locator('#state').waitFor({state:'visible',timeout:22000});
+  const deadline=Date.now()+22000;
+  while(Date.now()<deadline){
+   if(await p.game.evaluate(rev=>window.TCFourRemote?.view?.revision>rev,before))return;
+   await new Promise(resolve=>setTimeout(resolve,250));
+  }
+  throw Error('MOVE_NOT_SYNCED_TO_EVERY_SEAT '+requestedGame);
+ }));
+ // Assert screen has no horizontal overflow at school iPad landscape viewport.
+ for(const p of players){
+  const layout=await p.game.locator('body').evaluate(()=>{
+   const w=document.documentElement.clientWidth;
+   return {width:w,scrollWidth:document.documentElement.scrollWidth,hand:document.querySelector('#hand')?.querySelectorAll('button.card').length};
+  });
+  assert.ok(layout.scrollWidth<=layout.width+3,
+   requestedGame+' horizontal overflow on old school-iPad-like viewport: '+JSON.stringify(layout));
+ }
  await host.game.locator('#chatToggle').click();
  await players[1].game.locator('#chatToggle').click();
  await host.game.locator('#chatInput').fill('Google Sites内の4人チャット');
@@ -116,7 +191,7 @@ try{
  await Promise.all(players.slice(1).map(p=>p.game.locator('#lobby').waitFor({state:'hidden',timeout:25000})));
  assert.deepEqual(errors,[]);
  console.log((openRootTrial?'OPEN-ROOT FRIEND TRIAL':'CONFIGURED SITES FIREBASE')+
-  ' EMULATOR PASS ['+engine+']: nested sandbox, four seats, READY, chat, graceful host exit');
+  ' EMULATOR PASS ['+engine+']: '+requestedGame+', nested sandbox, four seats, READY, first UI move synced, chat, graceful host exit');
 }finally{
  for(const page of pages)await page.close();
  await context.close();await browser.close();server.close();
