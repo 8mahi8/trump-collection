@@ -21,6 +21,7 @@ function bundledScript(){
   "import {createFourSeatAuthority,makeFourSeatCommand} from './four-seat-authority.mjs';",'controller'));
  const store=stripExports(read('online/firebase-room-store.mjs'));
  const guard=stripExports(read('online/firebase-dedicated-guard.mjs'));
+ const pollPolicy=stripExports(read('online/firebase-poll-policy.mjs'));
  const html=read('online/four-seat-remote.html');
  const match=html.match(/<script type="module">([\s\S]*?)<\/script>/);
  if(!match)throw Error('Remote script missing');
@@ -28,7 +29,8 @@ function bundledScript(){
  ui=noImport(ui,"import {createFirebaseAnonymousAuth,createFirebaseRoomStore} from './firebase-room-store.mjs';",'firebase store');
  ui=noImport(ui,"import {createFirebaseRoomHost,createFirebaseRoomGuest} from './firebase-room-controller.mjs';",'firebase controller');
  ui=noImport(ui,"import {validateDedicatedFirebaseConfig} from './firebase-dedicated-guard.mjs';",'dedicated Firebase preflight');
- return {html,script:logic+authority+'\n'+controller+'\n'+store+'\n'+guard+'\n'+ui};
+ ui=noImport(ui,"import {nextFirebasePollDelay} from './firebase-poll-policy.mjs';",'adaptive Firebase poll policy');
+ return {html,script:logic+authority+'\n'+controller+'\n'+store+'\n'+guard+'\n'+pollPolicy+'\n'+ui};
 }
 export function buildOnlineHtml(){
  const {html,script}=bundledScript();
