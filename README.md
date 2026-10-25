@@ -62,6 +62,13 @@ v1.5.5の通常本体はCOM対戦のみ。別ページの神経衰弱2人オン�
 - 自動検証：`node --test tests/*.mjs`、`python dev/verify_four_seat_browser.py`（Python PlaywrightとChromiumが必要）
 - [4席検証結果とFirebase移行設計](docs/FOUR_SEAT_PHASE3_2026-10-25.md)。**Firebaseへはまだ接続していない**ため、手札の非公開を保証するRules/Authを先にテストする。
 
+## Phase 12｜既存Firebase共有の安全なRules合成・エミュレーター検証（2026-10-25）
+
+- **新規Firebaseを必須にせず、他ゲームの既存DBで`trumpRoomsV1`を使う方針に変更。** [共有Firebase Rulesの監査と合成手順](firebase/SHARED_DATABASE_RULES.md)。実現できるかの判断には**現在本番で使っているRulesの確認が不可欠**。
+- `dev/merge-existing-firebase-rules.mjs`を追加。既存ルールを全保持し、危険な根本許可・ワイルドカード・パス競合があれば**合成を拒否**。本番接続・Rules反映・実DB書込みは行わない。
+- [GitHub Actions成功](https://github.com/8mahi8/trump-collection/actions/runs/40180826430)：Node**84/84**。**模擬の旧ゲームRules＋トランプRules**を実Firebase Local Emulatorで両立させ、旧ゲームの読み書き維持・非公開手札の保護・3ゲーム4人対戦完走を確認。既存3ゲームのChromium4画面同期・通信断復帰・退出、統合メニュー8入口も再確認。
+- 注：**旧ゲーム本番Rulesの実物ではなくテスト専用サンプルで確認した結果**。古い専用プロジェクト限定のWeb接続ガードは、実Rulesを確認するまで残す。
+
 ## Phase 11｜Firebase通信を軽くする調整（2026-10-25）
 
 - [Phase 11技術記録](docs/ONLINE_TRAFFIC_PHASE11_2026-10-25.md)。Firebaseゲストの承認済み席をキャッシュし、通常pollごとのRTDB席GETを省略。さらに状況別にロビー1,000～1,500ms／終了1,600～2,000ms／ゲーム中650～900msの問い合わせ間隔へ調整。
