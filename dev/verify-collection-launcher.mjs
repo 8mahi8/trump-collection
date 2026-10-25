@@ -73,6 +73,17 @@ try{
  try{
   await sitesPage.goto('http://127.0.0.1:8877/sites-wrapper');
   const sites=sitesPage.frameLocator('#sites-embed');
+  await sites.locator('#choices').waitFor({timeout:12000});
+  // Record child acknowledgements before Back destroys the iframe.
+  // An ACK proves the launcher waited for the room-exit handshake.
+  await sites.locator('#choices').evaluate(()=>{
+   window.__returnAcks=0;
+   window.addEventListener('message',e=>{
+    if(e.data?.type==='tc:leave-ack'&&e.source===document.getElementById('play').contentWindow)
+     window.__returnAcks++;
+   });
+  });
+  let expectedAcks=0;
   for(const game of ['shichinarabe','daifugo','babanuki']){
    await sites.locator('[data-game="'+game+'"]').click();
    await sites.locator('#friends').click();
@@ -84,6 +95,9 @@ try{
    await inner.locator('#status').getByText('Firebase接続先が未設定',{exact:false}).waitFor({timeout:12000});
    await sites.locator('#back').click();
    await sites.locator('#viewer:not(.open)').waitFor({state:'attached',timeout:12000});
+   expectedAcks++;
+   assert.equal(await sites.locator('#choices').evaluate(()=>window.__returnAcks),expectedAcks,
+    'Back must receive a graceful-exit ACK from the selected friend game');
   }
   await sites.locator('[data-game="shichinarabe"]').click();
   await sites.locator('#com').click();
