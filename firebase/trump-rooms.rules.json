@@ -70,6 +70,17 @@
         "$other": {
           ".read": false,
           ".write": false
+        },
+        "heartbeat": {
+          ".read": "auth !== null && root.child('trumpRoomsV1/' + $room + '/seats/' + auth.uid).val() === true",
+          ".write": "auth !== null && auth.uid === root.child('trumpRoomsV1/' + $room + '/meta/hostUid').val() && newData.exists() && (!data.exists() || newData.child('seq').val() > data.child('seq').val())",
+          ".validate": "newData.hasChildren(['seq']) && newData.child('seq').isNumber() && newData.child('seq').val() > 0",
+          "$other": {
+            ".validate": false
+          },
+          "seq": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
+          }
         }
       }
     }
