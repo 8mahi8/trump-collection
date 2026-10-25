@@ -120,6 +120,16 @@ export function createFirebaseRoomStore({databaseURL,auth,fetchImpl=globalThis.f
       return request('PUT',fullPath(room,'heartbeat'),{seq});
     },
     grantSeat:(room,memberUid)=>{check(room,memberUid);return request('PUT',fullPath(room,'seats',memberUid),true);},
+    // Bounded chat: 10 cyclic slots per authenticated user. Four players
+    // means <=40 messages stored per room; text never touches game revision.
+    chat:room=>request('GET',fullPath(room,'chat')),
+    sendChat:(room,text,seq,sentAt=Date.now())=>{
+      if(typeof text!=='string'||!text.trim()||text.trim().length>120)throw Error('INVALID_CHAT_TEXT');
+      if(!Number.isSafeInteger(seq)||seq<1||seq>1000000)throw Error('INVALID_CHAT_SEQUENCE');
+      if(!Number.isSafeInteger(sentAt)||sentAt<1)throw Error('INVALID_CHAT_TIMESTAMP');
+      return request('PUT',fullPath(room,'chat',uid,String(seq%10)),
+        {uid,text:text.trim(),seq,sentAt});
+    },
     readPublic:room=>request('GET',fullPath(room,'public')),
     readPrivate:room=>request('GET',fullPath(room,'private',uid)),
     publishPublic:(room,view)=>request('PUT',fullPath(room,'public'),view),
