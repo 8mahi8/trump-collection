@@ -93,7 +93,13 @@ try{
   await guest.game.locator('#join').click();
  }
  await Promise.all(players.map(p=>p.game.locator('#roster').filter({hasText:'4/4人'}).waitFor({timeout:22000})));
- for(const p of players)await p.game.locator('#ready').click();
+ // Give each authenticated command time to be accepted by the host and
+ // reflected back to its own seat; do not submit four stale-revision actions.
+ for(const p of players){
+  await p.game.locator('#ready').click();
+  await p.game.locator('#ready').filter({hasText:'準備を解除'}).waitFor({timeout:22000});
+  await p.game.locator('#ready:not([disabled])').waitFor({timeout:22000});
+ }
  await host.game.locator('#start:not([disabled])').click({timeout:22000});
  await Promise.all(players.map(p=>p.game.locator('#match').waitFor({state:'visible',timeout:22000})));
  await host.game.locator('#chatToggle').click();
