@@ -1,5 +1,12 @@
 # トランプコレクション｜Firebase Auth + RTDB 開発・検証記録
 
+## Phase 13：既存プロジェクトに対応する設定形式（2026-10-25）
+
+- 新規の `trump-collection-*` プロジェクトを必須とする旧方針を撤回。`validateFirebaseConfig()` は**既存 `mygame-df915` の正しいデフォルトRTDB URL**とトランプ専用URLの両方に対応する。
+- Web APIキーとURLの**形式検査に過ぎない**。現行の本番Rulesを読み取れていないため、まだ本番接続を許可・配備したとは言えない。実際の権限確認はFirebase公式管理ツールと[共有Rules監査手順](SHARED_DATABASE_RULES.md)で行う。
+- ゲーム本体、学校Google Sites、他ゲームのRTDBデータ／Rules、mainの公開版は未変更。
+
+
 **2026-10-25 更新：Firebase Local Emulator Suite の実際のAuth/RTDB Rulesを使う統合テストに成功。Firebase本番接続・学校Safari・Google Sitesは未実施。**
 
 ## 現在の成果
