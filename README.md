@@ -62,6 +62,12 @@ v1.5.5の通常本体はCOM対戦のみ。別ページの神経衰弱2人オン�
 - 自動検証：`node --test tests/*.mjs`、`python dev/verify_four_seat_browser.py`（Python PlaywrightとChromiumが必要）
 - [4席検証結果とFirebase移行設計](docs/FOUR_SEAT_PHASE3_2026-10-25.md)。**Firebaseへはまだ接続していない**ため、手札の非公開を保証するRules/Authを先にテストする。
 
+## Phase 11｜Firebase通信を軽くする調整（2026-10-25）
+
+- [Phase 11技術記録](docs/ONLINE_TRAFFIC_PHASE11_2026-10-25.md)。Firebaseゲストの承認済み席をキャッシュし、通常pollごとのRTDB席GETを省略。さらに状況別にロビー1,000～1,500ms／終了1,600～2,000ms／ゲーム中650～900msの問い合わせ間隔へ調整。
+- [実行成功CI](https://github.com/8mahi8/trump-collection/actions/runs/40178100590)で**Node79/79合格**、Firebase実エミュレーターの3ゲーム4人対戦完走、Chromium4画面での操作・ホスト通信断復帰・退出、新統合メニュー8入口を再確認。
+- 変更は開発用単一HTMLまで。**Firebase本番・既存学校ゲームのDB/Rules・Google Sites公開版を変更していない**。通信量削減率は理論上の見込みであり実測値ではない。
+
 ## Phase 10｜Firebase専用Sparkプロジェクトの接続前検査（2026-10-25）
 
 - [Firebase専用無料プロジェクトの設定方針](firebase/DEDICATED_SPARK_SETUP.md)を策定。既存小国戦線などのFirebaseと分離し、課金のないSparkプロジェクトのデフォルトRTDBを用いる。**実際のFirebase本番プロジェクトは作成・接続していない**。
