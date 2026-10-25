@@ -1,5 +1,8 @@
 # 引き継ぎ資料 — トランプコレクション
 
+**最新Phase 7（2026-10-25）：ホストUIDのheartbeatによる一時通信断検知＋復帰を開発ブランチへ実装**。約15秒止まればゲストの操作を禁止し、復帰したら同期再開。[詳細](docs/ONLINE_RECOVERY_PHASE7_2026-10-25.md) / [実Firebase Emulator＋Chromium4画面の成功記録](https://github.com/8mahi8/trump-collection/actions/runs/40170975967)。Node60/60。**ページ更新後のUID/ホスト秘密状態復旧は未実装**。本番Firebase、学校Safari/Google Sites、通常版COMは未変更。
+
+
 このファイルは、開発を引き継ぐ人（AI・人間を問わない）のための正本です。
 まずこのファイルと `README.md` を読み、`docs/` の調査メモが設計判断の背景になります。
 
@@ -9,8 +12,8 @@
 - Phase 2の別端末オンライン試作URL（同様にmainの別ファイルのみ追加）: https://8mahi8.github.io/trump-collection/preview-online-memory-remote.html
 - 詳細な通信構成・テスト・限界: [ONLINE_REMOTE_PHASE2_2026-10-25.md](docs/ONLINE_REMOTE_PHASE2_2026-10-25.md)
 - **4人用の最新コード・テスト・Firebase移行方針**: [FOUR_SEAT_PHASE3_2026-10-25.md](docs/FOUR_SEAT_PHASE3_2026-10-25.md)。再実行 `python dev/verify_four_seat_browser.py`。
-- **Phase 6：4人オンラインGUI＋単体HTML＋Chromium4画面検証**：[docs/ONLINE_UI_PHASE6_2026-10-25.md](docs/ONLINE_UI_PHASE6_2026-10-25.md)。[成功CI](https://github.com/8mahi8/trump-collection/actions/runs/40166268484)、Node56/56合格、ババ抜き・七並べ・大富豪の4画面で入室・READY・開始・1手同期成功。独立したHTMLでGoogle Sites貼付けに向けた単体構成を生成済み。**Firebase本番設定は未実施、学校版は未変更。**
-- **Firebase Auth・RTDB実エミュレーター検証（Phase 5）**: [firebase/README.md](firebase/README.md)。[GitHub Actions成功](https://github.com/8mahi8/trump-collection/actions/runs/40158460489)。Node56/56合格、Firebase Local Emulator SuiteのAuth+RTDBで4人対戦3ゲーム完走（ババ抜き28手・七並べ52手・大富豪97手）。**本番Firebaseと学校Safariは未検証**。
+- **Phase 6：4人オンラインGUI＋単体HTML＋Chromium4画面検証**：[docs/ONLINE_UI_PHASE6_2026-10-25.md](docs/ONLINE_UI_PHASE6_2026-10-25.md)。[成功CI](https://github.com/8mahi8/trump-collection/actions/runs/40166268484)、Node60/60合格、ババ抜き・七並べ・大富豪の4画面で入室・READY・開始・1手同期成功。独立したHTMLでGoogle Sites貼付けに向けた単体構成を生成済み。**Firebase本番設定は未実施、学校版は未変更。**
+- **Firebase Auth・RTDB実エミュレーター検証（Phase 5）**: [firebase/README.md](firebase/README.md)。[GitHub Actions成功](https://github.com/8mahi8/trump-collection/actions/runs/40158460489)。Node60/60合格、Firebase Local Emulator SuiteのAuth+RTDBで4人対戦3ゲーム完走（ババ抜き28手・七並べ52手・大富豪97手）。**本番Firebaseと学校Safariは未検証**。
 
 
 - 開発ブランチの版: **v1.5.5**（main の公開版は v1.4.0）（`index.html` 内の `TC_VERSION` が版の正本。メニュー下部にも表示）
@@ -40,7 +43,7 @@
 |---|---|
 | `index.html` | UI のすべて（CSS・画面描画・操作・BOT進行・アニメーション）。`games.mjs` を `import * as G` で読み込む |
 | `games.mjs` | ゲームロジックの正本。状態生成・合法手の列挙・手の適用・COM思考。DOM に一切触れない純粋なモジュールで、Node でテスト可能。乱数は生成関数の引数（rng）で注入する設計 |
-| `tests/games.test.mjs` | ロジックの単体テスト（8件）。`node --test "tests/*.mjs"`（既存29件＋4席共通7件＝計56件） |
+| `tests/games.test.mjs` | ロジックの単体テスト（8件）。`node --test "tests/*.mjs"`（既存29件＋4席共通7件＝計60件） |
 | `build-embed.mjs` | `games.mjs` を `index.html` にインライン化し、`const G = {...}` の shim を生成して `dist/trump-collection.html` を出力する |
 | `dist/trump-collection.html` | Sites 貼り付け用の単体ファイル。**直接編集しない**（`index.html` と `games.mjs` から生成する） |
 | `dev/verify.mjs` | 検証パイプライン（後述）。前任環境のツールを同梱したもの |
@@ -154,6 +157,6 @@ jobs:
 ## 2026-10-25｜Phase 6最新状況
 
 - 対戦用のHTML: `online/four-seat-remote.html`（Firebase認証・通信付きの研究版）と`dist/trump-collection-online-lab.html`（外部JS/CDNを必要としない54KBの単体HTML）。開発用で実Firebase設定なし。
-- 検証: `tests/online-html-build.test.mjs`・`dev/verify-online-browser.mjs`。GitHub ActionsのChrome4画面×3ゲーム同期成功。Node56/56・Firebase実エミュレーター3ゲーム完走も確認。正式CI: https://github.com/8mahi8/trump-collection/actions/runs/40166268484
+- 検証: `tests/online-html-build.test.mjs`・`dev/verify-online-browser.mjs`。GitHub ActionsのChrome4画面×3ゲーム同期成功。Node60/60・Firebase実エミュレーター3ゲーム完走も確認。正式CI: https://github.com/8mahi8/trump-collection/actions/runs/40166268484
 - 残る重要問題: **ページ更新後の元の席への復帰、ホストの完全復元、ルーム掃除、実Firebase本番設定／権限確認、学校Safari／Google Sites実機**。
 - ユーザー本人へ途中テストを何度も頼まない。通常COM版v1.5.5・main v1.4.0・Google Sites版は保護。
