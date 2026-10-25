@@ -73,6 +73,8 @@ test('ACTUAL Firebase Emulator: UID-private hands and three four-player games', 
   const stranger=users[4];
   const rawPrivate=await tryRaw(await stranger.auth.token(),room,'private/'+active[0].uid);
   assert.ok([401,403].includes(rawPrivate.status),'unseated user read private denied: '+rawPrivate.status);
+  assert.ok([401,403].includes((await tryRaw(await stranger.auth.token(),room,'heartbeat')).status),
+    'unauthorized visitor cannot inspect host liveness');
   await active[1].store.requestSeat(room);
   assert.equal((await suite.guests[1].poll()).status,'waiting_for_host');
   await active[2].store.requestSeat(room);
@@ -91,6 +93,10 @@ test('ACTUAL Firebase Emulator: UID-private hands and three four-player games', 
   assert.ok(clientsBySeat.every(Boolean));
   suite.guests=clientsBySeat;
   assert.equal((await suite.guests[1].poll()).status,'ready');
+  const pulse=await active[1].store.readHeartbeat(room);
+  assert.ok(Number.isInteger(pulse?.seq)&&pulse.seq>=1);
+  const forged=await tryRaw(await active[1].auth.token(),room,'heartbeat','PUT',{seq:pulse.seq+500});
+  assert.ok([401,403].includes(forged.status),'guest cannot forge host heartbeat');
   for(let guestIndex=1;guestIndex<4;guestIndex++){
    const strangerId=active[(guestIndex%3)+1].uid;
    if(strangerId!==active[guestIndex].uid){
