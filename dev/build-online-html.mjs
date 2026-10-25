@@ -28,7 +28,7 @@ function bundledScript(){
  let ui=match[1];
  ui=noImport(ui,"import {createFirebaseAnonymousAuth,createFirebaseRoomStore} from './firebase-room-store.mjs';",'firebase store');
  ui=noImport(ui,"import {createFirebaseRoomHost,createFirebaseRoomGuest} from './firebase-room-controller.mjs';",'firebase controller');
- ui=noImport(ui,"import {validateDedicatedFirebaseConfig} from './firebase-dedicated-guard.mjs';",'dedicated Firebase preflight');
+ ui=noImport(ui,"import {validateFirebaseConfig} from './firebase-dedicated-guard.mjs';",'dedicated Firebase preflight');
  ui=noImport(ui,"import {nextFirebasePollDelay} from './firebase-poll-policy.mjs';",'adaptive Firebase poll policy');
  return {html,script:logic+authority+'\n'+controller+'\n'+store+'\n'+guard+'\n'+pollPolicy+'\n'+ui};
 }
