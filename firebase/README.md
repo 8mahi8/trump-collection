@@ -48,10 +48,17 @@ CIにJava 21、Node 22を導入済み。ローカルのこの作業環境はCLI�
 
 本番では、独立Firebaseプロジェクト／DBを使うか、現在のRulesを安全に保ったままトランプ専用の子パスだけを合成して必要なテストをすること。他ゲームの本番データ、Rulesは変更していない。
 
+## Phase 6：実ブラウザGUIの確認（2026-10-25）
+
+- [開発用オンラインUI](../online/four-seat-remote.html)と[Google Sites直接貼付け用単体HTML候補](../dist/trump-collection-online-lab.html)を生成（Firebase本番設定未投入）。
+- [Actions成功記録](https://github.com/8mahi8/trump-collection/actions/runs/40166268484)：Node56/56、実Firebase Emulatorの3ゲーム完走、Chromium4画面で**3ゲームそれぞれのカード操作同期**も成功。未設定Configの場合の案内表示、800×450の画面起動も合格。
+- 詳細は[Phase 6開発ノート](../docs/ONLINE_UI_PHASE6_2026-10-25.md)。
+- 学校SafariやGoogle Sites、実Firebase本番での検証はまだ実施していない。ページ更新後の認証UIDとホスト状態の復旧も未実装。
+
 ## まだ終わっていないこと
 - 実Firebase本番プロジェクトのURL/API key設定・接続。実エミュレーターの合格は本番接続の保証ではない。
 - 切断・ページ再読込時のホスト権威状態の復元、ゲスト再参加、プレゼンス監視、部屋のTTL／掃除。
-- 無音の横向き学校iPad SafariとGoogle Sites直接HTML埋め込みでのブラウザ検証。
+- 無音の横向き学校iPad SafariとGoogle Sites直接HTML埋め込みでの**実機**検証（ChromiumのGUI検証は完了）。
 - 通常v1.5.5の4ゲームGUIへの統合（COMモードは保護）。
 
 参考にした他リポジトリは`8mahi8/shokoku-sensen/online-net.js`、`8mahi8/brawl-bot-playtest/network/FRIENDS_TRANSPORT_DECISIONS.md`、`8mahi8/brawl-bot-playtest/firebase.draft-staging-authz-e2e.json`。トランプ特有の**非公開情報**とサーバー判定を優先し、ゲーム全体の通信コードは流用せず責務だけ参考にした。
