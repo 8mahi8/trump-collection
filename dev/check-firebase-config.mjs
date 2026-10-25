@@ -9,7 +9,7 @@ import {validateFirebaseConfig} from '../online/firebase-dedicated-guard.mjs';
 export function checkFirebaseConfigFile(file){
  if(!file||typeof file!=='string')throw Error('CONFIG_FILE_REQUIRED');
  const raw=JSON.parse(readFileSync(resolve(file),'utf8'));
- const ok=validateDedicatedFirebaseConfig(raw);
+ const ok=validateFirebaseConfig(raw);
  return {projectId:ok.projectId,dbHost:new URL(ok.databaseURL).hostname,
    hasPublicWebKey:true,networkRequests:0,writes:0};
 }
