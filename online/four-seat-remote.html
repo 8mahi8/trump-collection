@@ -31,7 +31,7 @@ select,input{background:#fafff5;color:#223128}input{max-width:140px}
 <div id="match" class="panel" hidden><div id="state" class="mini"></div><div id="board"></div><div id="hand"></div><div id="actions"></div></div>
 </main><script type="module">
 import {createFirebaseAnonymousAuth,createFirebaseRoomStore} from './firebase-room-store.mjs';
-import {validateDedicatedFirebaseConfig} from './firebase-dedicated-guard.mjs';
+import {validateFirebaseConfig} from './firebase-dedicated-guard.mjs';
 import {nextFirebasePollDelay} from './firebase-poll-policy.mjs';
 import {createFirebaseRoomHost,createFirebaseRoomGuest} from './firebase-room-controller.mjs';
 
@@ -82,11 +82,11 @@ function shouldRun(epoch){return epoch===session&&!!guestRunner;}
 async function connectAuth(){
  if(!CONFIG.apiKey||!CONFIG.databaseURL)throw Error('FIREBASE_CONFIG_MISSING');
  // The emulator injects a fake transport. Real network access requires
- // a clearly named, separately created Trump Firebase project and matching DB.
+ // a known Firebase project and exactly matching DB (including the existing school Firebase).
  const emulatorTransport=Boolean(window.TRUMP_FIREBASE_TEST_FETCH);
  if(emulatorTransport&&!['127.0.0.1','localhost'].includes(location.hostname))
    throw Error('FIREBASE_TEST_TRANSPORT_FORBIDDEN');
- if(!emulatorTransport)validateDedicatedFirebaseConfig(CONFIG);
+ if(!emulatorTransport)validateFirebaseConfig(CONFIG);
  if(!auth){
   const opts={apiKey:CONFIG.apiKey};
   // Only used by local CI pages, never on GitHub Pages.
@@ -150,7 +150,7 @@ function describe(e){
  const key=e?.code||e?.message||String(e);
  return ({
   FIREBASE_CONFIG_MISSING:'Firebase接続先が未設定（開発用画面）',
-  FIREBASE_DEDICATED_PROJECT_REQUIRED:'トランプ専用の別Firebaseプロジェクト設定が必要',
+  FIREBASE_PROJECT_NOT_ALLOWED:'トランプ用または確認済みの既存Firebaseプロジェクトを指定してください',
   FIREBASE_PROJECT_DATABASE_MISMATCH:'Firebaseプロジェクト名とDBアドレスが一致しません',
   FIREBASE_TEST_TRANSPORT_FORBIDDEN:'テスト用の通信設定はローカルの検証環境でのみ使用可能です',
   UNEXPECTED_FIREBASE_CONFIG_FIELD:'接続設定に許可されていない項目があります',
