@@ -6,7 +6,8 @@ import {createFirebaseRoomHost,createFirebaseRoomGuest} from '../online/firebase
 const IDS=['hostPlayer001','guestPlayer001','guestPlayer002','guestPlayer003'];
 function fakeNetwork(){
  const state={meta:null,seats:{},joinRequests:{},public:null,private:{},commands:{},receipts:{},
-   failPublishOnce:false,publishCount:0,seatWrites:0,heartbeat:null,failHeartbeatOnce:false};
+   failPublishOnce:false,publishCount:0,seatWrites:0,heartbeat:null,failHeartbeatOnce:false,
+   closed:null,leaveRequests:{}};
  const clone=v=>v===undefined?null:JSON.parse(JSON.stringify(v));
  const makeStore=uid=>({
   uid,
@@ -15,6 +16,17 @@ function fakeNetwork(){
   async requestSeat(){state.joinRequests[uid]=true;},
   async joinRequests(){assert.equal(uid,state.meta.hostUid);return clone(state.joinRequests);},
   async grantSeat(room,who){assert.equal(uid,state.meta.hostUid);state.seats[who]=true;state.seatWrites++;},
+  async readClosed(){return clone(state.closed);},
+  async closeRoom(room,reason){
+   assert.equal(uid,state.meta.hostUid);
+   if(state.closed)throw Error('ALREADY_CLOSED');
+   state.closed={reason};
+  },
+  async leaveRoom(){
+   assert.equal(state.seats[uid],true);
+   state.leaveRequests[uid]=true;
+  },
+  async leaveRequests(){assert.equal(uid,state.meta.hostUid);return clone(state.leaveRequests);},
   async seat(){return state.seats[uid]||null;},
   async writeHeartbeat(room,seq){
    assert.equal(uid,state.meta.hostUid);
@@ -230,4 +242,37 @@ test('Firebase 4人コントローラー: 接続エラー後のheartbeatは単�
  clock+=1000;
  await host.tick();
  assert.equal(s.state.heartbeat.seq,3,'lost ACK must not reuse old sequence');
+});
+
+test('Firebase friends-only: host exits, everyone sees terminal reason, fresh room can start',async()=>{
+ const s=setup('babanuki',100);
+ await readyRoom(s);
+ await s.host.closeRoom();
+ assert.deepEqual(s.state.closed,{reason:'host_left'});
+ assert.equal((await s.clients[1].poll()).status,'room_closed');
+ assert.equal((await s.clients[1].poll()).reason,'host_left');
+ await assert.rejects(()=>s.clients[1].act('draw',{index:0}),/NO_SYNCED_VIEW/);
+ assert.deepEqual(await s.host.tick(),{closed:true});
+ assert.equal(s.state.public.phase,'playing','closure must not leak secret cards or mutate match');
+});
+test('Firebase friends-only: guest exit closes match for all seats via host',async()=>{
+ const s=setup('shichinarabe',101);
+ await readyRoom(s);
+ await s.clients[2].leaveRoom();
+ assert.deepEqual(s.state.leaveRequests[IDS[2]],true);
+ const processed=await s.host.tick();
+ assert.equal(processed.closed,true);
+ assert.deepEqual(s.state.closed,{reason:'player_left'});
+ for(const client of s.clients){
+  const result=await client.poll();
+  assert.equal(result.status,'room_closed');
+  assert.equal(result.reason,'player_left');
+ }
+});
+test('Firebase friends-only: closed room cannot accept new joins',async()=>{
+ const s=setup('daifugo',102);
+ await s.host.bootstrap();
+ await s.host.closeRoom();
+ await assert.rejects(()=>s.clients[1].requestJoin(),/ROOM_ALREADY_CLOSED/);
+ assert.equal(s.state.joinRequests[IDS[1]],undefined);
 });
