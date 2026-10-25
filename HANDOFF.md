@@ -1,5 +1,12 @@
 # 引き継ぎ資料 — トランプコレクション
 
+## 2026-10-25｜Phase 13：共有Firebase接続先の対応（最新）
+
+オーナーが既存Firebaseの再利用を希望。**以前の『別プロジェクト必須』ガードは撤回し、既存の `mygame-df915` の正しいデフォルトRTDB URLも設定形式として受け付ける実装へ更新**。`online/firebase-dedicated-guard.mjs` は互換ファイル名のまま `validateFirebaseConfig` を公開（旧名はエイリアス）。`dev/check-firebase-config.mjs` と単一HTML／統合ランチャーも対応。別DBへの向け間違い・偽装URLを拒否。
+
+**重要：現行Firebase本番Rulesは未取得であり、共有を安全と承認したわけではない。** Firebaseのプラグインは登録されているが、このチャットから現在のRulesを取得する操作は利用できなかった。Firebase公式のRules REST取得には認証済みの管理権限が必要。現Rulesの現物レビュー、既存Rulesの保持、Emulator検証を経てから本番を接続する。Web UIへAPIキーや接続先を埋め込んだり、本番Rulesを変更したりはしていない。
+
+
 ## Phase 12｜既存Firebase共有のオフライン合成・実エミュレーター検証（2026-10-25）
 
 **君の方針に合わせ、新規Firebaseプロジェクト必須案は撤回。既存Firebase再利用を第一候補にする。** [共有手順](firebase/SHARED_DATABASE_RULES.md) / [実行成功したActions](https://github.com/8mahi8/trump-collection/actions/runs/40180826430)。Node**84/84**、共有合成したサンプルRulesで**旧ゲームの権限維持＋トランプのprivate手札隔離＋3ゲーム4人対戦完走**をFirebase Auth/RTDB Emulatorで確認。合成ツール`dev/merge-existing-firebase-rules.mjs`は本番のルート許可・ワイルドカード・既存トランプパスを拒否し、旧Rulesを消さない。**最重要未完了：本当に使っているFirebaseの現行Rulesを取得していない。サンプルテストの合格では本番を保証できない。** `online/firebase-dedicated-guard.mjs`は従来の専用Firebase限定のまま。ライブRules監査後に共有用へ変更。現行BRAWL・小国戦線のRules／DB／Google Sitesと、main／COM版は一切未変更。
