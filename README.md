@@ -62,6 +62,13 @@ v1.5.5の通常本体はCOM対戦のみ。別ページの神経衰弱2人オン�
 - 自動検証：`node --test tests/*.mjs`、`python dev/verify_four_seat_browser.py`（Python PlaywrightとChromiumが必要）
 - [4席検証結果とFirebase移行設計](docs/FOUR_SEAT_PHASE3_2026-10-25.md)。**Firebaseへはまだ接続していない**ため、手札の非公開を保証するRules/Authを先にテストする。
 
+## Phase 8｜退出・部屋作り直し（2026-10-25）
+
+- [実Firebase Emulator＋4画面Chromiumで検証成功](https://github.com/8mahi8/trump-collection/actions/runs/40173923212)：**Node64/64合格**、3ゲームの対戦完走後にホスト退出／友達退出を検証し、全員が作成／参加画面に戻った。
+- Firebase RTDBにはホストのみが書ける`closed`、本人だけが出せる`leaveRequests`を追加。終了後の対局コマンドと新規参加を拒否。
+- Google Sites単体HTML開発版にも「退出・部屋を作り直す」ボタンを反映（**Firebase本番未接続**）。[Phase 8仕様と検証記録](docs/ONLINE_EXIT_PHASE8_2026-10-25.md)。
+- ページ更新後の復元は**本人の希望で実装しない**。突然のブラウザ終了時の退出通知は保証されないため、明示的な退出操作を主軸とする。
+
 ## Phase 7｜ホスト通信断の検知・安全な自動復帰（2026-10-25）
 
 - ホストがRTDBに書く**UID検証付きheartbeat**を追加。通信が約15秒間止まればゲスト側は操作を停止し、通信復旧後に元の席で自動再開（**同じページ・同じ認証UIDが維持された場合のみ**）。
