@@ -140,6 +140,11 @@ try{
   let memory=sites.frameLocator('#play');
   await memory.locator('#create').click();
   await memory.locator('#status').getByText('通信接続OK',{exact:false}).waitFor({timeout:12000});
+  await memory.locator('#chatToggle').click();
+  await memory.locator('#chatInput').fill('ホストからこんにちは');
+  await memory.locator('#chatSend').click();
+  assert.ok(memoryPackets.some(m=>m?.kind==='chat'&&m.text==='ホストからこんにちは'),
+    'Supabase Memory Match chat must use existing room Broadcast');
   await sites.locator('#back').click();
   await sites.locator('#viewer:not(.open)').waitFor({state:'attached',timeout:12000});
   expectedAcks++;
@@ -170,6 +175,13 @@ try{
   await memory.locator('#status').getByText('通信接続OK',{exact:false}).waitFor({timeout:12000});
   const remote=memorySockets.at(-1);
   assert.match(remote?.topic||'',/trump-memory-friends-v1-54321$/);
+  await memory.locator('#chatToggle').click();
+  remote.socket.send(JSON.stringify({topic:remote.topic,event:'broadcast',
+    payload:{event:'trump-memory-event-v1',
+      payload:{kind:'chat',protocol:1,roomCode:'54321',actor:'mock-host',
+        id:'mock-host-1',text:'<img src=x onerror=alert(1)>'}}}));
+  await memory.locator('#chatList').getByText('<img src=x onerror=alert(1)>',{exact:false}).waitFor({timeout:12000});
+  assert.equal(await memory.locator('#chatList img').count(),0,'remote chat text must not be HTML');
   remote.socket.send(JSON.stringify({topic:remote.topic,event:'broadcast',
     payload:{event:'trump-memory-event-v1',
       payload:{kind:'room_closed',protocol:1,roomCode:'54321',actor:'mock-host'}}}));
