@@ -171,6 +171,17 @@ try{
    if(await p.game.locator('body').evaluate(rev=>window.TCFourRemote?.view?.revision>rev,before))return;
    await new Promise(resolve=>setTimeout(resolve,250));
   }
+  const states=await Promise.all(players.map(async(p,i)=>{
+   try{return {player:i,...await p.game.locator('body').evaluate(()=>({
+    revision:window.TCFourRemote?.view?.revision,
+    phase:window.TCFourRemote?.phase,
+    seat:window.TCFourRemote?.seat,
+    status:window.TCFourRemote?.status,
+    privateRevision:window.TCFourRemote?.privateView?.revision,
+    notice:document.getElementById('notice')?.textContent
+   }))};}catch(e){return {player:i,error:String(e)}}
+  }));
+  console.error('FIRST MOVE SYNC DEBUG',{game:requestedGame,before,turn,states});
   throw Error('MOVE_NOT_SYNCED_TO_EVERY_SEAT '+requestedGame);
  }));
  // Assert screen has no horizontal overflow at school iPad landscape viewport.
