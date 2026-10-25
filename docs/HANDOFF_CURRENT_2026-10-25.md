@@ -7,7 +7,7 @@
 
 - [実装・試験の詳細](PHASE19_MEMORY_EXIT_GOOGLE_SITES_2026-10-25.md)。神経衰弱も「← ゲーム一覧」による親子の`tc:leave-room`／`tc:leave-ack`を使用する。画面内に「退出・部屋を作り直す」を追加。
 - 退出側がオンライン接続済みなら**Supabase Broadcastの公開チャンネルに対し、ホストは`room_closed`、ゲストは`player_left`をベストエフォート送信**して短時間後に接続を閉じる。残った側は終了を受信すると対戦を閉じて新部屋を作成可能な画面に戻す。急な回線断で確実に届くという保証はない。
-- `dev/verify-collection-launcher.mjs`で**Playwright内の模擬WebSocket**を使い、Google Sites風二重iframeのChrome／WebKitで退出と相手への通知を検証。本番Supabaseにはテスト用接続を行わない。
+- `dev/verify-collection-launcher.mjs`で**Playwright内の模擬WebSocket**を使い、Google Sites風二重iframeのChromium／WebKitで退出通知を送る／ゲストがホスト終了通知を受信する試験を実施。**[CI #40201651323](https://github.com/8mahi8/trump-collection/actions/runs/40201651323)成功（Node93/93、ブラウザ両エンジン、Firebase4端末＋既存Rulesエミュレーター回帰すべて成功）**。本番Supabaseにはテスト用接続を行わない。
 - Firebase3ゲームの既存4端末エミュレーターを含む回帰CIは継続。**本番Firebase・Supabase設定・Google Sites版・mainは未変更。**
 - 最優先は既存4ゲームのプレイ体験・安定性。無理なセキュリティ強化をせず、本番Firebaseと既存ゲームのルール期限を次の大きな公開ゲートとして扱う。
 
@@ -64,7 +64,7 @@
 - GitHub: https://github.com/8mahi8/trump-collection
 - 開発ブランチ: `dev/quality-and-ui-v1-5-20261024`
 - Draft PR: https://github.com/8mahi8/trump-collection/pull/1
-- 最新確認済み GitHub Actions 成功: https://github.com/8mahi8/trump-collection/actions/runs/40200557612 （**Node 93/93件合格**）。CIは Firebase Local Emulator と Chromium **および WebKit** を使用。本番Firebase／学校iPad実機での合格ではない。
+- 最新確認済み GitHub Actions 成功: https://github.com/8mahi8/trump-collection/actions/runs/40201651323 （**Node 93/93件合格**）。CIは Firebase Local Emulator と Chromium **および WebKit** を使用。本番Firebase／学校iPad実機での合格ではない。
 - `main/index.html` は公開COM版 **v1.4.0**、開発ブランチの`index.html`はCOM版 **v1.5.5**。本人承認なしに公開・学校Google Sites版を上書きしない。
 
 ## ゲーム仕様・完成状況
