@@ -9,11 +9,12 @@
 - Phase 2の別端末オンライン試作URL（同様にmainの別ファイルのみ追加）: https://8mahi8.github.io/trump-collection/preview-online-memory-remote.html
 - 詳細な通信構成・テスト・限界: [ONLINE_REMOTE_PHASE2_2026-10-25.md](docs/ONLINE_REMOTE_PHASE2_2026-10-25.md)
 - **4人用の最新コード・テスト・Firebase移行方針**: [FOUR_SEAT_PHASE3_2026-10-25.md](docs/FOUR_SEAT_PHASE3_2026-10-25.md)。再実行 `python dev/verify_four_seat_browser.py`。
-- **Firebase Auth・RTDB実エミュレーター検証（Phase 5）**: [firebase/README.md](firebase/README.md)。[GitHub Actions成功](https://github.com/8mahi8/trump-collection/actions/runs/40158460489)。Node52/52合格、Firebase Local Emulator SuiteのAuth+RTDBで4人対戦3ゲーム完走（ババ抜き28手・七並べ52手・大富豪97手）。**本番Firebaseと学校Safariは未検証**。
+- **Phase 6：4人オンラインGUI＋単体HTML＋Chromium4画面検証**：[docs/ONLINE_UI_PHASE6_2026-10-25.md](docs/ONLINE_UI_PHASE6_2026-10-25.md)。[成功CI](https://github.com/8mahi8/trump-collection/actions/runs/40166268484)、Node56/56合格、ババ抜き・七並べ・大富豪の4画面で入室・READY・開始・1手同期成功。独立したHTMLでGoogle Sites貼付けに向けた単体構成を生成済み。**Firebase本番設定は未実施、学校版は未変更。**
+- **Firebase Auth・RTDB実エミュレーター検証（Phase 5）**: [firebase/README.md](firebase/README.md)。[GitHub Actions成功](https://github.com/8mahi8/trump-collection/actions/runs/40158460489)。Node56/56合格、Firebase Local Emulator SuiteのAuth+RTDBで4人対戦3ゲーム完走（ババ抜き28手・七並べ52手・大富豪97手）。**本番Firebaseと学校Safariは未検証**。
 
 
 - 開発ブランチの版: **v1.5.5**（main の公開版は v1.4.0）（`index.html` 内の `TC_VERSION` が版の正本。メニュー下部にも表示）
-- 状態（2026-10-25更新）: v1.5.5のCOM4ゲームは試遊済み。**神経衰弱2人版は本人がPCとスマホの別端末でSupabase実通信試遊に成功**。**4人版（ババ抜き・七並べ・大富豪）はローカル4画面の通し検証成功、Firebase実通信は未接続**。
+- 状態（2026-10-25更新）: v1.5.5のCOM4ゲームは試遊済み。**神経衰弱2人版は本人がPCとスマホの別端末でSupabase実通信試遊に成功**。**4人版（ババ抜き・七並べ・大富豪）はFirebase実エミュレーターでロジック全試合完走・Chromium4画面のUI同期検証成功。本番Firebaseは未接続**。
 - **今後の計画の正本**: [オンライン・カードゲーム拡張ロードマップ](docs/ROADMAP_ONLINE_AND_CARD_GAMES_2026-10-25.md)。この方針はユーザーが2026-10-25に明示した。
 
 ## このプロジェクトの前提（変えないこと）
@@ -22,7 +23,7 @@
 - インストール・ログイン不要。横向き・タッチ操作中心。1ゲーム短時間で終わる。
 - **既存カードゲームをここへ継続追加**する。現在の4つで完結しない。既存4ゲームも最終的に友達同士のオンライン対戦へ対応する。
 - オンラインの操作は従来の開発ゲームと同様に「ルーム番号を作る→友達が参加→開始」。ゲーム選択と人数（2人／4人）はルーム内で共通化。
-- **現段階**: 神経衰弱はSupabase実端末試遊済み。4人用Firebase Auth/RTDBアダプター、プライベート・パブリック分離とホスト/ゲスト操作制御を実装してモック試験済み。**実Firebaseエミュレーター上のRules検証と本番接続は未完了**。学校Safari・Google Sitesは未検証。通常COM版・Google Sites版は変更しない。
+- **現段階**: 神経衰弱はSupabase実端末試遊済み。4人用Firebase Auth/RTDBアダプター、プライベート・パブリック分離とホスト/ゲスト操作制御を実装してモック試験済み。**Firebase実エミュレーター上のRules検証は成功、本番Firebaseへの実接続は未完了**。学校Safari・Google Sitesは未検証。通常COM版・Google Sites版は変更しない。
 - 正式な配布経路は **Google Sites への単体HTML貼り付け**（`dist/trump-collection.html` の中身を貼る）。GitHub Pages は試遊用。
 - 素材はすべて自作のみ。既存ゲームの名称・デザインの流用は不可（例: UNO は名称・デザインが使えないため不採用という判断済み）。
 
@@ -39,7 +40,7 @@
 |---|---|
 | `index.html` | UI のすべて（CSS・画面描画・操作・BOT進行・アニメーション）。`games.mjs` を `import * as G` で読み込む |
 | `games.mjs` | ゲームロジックの正本。状態生成・合法手の列挙・手の適用・COM思考。DOM に一切触れない純粋なモジュールで、Node でテスト可能。乱数は生成関数の引数（rng）で注入する設計 |
-| `tests/games.test.mjs` | ロジックの単体テスト（8件）。`node --test "tests/*.mjs"`（既存29件＋4席共通7件＝計52件） |
+| `tests/games.test.mjs` | ロジックの単体テスト（8件）。`node --test "tests/*.mjs"`（既存29件＋4席共通7件＝計56件） |
 | `build-embed.mjs` | `games.mjs` を `index.html` にインライン化し、`const G = {...}` の shim を生成して `dist/trump-collection.html` を出力する |
 | `dist/trump-collection.html` | Sites 貼り付け用の単体ファイル。**直接編集しない**（`index.html` と `games.mjs` から生成する） |
 | `dev/verify.mjs` | 検証パイプライン（後述）。前任環境のツールを同梱したもの |
@@ -149,3 +150,10 @@ jobs:
 - 旧Mockだけでなく、Firebase EmulatorのRules本体を使って匿名Auth＋RTDB4人対戦。実際に他人のprivate/commandsを拒否し、3ゲームを最後まで実行・再戦に成功。
 - **席の正本は`privateView.seat`**（UIDやクライアントの参加順から推測しない）。REST条件付きコマンドのため本人だけが自分の`commands/$uid`を読めるRuleに変更。他人のキューの読取は拒否。
 - 既存の学校版・main / v1.5.5は変えない。Firebase本番への反映は禁止、専用実接続試作と学校検証は後続工程。
+
+## 2026-10-25｜Phase 6最新状況
+
+- 対戦用のHTML: `online/four-seat-remote.html`（Firebase認証・通信付きの研究版）と`dist/trump-collection-online-lab.html`（外部JS/CDNを必要としない54KBの単体HTML）。開発用で実Firebase設定なし。
+- 検証: `tests/online-html-build.test.mjs`・`dev/verify-online-browser.mjs`。GitHub ActionsのChrome4画面×3ゲーム同期成功。Node56/56・Firebase実エミュレーター3ゲーム完走も確認。正式CI: https://github.com/8mahi8/trump-collection/actions/runs/40166268484
+- 残る重要問題: **ページ更新後の元の席への復帰、ホストの完全復元、ルーム掃除、実Firebase本番設定／権限確認、学校Safari／Google Sites実機**。
+- ユーザー本人へ途中テストを何度も頼まない。通常COM版v1.5.5・main v1.4.0・Google Sites版は保護。
