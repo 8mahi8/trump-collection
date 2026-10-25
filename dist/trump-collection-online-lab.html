@@ -1148,7 +1148,16 @@ function render(){
    }
    board.appendChild(line);
   }
-  actions.appendChild(button('パス',()=>send('pass'),!usable||!acting));
+  // Like COM mode, selecting a card must never send it immediately.
+  // Requiring an explicit confirmation avoids accidental touches on iPad.
+  const pick=[...selected][0];
+  const canConfirm=selected.size===1&&(privateState?.legalIds||[]).includes(pick);
+  actions.appendChild(button('選択カードを出す',()=>{
+   const id=[...selected][0];selected.clear();
+   send('play',{id});
+  },!usable||!acting||!canConfirm));
+  appendText(actions,canConfirm?' 選択したカードを確定できます':' 出したいカードを選んでね','mini');
+  actions.appendChild(button('パス',()=>{selected.clear();send('pass');},!usable||!acting));
  }else if(game==='daifugo'){
   appendText(board,'場：'+(v.field?.cards?.map(cardText).join(' / ')||'なし')+(v.revolution?' ｜革命中！':''),'');
   actions.appendChild(button('パス',()=>send('pass'),!usable||!acting||!v.field));
@@ -1164,8 +1173,11 @@ function render(){
   const id=uiCardId(c),canPlay=usable&&acting&&
     (game==='shichinarabe'&&(privateState?.legalIds||[]).includes(id)||game==='daifugo');
   const b=card(c,canPlay,canPlay?()=>{
-   if(game==='shichinarabe')send('play',{id});
-   else {selected.has(id)?selected.delete(id):selected.add(id);lastRender='';render();}
+   if(game==='shichinarabe'){
+    // Seven: a single selected card, confirm with the action button.
+    selected.has(id)?selected.clear():(selected.clear(),selected.add(id));
+    lastRender='';render();
+   }else {selected.has(id)?selected.delete(id):selected.add(id);lastRender='';render();}
   }:null);
   if(selected.has(id))b.classList.add('selected');
   row.appendChild(b);
