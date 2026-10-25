@@ -54,7 +54,8 @@
             "$command": {
               ".write": "auth !== null && ((auth.uid === $uid && root.child('trumpRoomsV1/' + $room + '/seats/' + $uid).val() === true && !data.exists() && newData.exists() && newData.child('actor').val() === $uid) || (auth.uid === root.child('trumpRoomsV1/' + $room + '/meta/hostUid').val() && !newData.exists()))",
               ".validate": "newData.hasChildren(['actor','actionId','type','protocol','roomCode','round','expectedRevision','game']) && newData.child('protocol').val() === 2 && newData.child('roomCode').val() === $room && newData.child('actor').val() === $uid && newData.child('actionId').isString() && newData.child('type').isString() && newData.child('expectedRevision').isNumber()"
-            }
+            },
+            ".read": "auth !== null && auth.uid === $uid && root.child('trumpRoomsV1/' + $room + '/seats/' + $uid).val() === true"
           }
         },
         "receipts": {
