@@ -79,6 +79,17 @@ test('ACTUAL Firebase Emulator: UID-private hands and three four-player games', 
   await active[3].store.requestSeat(room);
   await suite.host.tick();
   assert.equal(suite.host.members.length,4);
+  // Firebase host processes joined UIDs in sorted order; signup order is NOT seat order.
+  // Resolve the actual seat from each signed-in player's private snapshot.
+  const clientsBySeat=Array(4);
+  for(const client of suite.guests){
+   const seen=await client.poll();
+   assert.equal(seen.status,'ready');
+   assert.equal(clientsBySeat[seen.privateView.seat],undefined,'each seat must be unique');
+   clientsBySeat[seen.privateView.seat]=client;
+  }
+  assert.ok(clientsBySeat.every(Boolean));
+  suite.guests=clientsBySeat;
   assert.equal((await suite.guests[1].poll()).status,'ready');
   for(let guestIndex=1;guestIndex<4;guestIndex++){
    const strangerId=active[(guestIndex%3)+1].uid;
