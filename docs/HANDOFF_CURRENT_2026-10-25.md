@@ -11,6 +11,7 @@
 - `online/firebase-room-store.mjs`の`createFirebaseOpenRootTrialIdentity`はページごとにランダムな非永続UIDを発行、RTDBへAuthクエリーを付けず、匿名Firebase Auth／APIキー／新しいルール導入を要さない。**アカウント認証はしていない**。`online/four-seat-remote.html`は明示フラグ`TRUMP_FIREBASE_OPEN_ROOT_TRIAL`があり既知学校DBの時だけ有効。ブラウザ画面に公開DBリスクの注意書きを表示する。
 - `dev/build-configured-sites.mjs`に`buildOpenRootTrialSitesHtml`とCLI`--open-root-trial --acknowledge-public-db`を追加。元の厳格Rules前提の通常配布処理を削除しない。固定の試遊HTMLもソース再ビルドと完全一致することをNodeで検証。`firebase.open-trial-emulator.json`で本人報告のRoot許可ルールを使用し、**Chromium/WebKit双方で Google Sites風二重iframe×4端末の入室→READY→開始→チャット→退出に成功**。本番Firebaseへは一切接続していない。
 - 仕様・公開注意事項とテスト：[Phase25記録](PHASE25_OPEN_ROOT_FRIEND_TRIAL_2026-10-26.md)。
+- **[CI #40210764826 全工程合格](https://github.com/8mahi8/trump-collection/actions/runs/40210764826)：Node106/106、Chromium/WebKitで認証なし公開Root試遊・従来の認証あり方式・神経衰弱2人・旧ルール共存テストすべて合格。** 実本番・学校iPadは未接続。
 - **重要な限界**：現行のRoot公開ルールでは、アプリの画面で隠れた他人の手札やチャットも外部のRTDB APIから読み書き可能で、ルーム番号はアクセス制御にならない。個人情報をチャットへ入力しないこと。**11月8日0時JSTのルール失効には試遊モードでも別途対応が必要**。新モードは正式に非公開手札を保証するものではない。
 - ユーザーの出番は実際に学校Google SitesへHTML全文を貼り付けるタイミングから。Firebase本番ルール・匿名Authの変更、既存ゲーム・学校公開版・mainの改変は行っていない。
 
