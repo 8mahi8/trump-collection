@@ -65,7 +65,9 @@ function choose(game){
  q('selection').textContent=GAME_NAMES[game];
  q('hint').textContent=game==='shinkei'
   ?'友達対戦は2人用Supabase試作。PC・スマホで試遊実績あり（学校Safariは未確認）'
-  :'友達対戦は4人用Firebase開発版。実Firebase本番への接続は未設定です';
+  :window.TRUMP_FIREBASE_OPEN_ROOT_TRIAL===true
+   ?'試遊用：現在のFirebaseは誰でも手札・チャットを読める公開設定です。個人情報は入力しないでください'
+   :'友達対戦は4人用Firebase開発版。実Firebase本番への接続は未設定です';
 }
 function configureFriendsGame(html,game){
  // In a Google Sites iframe, the nested srcdoc may have an opaque origin.
@@ -73,10 +75,14 @@ function configureFriendsGame(html,game){
  // frame.contentDocument from the parent after load.
  const config=window.TRUMP_FIREBASE_CONFIG;
  let setup='window.TRUMP_INITIAL_GAME='+JSON.stringify(game)+';';
- if(config&&config.apiKey&&config.databaseURL){
+ const openRootTrial=window.TRUMP_FIREBASE_OPEN_ROOT_TRIAL===true;
+ if(config&&config.databaseURL&&(config.apiKey||openRootTrial)){
   // The Web API key is public; admin credentials must NEVER be embedded here.
-  const json=JSON.stringify({projectId:config.projectId,apiKey:config.apiKey,databaseURL:config.databaseURL}).replace(/</g,'\\u003c');
+  const json=JSON.stringify(openRootTrial?
+   {projectId:config.projectId,databaseURL:config.databaseURL}:
+   {projectId:config.projectId,apiKey:config.apiKey,databaseURL:config.databaseURL}).replace(/</g,'\\u003c');
   setup+='window.TRUMP_FIREBASE_CONFIG='+json+';';
+  if(openRootTrial)setup+='window.TRUMP_FIREBASE_OPEN_ROOT_TRIAL=true;';
  }
  return html.replace('<script>',()=>'<script>'+setup+'</'+'script><script>');
 }
