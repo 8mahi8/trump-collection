@@ -96,6 +96,8 @@ test('ACTUAL Firebase Emulator: UID-private hands and three four-player games', 
   assert.ok([401,403].includes(otherQueue.status));
   for(let p=0;p<4;p++){
    const client=suite.guests[p];
+   // Every action must be built from the latest authoritative revision.
+   assert.equal((await client.poll()).status,'ready');
    let id;
    try{id=await client.act('ready',{ready:true});}
    catch(e){
