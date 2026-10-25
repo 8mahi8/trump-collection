@@ -22,12 +22,12 @@ select,input{background:#fafff5;color:#223128}input{max-width:140px}
 @media (max-height:500px){.card{height:50px;min-width:40px}main{padding:5px}.panel{padding:6px;margin:4px 0}h1{font-size:16px}}
 </style></head><body><main>
 <h1>🃏 トランプコレクション｜4人オンライン研究版</h1>
-<small>開発用のFirebase4人対戦ページ。<strong>Firebase接続先が未設定の間は部屋を作成できません。</strong> 学校のGoogle Sites版・公開版は変更せず、実機試験前の開発用として使います。ページ更新による席の復元はまだ未対応です。</small>
+<small>開発用のFirebase4人対戦ページ。<strong>Firebase接続先が未設定の間は部屋を作成できません。</strong> 学校のGoogle Sites版・公開版は変更せず、実機試験前の開発用として使います。ページを再読み込みした場合は、新しい部屋を作り直してください。</small>
 <div class="panel"><select id="game"><option value="babanuki">ババ抜き</option><option value="shichinarabe">七並べ</option><option value="daifugo">大富豪</option></select>
 <button id="create">部屋を作る</button><input id="code" placeholder="5桁番号" maxlength="5" inputmode="numeric"><button id="join">参加</button>
 <div id="status" role="status">ゲームを選んで部屋作成、友達は5桁の番号で参加</div></div>
 <div id="lobby" class="panel" hidden><div id="notice" role="status"></div><div>部屋 <span id="roomCode"></span> <span id="role"></span> <span id="roster"></span></div>
-<button id="ready">準備する</button><button id="start">全員準備OK → 開始</button><button id="rematch">再戦</button></div>
+<button id="ready">準備する</button><button id="start">全員準備OK → 開始</button><button id="rematch">再戦</button><button id="leave">退出・部屋を作り直す</button></div>
 <div id="match" class="panel" hidden><div id="state" class="mini"></div><div id="board"></div><div id="hand"></div><div id="actions"></div></div>
 </main><script type="module">
 import {createFirebaseAnonymousAuth,createFirebaseRoomStore} from './firebase-room-store.mjs';
@@ -58,6 +58,23 @@ function clear(){
  mySeat=-1;isHost=false;busy=false;pendingAction='';failCount=0;selected.clear();lastRender='';
  $('lobby').hidden=true;$('match').hidden=true;
  $('create').disabled=false;$('join').disabled=false;$('game').disabled=false;
+}
+async function leaveRoom(){
+ const epoch=session, runner=guestRunner, owner=hostRunner, previousHost=isHost;
+ if(!runner){clear();return;}
+ $('leave').disabled=true;
+ try{
+  if(previousHost)await owner.closeRoom('host_left');
+  else await runner.leaveRoom();
+  if(epoch!==session)return;
+  clear();
+  status('部屋を退出しました。新しい部屋を作って遊べます');
+ }catch(err){
+  if(epoch!==session)return;
+  // Local exit always remains possible even with network failure.
+  clear();
+  status('部屋から離れました（終了通知は送れませんでした）：'+describe(err));
+ }
 }
 function shouldRun(epoch){return epoch===session&&!!guestRunner;}
 async function connectAuth(){
@@ -111,6 +128,7 @@ async function startRoom(asHost){
   if(epoch!==session)return;
   $('game').value=game;$('game').disabled=true;
   $('lobby').hidden=false;
+  $('create').disabled=$('join').disabled=true;
   busy=false;
   status(asHost?'ルーム作成成功。友達の参加を待っています':'入室申請中。ホストの承認を待っています');
   schedule(epoch,10);
@@ -141,10 +159,23 @@ async function poll(epoch){
  if(!shouldRun(epoch)||pollWorking)return;
  pollWorking=true;
  try{
-  if(isHost)await hostRunner.tick();
+  if(isHost){
+   const hostResult=await hostRunner.tick();
+   if(hostResult.closed){
+    clear();status('参加者が退出したため対戦は終了しました。新しい部屋を作れます');
+    return;
+   }
+  }
   if(!shouldRun(epoch))return;
   const result=await guestRunner.poll();
   if(!shouldRun(epoch))return;
+  if(result.status==='room_closed'){
+   clear();
+   status(result.reason==='player_left'?
+    '参加者が退出したので対戦を終了しました。部屋を作り直せます':
+    'ホストが部屋を終了しました。新しい部屋を作れます');
+   return;
+  }
   if(result.status==='ready'){
    publicState=result.publicView;privateState=result.privateView;
    mySeat=privateState.seat;
@@ -285,9 +316,10 @@ $('join').onclick=()=>startRoom(false);
 $('ready').onclick=()=>send('ready',{ready:!publicState.seats[mySeat].ready});
 $('start').onclick=()=>send('start');
 $('rematch').onclick=()=>{selected.clear();send('rematch');};
+$('leave').onclick=()=>leaveRoom();
 window.addEventListener('pagehide',()=>{session++;clearTimeout(tickTimer);});
 window.TCFourRemote={get phase(){return publicState?.phase},get view(){return publicState},
  get privateView(){return privateState},get seat(){return mySeat},get role(){return stateName()},
  get status(){return $('status').textContent},create:()=>startRoom(true),join:()=>startRoom(false),
- command:send,stop:clear};
+ command:send,leave:leaveRoom,stop:clear};
 </script></body></html>
