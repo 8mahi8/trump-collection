@@ -1,5 +1,12 @@
 # トランプコレクション 🃏
 
+## Phase 13｜既存Firebase向けの接続先チェックへ変更（2026-10-25）
+
+- 新規プロジェクト前提の制限を撤回し、現在の学校ゲームで利用中の `mygame-df915` にも対応。`online/firebase-dedicated-guard.mjs` の `validateFirebaseConfig()` が、正しいプロジェクトとデフォルトRealtime Databaseのペアだけを受け付ける（その他のURLや不正な設定は拒否）。
+- 学校用の既存Firebaseに**実際に接続・書込み・Rules配備したわけではない**。現行Security Rulesがまだ読めていないため、本番での非公開手札の安全性は未確認。
+- [実際の共有ルールを確認する手順](firebase/SHARED_DATABASE_RULES.md)。ローカル設定検査、単一HTML、4ゲーム統合版の起動テストも更新。
+
+
 > 開発を引き継ぐ場合は **[HANDOFF.md](HANDOFF.md)** を最初に読んでください（仕様・制約・検証手順の正本）。開発ブランチの版は v1.5.5（main の公開版は v1.4.0）。
 
 学校の iPad でも遊べる、定番トランプゲームを集めるブラウザゲーム集です。
