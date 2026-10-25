@@ -51,6 +51,7 @@ try{
  assert.ok(await page.locator('select#game').count());
  assert.ok(await page.locator('button#ready').count());
  assert.ok(await page.locator('button#rematch').count());
+ assert.ok(await page.locator('button#leave').count());
  if(!emulator){
   await page.locator('#create').click();
   await page.waitForFunction(()=>document.getElementById('status').textContent.includes('Firebase接続先が未設定'));
@@ -119,6 +120,20 @@ try{
       ()=>TCFourRemote.status.includes('通信が復旧したよ'),null,{timeout:25000});
     console.log('FIREBASE EMULATOR BROWSER PASS: host network interruption freezes guests then resumes');
    }
+   // A friend or host quits; the remaining pages return to the simple room menu.
+   const quitter=game==='babanuki'?owner:participants[1];
+   await quitter.locator('#leave').click();
+   await quitter.waitForFunction(
+     ()=>document.getElementById('lobby').hidden&&
+          !document.getElementById('create').disabled,null,{timeout:20000});
+   const others=participants.filter(p=>p!==quitter);
+   await Promise.all(others.map(p=>p.waitForFunction(
+     ()=>document.getElementById('lobby').hidden&&
+          document.getElementById('status').textContent.includes('部屋'),
+     null,{timeout:25000})));
+   for(const p of others)assert.equal(await p.locator('#create').isDisabled(),false);
+   console.log('FIREBASE EMULATOR BROWSER PASS:',game,
+     'friend/host leaves, all browsers return to create/join menu');
   }
  }
  if(errors.length)throw Error('Uncaught browser errors:\n'+errors.join('\n'));
