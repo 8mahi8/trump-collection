@@ -25,7 +25,12 @@ try{
   await page.waitForFunction(()=>window.TCCollectionLab?.openMode==='com');
   const frame=page.frameLocator('#play');
   await frame.locator('#gameScreen:not(.hidden)').waitFor({timeout:12000});
-  assert.equal(await frame.locator('#gameTitle').innerText(),names[i]);
+  // Memory Match and Daifugo correctly show their original settings modal.
+  if(games[i]==='shinkei'||games[i]==='daifugo'){
+   await frame.locator('#mStart').waitFor({timeout:12000});
+   await frame.locator('#mStart').click();
+  }
+  await frame.locator('#gameTitle').getByText(names[i],{exact:true}).waitFor({timeout:12000});
   await page.locator('#back').click();
   await page.waitForFunction(()=>window.TCCollectionLab?.openMode===null);
  }
