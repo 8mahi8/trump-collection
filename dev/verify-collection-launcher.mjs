@@ -83,7 +83,7 @@ try{
    await inner.locator('#create').click();
    await inner.locator('#status').getByText('Firebase接続先が未設定',{exact:false}).waitFor({timeout:12000});
    await sites.locator('#back').click();
-   await sites.locator('#viewer:not(.open)').waitFor({timeout:12000});
+   await sites.locator('#viewer:not(.open)').waitFor({state:'attached',timeout:12000});
   }
   await sites.locator('[data-game="shichinarabe"]').click();
   await sites.locator('#com').click();
