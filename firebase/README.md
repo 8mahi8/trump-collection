@@ -48,6 +48,13 @@ CIにJava 21、Node 22を導入済み。ローカルのこの作業環境はCLI�
 
 本番では、独立Firebaseプロジェクト／DBを使うか、現在のRulesを安全に保ったままトランプ専用の子パスだけを合成して必要なテストをすること。他ゲームの本番データ、Rulesは変更していない。
 
+## Phase 11：通信頻度と席GETを削減（2026-10-25）
+
+- `online/firebase-room-controller.mjs`：RTDBで1回確認した自分の席は同一ルーム内でキャッシュする。入室前は引き続きチェックし、終了時には破棄する。認証ルール付きのpublic/private/heartbeat要求は継続。
+- `online/firebase-poll-policy.mjs`：待機や終了時は低頻度、対戦中のホストと手番は従来650ms、通信失敗は増加する再試行間隔を使用。
+- [GitHub Actions 79/79成功](https://github.com/8mahi8/trump-collection/actions/runs/40178100590)：実Firebase Emulatorで4人対戦3種＋4画面Chromiumの操作同期・切断復帰・退出を確認。
+- [Phase 11詳細](../docs/ONLINE_TRAFFIC_PHASE11_2026-10-25.md)。**Firebase本番での実通信量や費用は未測定**。
+
 ## Phase 10：他ゲームを巻き込まないFirebase本番設定の準備（2026-10-25）
 
 - [専用Sparkプロジェクトの作成・検証手順](DEDICATED_SPARK_SETUP.md)。Firebase公式料金の無料制限（100同時接続、1GB保存、10GB/月DL）と既存Rules一括上書きの危険を整理した。
