@@ -48,6 +48,13 @@ CIにJava 21、Node 22を導入済み。ローカルのこの作業環境はCLI�
 
 本番では、独立Firebaseプロジェクト／DBを使うか、現在のRulesを安全に保ったままトランプ専用の子パスだけを合成して必要なテストをすること。他ゲームの本番データ、Rulesは変更していない。
 
+## Phase 12：既存Firebaseのルールを保持した共有運用（2026-10-25）
+
+- [既存Firebaseを再利用するための作業手順](SHARED_DATABASE_RULES.md)。専用Sparkを新規作成することを前提にしない。
+- `dev/merge-existing-firebase-rules.mjs`：既存のRTDB Security Rulesへトランプ専用`trumpRoomsV1`だけ追加するオフライン検査。ルートの権限許可、ワイルドカード、同名パスが存在したら停止。既存ルールの他パスは一切編集しない。
+- [成功Actions](https://github.com/8mahi8/trump-collection/actions/runs/40180826430)：Node**84/84**、**合成した架空の既存ルール**でAuth+RTDB Emulatorの既存ゲーム読み書き・トランプの手札隔離・3種4人対戦完走を確認。
+- **既存ゲームの現在適用中の本番Rulesは未取得**。GitHubにある旧ゲームテスト用Rulesや合成サンプルは代わりにならない。他ゲームのRules・Firebase本番・学校Sites版は未変更。
+
 ## Phase 11：通信頻度と席GETを削減（2026-10-25）
 
 - `online/firebase-room-controller.mjs`：RTDBで1回確認した自分の席は同一ルーム内でキャッシュする。入室前は引き続きチェックし、終了時には破棄する。認証ルール付きのpublic/private/heartbeat要求は継続。
