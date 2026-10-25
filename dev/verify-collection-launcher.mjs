@@ -70,6 +70,20 @@ try{
  // This must never silently launch Babanuki when Seven/Daifugo was selected.
  const sitesPage=await browser.newPage({viewport:{width:800,height:450}});
  sitesPage.on('pageerror',err=>errors.push('Google Sites sandbox: '+err.message));
+ // Intercept the Memory Match Supabase socket in Playwright: no production
+ // Supabase connection or room traffic is allowed in these browser tests.
+ const memoryPackets=[];
+ await sitesPage.routeWebSocket(/\\/realtime\\/v1\\/websocket/,socket=>{
+  socket.onMessage(raw=>{
+   let packet;
+   try{packet=JSON.parse(raw);}catch{return;}
+   if(packet.event==='phx_join')
+    socket.send(JSON.stringify({topic:packet.topic,event:'phx_reply',ref:packet.ref,payload:{status:'ok'}}));
+   if(packet.event==='heartbeat')
+    socket.send(JSON.stringify({topic:'phoenix',event:'phx_reply',ref:packet.ref,payload:{status:'ok'}}));
+   if(packet.event==='broadcast')memoryPackets.push(packet.payload?.payload);
+  });
+ });
  try{
   await sitesPage.goto('http://127.0.0.1:8877/sites-wrapper');
   const sites=sitesPage.frameLocator('#sites-embed');
@@ -114,6 +128,34 @@ try{
   assert.equal(await sites.locator('#back').isDisabled(),false);
   assert.equal(await sites.locator('#choices').evaluate(()=>window.__returnAcks),expectedAcks,
    'Timed-out exit must not invent a child acknowledgement');
+
+  // Memory Match uses an independent Supabase Broadcast prototype.
+  // Verify that Back closes its socket *after* a best-effort departure packet.
+  await sites.locator('[data-game="shinkei"]').click();
+  await sites.locator('#friends').click();
+  let memory=sites.frameLocator('#play');
+  await memory.locator('#create').click();
+  await memory.locator('#status').getByText('通信接続OK',{exact:false}).waitFor({timeout:12000});
+  await sites.locator('#back').click();
+  await sites.locator('#viewer:not(.open)').waitFor({state:'attached',timeout:12000});
+  expectedAcks++;
+  assert.equal(await sites.locator('#choices').evaluate(()=>window.__returnAcks),expectedAcks);
+  assert.ok(memoryPackets.some(p=>p?.kind==='room_closed'),
+    'Supabase host must announce room closure before leaving the iframe');
+
+  // Guest exit should send a different packet without asking for auth.
+  await sites.locator('[data-game="shinkei"]').click();
+  await sites.locator('#friends').click();
+  memory=sites.frameLocator('#play');
+  await memory.locator('#code').fill('54321');
+  await memory.locator('#join').click();
+  await memory.locator('#status').getByText('通信接続OK',{exact:false}).waitFor({timeout:12000});
+  await sites.locator('#back').click();
+  await sites.locator('#viewer:not(.open)').waitFor({state:'attached',timeout:12000});
+  expectedAcks++;
+  assert.equal(await sites.locator('#choices').evaluate(()=>window.__returnAcks),expectedAcks);
+  assert.ok(memoryPackets.some(p=>p?.kind==='player_left'&&p.roomCode==='54321'),
+    'Supabase guest must announce departure before leaving the iframe');
 
   await sites.locator('[data-game="shichinarabe"]').click();
   await sites.locator('#com').click();
