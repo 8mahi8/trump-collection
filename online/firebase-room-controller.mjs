@@ -3,13 +3,23 @@
 // controlled poll loop. The host alone owns game rules and private hands.
 import {createFourSeatAuthority,makeFourSeatCommand} from './four-seat-authority.mjs';
 
-export function createFirebaseRoomHost({store,roomCode,game,seedSource,config}){
+export function createFirebaseRoomHost({store,roomCode,game,seedSource,config,
+  now=Date.now,heartbeatIntervalMs=2800}){
   if(!store||!store.uid)throw Error('AUTH_REQUIRED');
   const authority=createFourSeatAuthority({
     roomCode,game,hostId:store.uid,seedSource,config
   });
   const members=new Set([store.uid]);
   let initialized=false,working=false,publishedRevision=-1;
+  let heartbeatSequence=0,lastHeartbeatAt=-Infinity;
+  async function heartbeat(force=false){
+    if(!force&&now()-lastHeartbeatAt<heartbeatIntervalMs)return;
+    // Advance before the HTTP request, including on uncertain delivery;
+    // a retry must have a strictly greater sequence.
+    const seq=++heartbeatSequence;
+    await store.writeHeartbeat(roomCode,seq);
+    lastHeartbeatAt=now();
+  }
   async function publish(){
     await store.publishViews(roomCode,authority,[...members]);
     publishedRevision=authority.revision; // only commit after private+public both succeed
@@ -21,6 +31,7 @@ export function createFirebaseRoomHost({store,roomCode,game,seedSource,config}){
     await store.grantSeat(roomCode,store.uid);
     initialized=true;
     await publish();
+    await heartbeat(true);
   }
   async function tick(){
     if(!initialized)throw Error('ROOM_NOT_INITIALIZED');
@@ -73,6 +84,7 @@ export function createFirebaseRoomHost({store,roomCode,game,seedSource,config}){
           if(result.ok)accepted++;
         }
       }
+      await heartbeat();
       return {accepted,rejected,revision:authority.revision,phase:authority.phase};
     }finally{working=false;}
   }
@@ -80,10 +92,11 @@ export function createFirebaseRoomHost({store,roomCode,game,seedSource,config}){
     get authority(){return authority},get members(){return [...members]}};
 }
 
-export function createFirebaseRoomGuest({store,roomCode,game,actionIdSource}){
+export function createFirebaseRoomGuest({store,roomCode,game,actionIdSource,
+  now=Date.now,hostTimeoutMs=15000}){
   if(!store?.uid)throw Error('AUTH_REQUIRED');
   if(typeof actionIdSource!=='function')throw Error('ACTION_ID_SOURCE_REQUIRED');
-  let lastSnapshot=null;
+  let lastSnapshot=null,lastHostSeq=null,lastHostProgressAt=0;
   async function requestJoin(){
     const meta=await store.meta(roomCode);
     if(!meta||meta.game!==game||meta.protocol!==2)throw Error('ROOM_NOT_FOUND_OR_WRONG_GAME');
@@ -98,7 +111,21 @@ export function createFirebaseRoomGuest({store,roomCode,game,actionIdSource}){
   }
   async function poll(){
     if(await store.seat(roomCode)!==true){lastSnapshot=null;return {status:'waiting_for_host'};}
-    const [publicView,privateView]=await Promise.all([store.readPublic(roomCode),store.readPrivate(roomCode)]);
+    const [publicView,privateView,pulse]=await Promise.all([
+      store.readPublic(roomCode),store.readPrivate(roomCode),store.readHeartbeat(roomCode)]);
+    // Compare server-authenticated monotonically increasing heartbeat sequence,
+    // not client clocks (school iPads can have incorrect wall time).
+    if(!Number.isSafeInteger(pulse?.seq)||pulse.seq<=0){
+      lastSnapshot=null;
+      return {status:'host_unavailable'};
+    }
+    if(lastHostSeq===null||pulse.seq>lastHostSeq){
+      lastHostSeq=pulse.seq;
+      lastHostProgressAt=now();
+    }else if(pulse.seq<lastHostSeq||now()-lastHostProgressAt>=hostTimeoutMs){
+      lastSnapshot=null;
+      return {status:'host_unavailable'};
+    }
     if(!publicView||!privateView||publicView.roomCode!==roomCode||privateView.roomCode!==roomCode||
       publicView.game!==game||privateView.game!==game||
       publicView.revision!==privateView.revision||publicView.round!==privateView.round){
