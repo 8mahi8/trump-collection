@@ -105,6 +105,12 @@ export function createFirebaseRoomStore({databaseURL,auth,fetchImpl=globalThis.f
     ownJoinRequest:room=>request('GET',fullPath(room,'joinRequests',uid)),
     seat:room=>request('GET',fullPath(room,'seats',uid)),
     joinRequests:room=>request('GET',fullPath(room,'joinRequests')),
+    // Only the authenticated host may update this heartbeat. Readers must occupy a room seat.
+    readHeartbeat:room=>request('GET',fullPath(room,'heartbeat')),
+    writeHeartbeat:(room,seq)=>{
+      if(!Number.isSafeInteger(seq)||seq<=0)throw Error('INVALID_HEARTBEAT_SEQUENCE');
+      return request('PUT',fullPath(room,'heartbeat'),{seq});
+    },
     grantSeat:(room,memberUid)=>{check(room,memberUid);return request('PUT',fullPath(room,'seats',memberUid),true);},
     readPublic:room=>request('GET',fullPath(room,'public')),
     readPrivate:room=>request('GET',fullPath(room,'private',uid)),
