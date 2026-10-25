@@ -6,7 +6,7 @@ import {createFirebaseRoomHost,createFirebaseRoomGuest} from '../online/firebase
 const IDS=['hostPlayer001','guestPlayer001','guestPlayer002','guestPlayer003'];
 function fakeNetwork(){
  const state={meta:null,seats:{},joinRequests:{},public:null,private:{},commands:{},receipts:{},
-   failPublishOnce:false,publishCount:0,seatWrites:0};
+   failPublishOnce:false,publishCount:0,seatWrites:0,heartbeat:null,failHeartbeatOnce:false};
  const clone=v=>v===undefined?null:JSON.parse(JSON.stringify(v));
  const makeStore=uid=>({
   uid,
@@ -16,6 +16,13 @@ function fakeNetwork(){
   async joinRequests(){assert.equal(uid,state.meta.hostUid);return clone(state.joinRequests);},
   async grantSeat(room,who){assert.equal(uid,state.meta.hostUid);state.seats[who]=true;state.seatWrites++;},
   async seat(){return state.seats[uid]||null;},
+  async writeHeartbeat(room,seq){
+   assert.equal(uid,state.meta.hostUid);
+   if(state.failHeartbeatOnce){state.failHeartbeatOnce=false;throw Error('SIMULATED_HEARTBEAT_DROP');}
+   assert.ok(!state.heartbeat||seq>state.heartbeat.seq);
+   state.heartbeat={seq};
+  },
+  async readHeartbeat(){if(!state.seats[uid])throw Error('DENIED');return clone(state.heartbeat);},
   async publishViews(room,authority,members){
    assert.equal(uid,state.meta.hostUid);
    if(state.failPublishOnce){state.failPublishOnce=false;throw Error('SIMULATED_LOST_WRITE');}
@@ -172,4 +179,53 @@ test('Firebase 4人コントローラー: ロビー状態配信に失敗して�
  assert.equal(s.state.public.revision,1);
  assert.equal((await s.clients[1].poll()).status,'ready');
  assert.equal(s.state.seatWrites,2);
+});
+
+test('Firebase 4人コントローラー: ホスト停止中はゲスト操作を止め、復帰後に再開',async()=>{
+ const s=setup('shichinarabe',123);
+ let clock=100000;
+ // Recreate one authenticated guest with a deterministic monotonic clock.
+ const p=1,guest=createFirebaseRoomGuest({store:s.makeStore(IDS[p]),roomCode:'28371',
+  game:'shichinarabe',now:()=>clock,hostTimeoutMs:10000,
+  actionIdSource:()=>String(++clock).padStart(6,'0')});
+ await s.host.bootstrap();
+ await guest.requestJoin();
+ await s.host.tick();
+ assert.equal((await guest.poll()).status,'ready');
+ const first=guest.snapshot.publicView.revision;
+ clock+=9900;
+ assert.equal((await guest.poll()).status,'ready','just before deadline, last snapshot is still usable');
+ clock+=100;
+ assert.equal((await guest.poll()).status,'host_unavailable');
+ await assert.rejects(()=>guest.act('ready',{ready:true}),/NO_SYNCED_VIEW/);
+ // Same Firebase user and existing seat can resume without creating a new room.
+ await s.host.tick();
+ assert.equal((await guest.poll()).status,'ready');
+ assert.equal(guest.snapshot.publicView.revision,first);
+ const id=await guest.act('ready',{ready:true});
+ await s.host.tick();
+ assert.equal((await guest.receipt(id)).ok,true);
+});
+test('Firebase 4人コントローラー: heartbeatに問題が出たら古い状態では操作しない',async()=>{
+ const s=setup('babanuki',333);
+ await s.host.bootstrap();
+ await s.clients[1].requestJoin();
+ await s.host.tick();
+ assert.equal((await s.clients[1].poll()).status,'ready');
+ s.state.heartbeat=null;
+ assert.equal((await s.clients[1].poll()).status,'host_unavailable');
+ await assert.rejects(()=>s.clients[1].act('ready',{ready:true}),/NO_SYNCED_VIEW/);
+});
+test('Firebase 4人コントローラー: 接続エラー後のheartbeatは単調増加する',async()=>{
+ const s=fakeNetwork();
+ let clock=0;
+ const host=createFirebaseRoomHost({store:s.makeStore(IDS[0]),roomCode:'28371',
+  game:'babanuki',seedSource:()=>3,now:()=>clock,heartbeatIntervalMs:1000});
+ await host.bootstrap();
+ assert.equal(s.state.heartbeat.seq,1);
+ clock+=1000;s.state.failHeartbeatOnce=true;
+ await assert.rejects(()=>host.tick(),/SIMULATED_HEARTBEAT_DROP/);
+ clock+=1000;
+ await host.tick();
+ assert.equal(s.state.heartbeat.seq,3,'lost ACK must not reuse old sequence');
 });
