@@ -48,6 +48,13 @@ CIにJava 21、Node 22を導入済み。ローカルのこの作業環境はCLI�
 
 本番では、独立Firebaseプロジェクト／DBを使うか、現在のRulesを安全に保ったままトランプ専用の子パスだけを合成して必要なテストをすること。他ゲームの本番データ、Rulesは変更していない。
 
+## Phase 10：他ゲームを巻き込まないFirebase本番設定の準備（2026-10-25）
+
+- [専用Sparkプロジェクトの作成・検証手順](DEDICATED_SPARK_SETUP.md)。Firebase公式料金の無料制限（100同時接続、1GB保存、10GB/月DL）と既存Rules一括上書きの危険を整理した。
+- `online/firebase-dedicated-guard.mjs`：トランプ専用プロジェクト名＋URLの整合性を接続前に検査。`dev/check-firebase-config.mjs`：ローカルJSONのオフライン検査（ログイン・読書込・本番配備なし）。テスト用Fetch差替はlocalhostに限定。
+- [GitHub Actions成功 #40176489466](https://github.com/8mahi8/trump-collection/actions/runs/40176489466)：Node**73/73**、既存Firebaseエミュレーターの4人対戦・退出・権限確認、4ゲーム統合Chromiumテストも継続合格。
+- 重要：**この時点ではFirebase本番プロジェクトを作っていない／既存小国戦線・BRAWL等のFirebaseへ接続・デプロイしていない**。名称チェックだけでプロジェクトの実際の利用状況は証明できない。
+
 ## Phase 8：身内向けの部屋終了と作り直し（2026-10-25）
 
 - `closed`はホスト認証UIDが一度だけ書き込む終了理由（`host_left`／`player_left`）。`leaveRequests/$uid`は参加者本人だけが書き込み、ホストが受け取って全員終了させる。終了後のゲーム操作は拒否する。
