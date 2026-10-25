@@ -71,12 +71,12 @@ v1.5.5の通常本体はCOM対戦のみ。別ページの神経衰弱2人オン�
 ## Phase 6｜4人用オンラインUI＋Chromium4画面検証（2026-10-25）
 
 - [4人用Firebase開発画面](online/four-seat-remote.html) と [Google Sites用の単体HTML候補](dist/trump-collection-online-lab.html) を追加（Firebase設定未投入のため**本番接続不可**）。ビルド元は`dev/build-online-html.mjs`。
-- [実行成功したActions](https://github.com/8mahi8/trump-collection/actions/runs/40166268484)で**Node60/60合格**、Chromium4画面×ババ抜き・七並べ・大富豪のルーム作成→READY→開始→実カード操作同期に成功。Firebaseエミュレーター3ゲーム完走も再確認。
+- [実行成功したActions](https://github.com/8mahi8/trump-collection/actions/runs/40166268484)で**Node56/56合格**、Chromium4画面×ババ抜き・七並べ・大富豪のルーム作成→READY→開始→実カード操作同期に成功。Firebaseエミュレーター3ゲーム完走も再確認。
 - 本人に毎回試遊を求めない。現在の本番・学校Google Sites・COM版は変更しない。詳細：[Phase 6検証と制限事項](docs/ONLINE_UI_PHASE6_2026-10-25.md)。
 
 ## Phase 5｜Firebase実エミュレーターで4人対戦完走（2026-10-25）
 
-- [GitHub Actions実行成功](https://github.com/8mahi8/trump-collection/actions/runs/40158460489)：既存Nodeテスト**60/60合格**、Firebase Local Emulator SuiteのAuth + RTDB Rules上でも4人が匿名認証→参加→READY→開始→対戦→決着→再戦。
+- [GitHub Actions実行成功](https://github.com/8mahi8/trump-collection/actions/runs/40158460489)：当時のNodeテスト**52/52合格**、Firebase Local Emulator SuiteのAuth + RTDB Rules上でも4人が匿名認証→参加→READY→開始→対戦→決着→再戦。
 - ババ抜き28手、七並べ52手、大富豪97手で**実エミュレーター上の対戦完走**。他人の非公開手札とコマンドキューの取得は拒否。
 - 命令キューの権限と正式席番号を修正。詳しくは[Firebase設計／実エミュレーター検証記録](firebase/README.md)。
 - **実Firebase本番と学校Safari/Google Sitesはまだ未検証**。専用Rulesは既存Firebaseへ勝手に適用しない。
@@ -85,7 +85,7 @@ v1.5.5の通常本体はCOM対戦のみ。別ページの神経衰弱2人オン�
 
 - [専用Firebase設計と未完了ゲート](firebase/README.md)。匿名認証・トークン更新・UIDごとの手札・公開情報・操作命令・結果ACKを**SDK/CDN不要のRESTアダプター**として開発。
 - `online/firebase-room-store.mjs` と `online/firebase-room-controller.mjs` を追加。ホスト／ゲスト4人の模擬通信で3ゲームを最後まで進行、切断相当の書込失敗・再送・古い操作・非公開手札の同期チェックを確認。
-- `node --test tests/*.mjs` で**60/60合格**（Firebase REST/Auth部分はモック）。**実Firebase RTDB EmulatorでのRules評価、本番接続は未完了**。他ゲームのFirebaseデータやRulesは変更していない。
+- Phase 4当時の `node --test tests/*.mjs` は**48/48合格**（Firebase REST/Auth部分はモック）。**当時は実Firebase RTDB Emulator未検証**。現状の更新結果はPhase 5以降を参照。他ゲームのFirebaseデータやRulesは変更していない。
 
 ## Phase 2｜オンライン試作（2026-10-25）
 
