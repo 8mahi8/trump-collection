@@ -95,7 +95,7 @@ test('ACTUAL Firebase Emulator: UID-private hands and three four-player games', 
    assert.ok([401,403].includes((await tryRaw(await active[1].auth.token(),room,
      'chat/'+active[0].uid+'/2','PUT',{uid:active[0].uid,text:'forgery',seq:2,sentAt:Date.now()})).status),
      'friend cannot forge another sender');
-   await assert.rejects(()=>hostChat.sendChat(room,'x'.repeat(121),2),/INVALID_CHAT_TEXT/);
+   assert.throws(()=>hostChat.sendChat(room,'x'.repeat(121),2),/INVALID_CHAT_TEXT/);
    const oversized=await tryRaw(await active[0].auth.token(),room,
      'chat/'+active[0].uid+'/2','PUT',{uid:active[0].uid,text:'x'.repeat(121),seq:2,sentAt:Date.now()});
    assert.ok([401,403].includes(oversized.status),'Rules must reject oversized chat text');
