@@ -88,6 +88,12 @@ test('ACTUAL Firebase Emulator: UID-private hands and three four-player games', 
    }
   }
   for(const client of suite.guests)assert.equal((await client.poll()).status,'ready');
+  // A player may read their own command queue to support conditional writes,
+  // but must not read any other member's queued actions.
+  const mine=await tryRaw(await active[1].auth.token(),room,'commands/'+active[1].uid);
+  assert.equal(mine.status,200);
+  const otherQueue=await tryRaw(await active[1].auth.token(),room,'commands/'+active[2].uid);
+  assert.ok([401,403].includes(otherQueue.status));
   for(let p=0;p<4;p++){
    const client=suite.guests[p];
    let id;
