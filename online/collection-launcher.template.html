@@ -123,7 +123,7 @@ q('back').onclick=async()=>{
  q('back').disabled=true;
  const frame=q('play');
  try{
-  if(openMode==='friends'&&selected!=='shinkei'){
+  if(openMode==='friends'){
    q('back').textContent='退出中…';
    await askFriendsToLeave(frame);
   }
