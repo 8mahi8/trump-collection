@@ -1,0 +1,289 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>トランプコレクション 4人オンライン対戦・Firebase開発版</title><style>
+*{box-sizing:border-box}html,body{margin:0;font-family:system-ui,sans-serif;background:#123c2c;color:#f6f6ed}
+main{max-width:920px;margin:0 auto;padding:15px}h1{font-size:22px;margin:0 0 6px}
+small{color:#ffe8b3;line-height:1.5}.panel{padding:12px;border-radius:10px;border:1px solid #4e9471;background:#20553d;margin:10px 0}
+button,select,input{font:inherit;min-height:42px;border-radius:8px;padding:7px 12px;border:0}
+button{background:#ffdf73;color:#17281c;font-weight:700;cursor:pointer;margin:3px}button:disabled{opacity:.4}
+select,input{background:#fafff5;color:#223128}input{max-width:140px}
+#roomCode{font-size:21px;color:#fff2a6;font-weight:800;letter-spacing:2px}
+#board{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;align-items:center}
+.card{font-size:16px;border-radius:6px;border:1px solid #cde4cd;background:#fff;color:#222;min-width:52px;height:64px;padding:6px}
+.card.red{color:#b52245}.mini{color:#e8ebdc;font-size:13px}#actions{display:flex;flex-wrap:wrap}
+#actions button{font-size:14px}.pair{background:#c5eed4}.muted{color:#abdeb9}
+.badge{display:inline-block;padding:4px;border-radius:6px;background:#35694b}
+@media(max-width:780px){main{padding:6px}h1{font-size:17px}.panel{margin:5px 0;padding:7px}button,select,input{min-height:40px}#actions button{padding:6px 10px}.card{min-width:42px;height:55px}}
+.board-line{display:flex;gap:3px;align-items:center;justify-content:center;margin:4px 0}
+.field-card,.field-empty{font-size:clamp(10px,1.45vw,15px);min-width:clamp(12px,2.2vw,23px);padding:4px 0;border-radius:3px;text-align:center}
+.field-card{background:#eeeccf;color:#263428;font-weight:700}.field-empty{background:#194934;color:#75a389}
+.hand-cards{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}.card.selected{outline:3px solid #ffdd55;transform:translateY(-3px)}
+.card.back{background:#244879;color:white;font-size:22px}
+#notice{font-size:13px;color:#ffdb80;margin:5px}
+@media (max-height:500px){.card{height:50px;min-width:40px}main{padding:5px}.panel{padding:6px;margin:4px 0}h1{font-size:16px}}
+</style></head><body><main>
+<h1>🃏 トランプコレクション｜4人オンライン研究版</h1>
+<small>開発用のFirebase4人対戦ページ。<strong>Firebase接続先が未設定の間は部屋を作成できません。</strong> 学校のGoogle Sites版・公開版は変更せず、実機試験前の開発用として使います。ページ更新による席の復元はまだ未対応です。</small>
+<div class="panel"><select id="game"><option value="babanuki">ババ抜き</option><option value="shichinarabe">七並べ</option><option value="daifugo">大富豪</option></select>
+<button id="create">部屋を作る</button><input id="code" placeholder="5桁番号" maxlength="5" inputmode="numeric"><button id="join">参加</button>
+<div id="status" role="status">ゲームを選んで部屋作成、友達は5桁の番号で参加</div></div>
+<div id="lobby" class="panel" hidden><div id="notice" role="status"></div><div>部屋 <span id="roomCode"></span> <span id="role"></span> <span id="roster"></span></div>
+<button id="ready">準備する</button><button id="start">全員準備OK → 開始</button><button id="rematch">再戦</button></div>
+<div id="match" class="panel" hidden><div id="state" class="mini"></div><div id="board"></div><div id="hand"></div><div id="actions"></div></div>
+</main><script type="module">
+import {createFirebaseAnonymousAuth,createFirebaseRoomStore} from './firebase-room-store.mjs';
+import {createFirebaseRoomHost,createFirebaseRoomGuest} from './firebase-room-controller.mjs';
+
+// PUBLIC Firebase Web API key and RTDB URL only. Do not put admin credentials here.
+// For isolated tests this object may be set before the module executes.
+const CONFIG=window.TRUMP_FIREBASE_CONFIG||{apiKey:'',databaseURL:''};
+const $=id=>document.getElementById(id);
+const SUITS=['♠','♥','♦','♣'];
+const CARD_NAMES={1:'A',11:'J',12:'Q',13:'K'};
+const GAMES={babanuki:'ババ抜き',shichinarabe:'七並べ',daifugo:'大富豪'};
+const randomRoom=()=>{const u=new Uint32Array(1);crypto.getRandomValues(u);return String(10000+u[0]%90000)};
+const randomAction=()=>{const u=new Uint32Array(2);crypto.getRandomValues(u);return [...u].map(n=>n.toString(36)).join('-')};
+const cardId=c=>c?.joker?'JK':c.suit+'-'+c.rank;
+const cardText=c=>c?.joker?'JOKER':SUITS[c.suit]+(CARD_NAMES[c.rank]||c.rank);
+let session=0,auth=null,store=null,hostRunner=null,guestRunner=null;
+let roomCode='',game='',mySeat=-1,isHost=false,publicState=null,privateState=null;
+let busy=false,pendingAction='',failCount=0,selected=new Set(),lastRender='',online=true;
+let tickTimer=null,pollWorking=false;
+const stateName=()=>isHost?'host':guestRunner?'guest':'menu';
+
+function status(message){$('status').textContent=message;}
+function setupInfo(message){$('notice').textContent=message;}
+function clear(){
+ session++;clearTimeout(tickTimer);tickTimer=null;
+ hostRunner=guestRunner=null;roomCode='';publicState=privateState=null;
+ mySeat=-1;isHost=false;busy=false;pendingAction='';failCount=0;selected.clear();lastRender='';
+ $('lobby').hidden=true;$('match').hidden=true;
+ $('create').disabled=false;$('join').disabled=false;$('game').disabled=false;
+}
+function shouldRun(epoch){return epoch===session&&!!guestRunner;}
+async function connectAuth(){
+ if(!CONFIG.apiKey||!CONFIG.databaseURL)throw Error('FIREBASE_CONFIG_MISSING');
+ if(!auth){
+  const opts={apiKey:CONFIG.apiKey};
+  // Only used by local CI pages, never on GitHub Pages.
+  if(window.TRUMP_FIREBASE_TEST_FETCH)opts.fetchImpl=window.TRUMP_FIREBASE_TEST_FETCH;
+  auth=createFirebaseAnonymousAuth(opts);
+  await auth.signIn();
+ }
+ if(!store){
+  const opts={databaseURL:CONFIG.databaseURL,auth};
+  if(window.TRUMP_FIREBASE_TEST_FETCH)opts.fetchImpl=window.TRUMP_FIREBASE_TEST_FETCH;
+  store=createFirebaseRoomStore(opts);
+ }
+ return store;
+}
+async function startRoom(asHost){
+ if(busy)return;
+ busy=true;const epoch=++session;
+ $('create').disabled=$('join').disabled=true;
+ const choice=$('game').value;
+ try{
+  await connectAuth();
+  if(epoch!==session)return;
+  isHost=asHost;
+  if(asHost){
+   game=choice;
+   for(let tries=0;tries<8;tries++){
+    roomCode=randomRoom();
+    const candidate=createFirebaseRoomHost({store,roomCode,game});
+    try{await candidate.bootstrap();hostRunner=candidate;break;}
+    catch(e){
+     if(e.code==='ALREADY_EXISTS'||e.code==='PERMISSION_DENIED')continue;
+     throw e;
+    }
+   }
+   if(!hostRunner)throw Error('ROOM_CODE_COLLISION');
+  }else{
+   const input=$('code').value.trim();
+   if(!/^[0-9]{5}$/.test(input))throw Error('ROOM_CODE_REQUIRED');
+   roomCode=input;
+   const meta=await store.meta(roomCode);
+   if(!meta||meta.protocol!==2||!GAMES[meta.game])throw Error('ROOM_NOT_FOUND');
+   game=meta.game;
+  }
+  if(epoch!==session)return;
+  guestRunner=createFirebaseRoomGuest({store,roomCode,game,actionIdSource:randomAction});
+  if(!asHost)await guestRunner.requestJoin();
+  if(epoch!==session)return;
+  $('game').value=game;$('game').disabled=true;
+  $('lobby').hidden=false;
+  busy=false;
+  status(asHost?'ルーム作成成功。友達の参加を待っています':'入室申請中。ホストの承認を待っています');
+  schedule(epoch,10);
+ }catch(err){
+  if(epoch!==session)return;
+  busy=false;status('接続できません：'+describe(err));
+  clear(); // preserves status message
+ }
+}
+function describe(e){
+ const key=e?.code||e?.message||String(e);
+ return ({
+  FIREBASE_CONFIG_MISSING:'Firebase接続先が未設定（開発用画面）',
+  ROOM_CODE_REQUIRED:'5桁の番号を入力してね',ROOM_NOT_FOUND:'ルームが見つかりません',
+  ROOM_CODE_COLLISION:'部屋番号が混雑しています。もう一度作成',
+  PERMISSION_DENIED:'通信権限がありません。認証・DBルールを確認',
+  NETWORK_ERROR:'ネットワーク通信に失敗',
+  FIREBASE_AUTH_REJECTED:'匿名認証が許可されていません',
+  NO_SYNCED_VIEW:'最新の状態を同期中'
+ })[key]||key;
+}
+function schedule(epoch,delay){
+ if(!shouldRun(epoch))return;
+ clearTimeout(tickTimer);
+ tickTimer=setTimeout(()=>poll(epoch),delay);
+}
+async function poll(epoch){
+ if(!shouldRun(epoch)||pollWorking)return;
+ pollWorking=true;
+ try{
+  if(isHost)await hostRunner.tick();
+  if(!shouldRun(epoch))return;
+  const result=await guestRunner.poll();
+  if(!shouldRun(epoch))return;
+  if(result.status==='ready'){
+   publicState=result.publicView;privateState=result.privateView;
+   mySeat=privateState.seat;
+   failCount=0;online=true;
+   if(pendingAction){
+    const receipt=await guestRunner.receipt(pendingAction);
+    if(!shouldRun(epoch))return;
+    if(receipt){
+     pendingAction='';busy=false;
+     if(receipt.ok)status('操作を反映したよ');
+     else status('その操作は受け付けられません：'+receipt.reason);
+    }
+   }
+   render();
+  }else{
+   online=false;
+   status(result.status==='waiting_for_host'?'ホストの入室承認を待っています…':'状態を同期しています…');
+   render();
+  }
+ }catch(e){
+  if(!shouldRun(epoch))return;
+  online=false;failCount++;
+  status('通信を再確認しています ('+failCount+')：'+describe(e));
+  render();
+ }finally{
+  pollWorking=false;
+  if(shouldRun(epoch))schedule(epoch,online?650:Math.min(1200+failCount*700,5000));
+ }
+}
+async function send(type,extra={}){
+ if(busy||pendingAction||!online||!guestRunner?.snapshot)return;
+ const epoch=session;
+ busy=true;render();
+ try{
+  // Refresh just before sending to avoid stale revision when another seat acts.
+  const fresh=await guestRunner.poll();
+  if(epoch!==session)return;
+  if(fresh.status!=='ready')throw Error('NO_SYNCED_VIEW');
+  publicState=fresh.publicView;privateState=fresh.privateView;mySeat=privateState.seat;
+  const id=await guestRunner.act(type,extra);
+  if(epoch!==session)return;
+  pendingAction=id;
+  status('操作を送信しました…');
+  render();
+  schedule(epoch,25);
+ }catch(err){
+  if(epoch!==session)return;
+  busy=false;status('操作を送れません：'+describe(err));render();
+ }
+}
+function appendText(parent,text,className=''){
+ const item=document.createElement('span');item.textContent=text;if(className)item.className=className;parent.appendChild(item);return item;
+}
+function button(text,fn,disabled=false,cls=''){
+ const b=document.createElement('button');b.type='button';b.textContent=text;b.disabled=disabled;
+ if(cls)b.className=cls;if(fn)b.onclick=fn;
+ return b;
+}
+function card(c,clickable=false,click=null){
+ const b=button(cardText(c),click,!clickable,'card'+((c?.suit===1||c?.suit===2)?' red':''));
+ return b;
+}
+function render(){
+ if(!publicState){
+  $('ready').disabled=$('start').disabled=true;
+  return;
+ }
+ const v=publicState,p=mySeat,acting=v.phase==='playing'&&v.turn===p;
+ const key=[v.round,v.revision,p,busy,pendingAction,online,[...selected].sort().join(',')].join('|');
+ if(key===lastRender)return;lastRender=key;
+ const usable=online&&!busy&&!pendingAction&&p>=0;
+ $('roomCode').textContent=roomCode;
+ $('role').textContent='｜'+(isHost?'ホスト':'ゲスト')+' / '+(p>=0?'席 '+(p+1):'入室待ち');
+ $('roster').textContent='｜'+v.seats.filter(s=>s.present).length+'/4人';
+ $('ready').disabled=!usable||v.phase!=='lobby';
+ $('ready').textContent=v.seats[p]?.ready?'準備を解除':'準備OK';
+ $('start').hidden=!isHost;
+ $('start').disabled=!usable||v.phase!=='lobby'||!v.seats.every(s=>s.ready);
+ $('rematch').hidden=!isHost||v.phase!=='finished';
+ $('rematch').disabled=!usable;
+ $('match').hidden=v.phase==='lobby';
+ const state=$('state'),board=$('board'),hand=$('hand'),actions=$('actions');
+ board.replaceChildren();hand.replaceChildren();actions.replaceChildren();
+ state.textContent=GAMES[game]+'｜'+(v.phase==='finished'?'結果':acting?'あなたの番':'相手の番')+
+  '｜手札 '+(v.counts||[]).join(' / ')+'｜通信 '+(online?'OK':'再接続中');
+ setupInfo(v.phase==='lobby'?'4人が準備したらホストが開始します':v.phase==='finished'?'対戦終了！ 再戦できます':acting?'カードを選んで操作してね':'相手の操作を待っています');
+ if(v.phase==='finished'){
+  appendText(actions,'順位： '+Object.entries(v.ranks||{}).sort((a,b)=>a[1]-b[1]).map(([seat,r])=>(Number(seat)===p?'自分':'席'+(Number(seat)+1))+' '+r+'位').join(' / '));
+ }
+ if(v.phase!=='playing'&&v.phase!=='finished')return;
+ if(game==='babanuki'){
+  appendText(board,'引く相手：席'+(Number(v.drawFrom)+1)+'　','mini');
+  if(acting&&usable&&v.drawFrom!==p&&v.counts[v.drawFrom]>0){
+   for(let i=0;i<v.counts[v.drawFrom];i++)board.appendChild(button('🂠',()=>send('draw',{index:i}),false,'card back'));
+  }else appendText(board,acting?'操作待ち':'相手の手番です','muted');
+  if(privateState?.lastDraw?.card)appendText(board,' 引いた：'+cardText(privateState.lastDraw.card)+(privateState.lastDraw.paired?'（ペア成立）':''));
+ }else if(game==='shichinarabe'){
+  const placed=v.placed||[];
+  for(let suit=0;suit<4;suit++){
+   const line=document.createElement('div');line.className='board-line';
+   appendText(line,SUITS[suit]+' ','mini');
+   for(let rank=1;rank<=13;rank++){
+    const inField=placed[suit]&&rank>=placed[suit].low&&rank<=placed[suit].high;
+    appendText(line,inField?(CARD_NAMES[rank]||rank)+'':'·',inField?'field-card':'field-empty');
+   }
+   board.appendChild(line);
+  }
+  actions.appendChild(button('パス',()=>send('pass'),!usable||!acting));
+ }else if(game==='daifugo'){
+  appendText(board,'場：'+(v.field?.cards?.map(cardText).join(' / ')||'なし')+(v.revolution?' ｜革命中！':''),'');
+  actions.appendChild(button('パス',()=>send('pass'),!usable||!acting||!v.field));
+  const choices=(privateState?.legalMoves||[]).filter(m=>m.every(id=>selected.has(id))&&m.length===selected.size);
+  const legal=choices.length>0;
+  actions.appendChild(button('選択カードを出す（'+selected.size+'枚）',()=>{const ids=[...selected];selected.clear();send('play',{ids});},!usable||!acting||!legal));
+  appendText(actions,legal?' 出せる組み合わせ':' 手札を選択してね','mini');
+ }
+ const cards=Array.isArray(privateState?.hand)?privateState.hand:[];
+ appendText(hand,'あなたの手札（'+cards.length+'枚）','mini');
+ const row=document.createElement('div');row.className='hand-cards';
+ for(const c of cards){
+  const id=cardId(c),canPlay=usable&&acting&&
+    (game==='shichinarabe'&&(privateState?.legalIds||[]).includes(id)||game==='daifugo');
+  const b=card(c,canPlay,canPlay?()=>{
+   if(game==='shichinarabe')send('play',{id});
+   else {selected.has(id)?selected.delete(id):selected.add(id);lastRender='';render();}
+  }:null);
+  if(selected.has(id))b.classList.add('selected');
+  row.appendChild(b);
+ }
+ hand.appendChild(row);
+}
+$('create').onclick=()=>startRoom(true);
+$('join').onclick=()=>startRoom(false);
+$('ready').onclick=()=>send('ready',{ready:!publicState.seats[mySeat].ready});
+$('start').onclick=()=>send('start');
+$('rematch').onclick=()=>{selected.clear();send('rematch');};
+window.addEventListener('pagehide',()=>{session++;clearTimeout(tickTimer);});
+window.TCFourRemote={get phase(){return publicState?.phase},get view(){return publicState},
+ get privateView(){return privateState},get seat(){return mySeat},get role(){return stateName()},
+ get status(){return $('status').textContent},create:()=>startRoom(true),join:()=>startRoom(false),
+ command:send,stop:clear};
+</script></body></html>
