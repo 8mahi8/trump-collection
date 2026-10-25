@@ -62,6 +62,13 @@ v1.5.5の通常本体はCOM対戦のみ。別ページの神経衰弱2人オン�
 - 自動検証：`node --test tests/*.mjs`、`python dev/verify_four_seat_browser.py`（Python PlaywrightとChromiumが必要）
 - [4席検証結果とFirebase移行設計](docs/FOUR_SEAT_PHASE3_2026-10-25.md)。**Firebaseへはまだ接続していない**ため、手札の非公開を保証するRules/Authを先にテストする。
 
+## Phase 9｜4ゲーム「COM／友達対戦」共通メニュー（2026-10-25）
+
+- [統合ランチャー詳細](docs/ONLINE_COLLECTION_PHASE9_2026-10-25.md)。ババ抜き・七並べ・神経衰弱・大富豪それぞれに「COMと遊ぶ」「友達と遊ぶ」の入口を追加した**独立した開発用の単一HTML**。学校版や従来のCOM版を上書きせず、既存ゲームエンジンをインライン化して再利用。
+- [成功したGitHub Actions](https://github.com/8mahi8/trump-collection/actions/runs/40175410131)：**Node67/67合格**、Chromiumで4ゲーム×2モードの全8入口を実操作。Firebase実エミュレーター3ゲーム4人対戦の完走・退出検証も合格。
+- `node dev/build-collection-lab.mjs`で`dist/trump-collection-integrated-lab.html`を生成。GitHub Actions artifactに7日間保管。
+- **Firebase4人版の実本番接続は未設定**。神経衰弱は既存Supabase身内実験版。Safari学校実機とGoogle Sites直接埋込は未確認。
+
 ## Phase 8｜退出・部屋作り直し（2026-10-25）
 
 - [実Firebase Emulator＋4画面Chromiumで検証成功](https://github.com/8mahi8/trump-collection/actions/runs/40173923212)：**Node64/64合格**、3ゲームの対戦完走後にホスト退出／友達退出を検証し、全員が作成／参加画面に戻った。
