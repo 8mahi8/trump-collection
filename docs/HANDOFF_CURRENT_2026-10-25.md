@@ -3,6 +3,17 @@
 > **次の開発担当AIはまずこの文書と [HANDOFF.md](../HANDOFF.md) を読むこと。**
 > 旧記録には後から変更された計画が残るため、下記の最新方針を優先。
 
+## Phase25（2026-10-26）｜Firebaseルールを今は変えず学校で試遊する完成候補
+
+- **ユーザーが優先した方針：既存Firebase `mygame-df915` の2026-11-08期限付きRoot Rulesを今は変更せず、まずトランプの友達対戦を試す。** 前に確認したRoot Rulesの同じスクリーンショットを再要求しない。
+- 既存LEMON CLASH開発版の `src/firebase-config.js`を確認。同じRTDB URLのみを設定しFirebase Authを必須にしない方式が存在したため、トランプに**別系統の身内向け公開DB試遊モード**を実装。認証付きの通常運用コードはそのまま残す。
+- **Google Sites直接埋め込み候補：`dist/trump-collection-open-root-trial.html`**。COM4ゲーム、Firebaseババ抜き・七並べ・大富豪4人、Supabase神経衰弱2人、開閉式ルームチャットを一体化。既存学校Google Sitesへは自動反映しない。
+- `online/firebase-room-store.mjs`の`createFirebaseOpenRootTrialIdentity`はページごとにランダムな非永続UIDを発行、RTDBへAuthクエリーを付けず、匿名Firebase Auth／APIキー／新しいルール導入を要さない。**アカウント認証はしていない**。`online/four-seat-remote.html`は明示フラグ`TRUMP_FIREBASE_OPEN_ROOT_TRIAL`があり既知学校DBの時だけ有効。ブラウザ画面に公開DBリスクの注意書きを表示する。
+- `dev/build-configured-sites.mjs`に`buildOpenRootTrialSitesHtml`とCLI`--open-root-trial --acknowledge-public-db`を追加。元の厳格Rules前提の通常配布処理を削除しない。固定の試遊HTMLもソース再ビルドと完全一致することをNodeで検証。`firebase.open-trial-emulator.json`で本人報告のRoot許可ルールを使用し、**Chromium/WebKit双方で Google Sites風二重iframe×4端末の入室→READY→開始→チャット→退出に成功**。本番Firebaseへは一切接続していない。
+- 仕様・公開注意事項とテスト：[Phase25記録](PHASE25_OPEN_ROOT_FRIEND_TRIAL_2026-10-26.md)。
+- **重要な限界**：現行のRoot公開ルールでは、アプリの画面で隠れた他人の手札やチャットも外部のRTDB APIから読み書き可能で、ルーム番号はアクセス制御にならない。個人情報をチャットへ入力しないこと。**11月8日0時JSTのルール失効には試遊モードでも別途対応が必要**。新モードは正式に非公開手札を保証するものではない。
+- ユーザーの出番は実際に学校Google SitesへHTML全文を貼り付けるタイミングから。Firebase本番ルール・匿名Authの変更、既存ゲーム・学校公開版・mainの改変は行っていない。
+
 ## Phase24（2026-10-26）｜二重Google Sites iframe上のFirebase4人試験に合格
 
 - 直近の唯一の新規ブロッカーだった`dev/verify-configured-sites-emulator.mjs`の**実Firebase模擬設定付き・外側Google Sites sandbox＋内側srcdoc**の試験を修正。入室成功→ルーム番号の描画を待機→4人全員のREADY反映を順番に確認→開始→チャット→ホスト退出のテストが**Chromium/WebKit両エンジンで成功**。 [CI #40208972686](https://github.com/8mahi8/trump-collection/actions/runs/40208972686)（**全工程成功：Node103/103、Chromium/WebKitの4人Firebase二重iframe、2人Supabaseモック、旧Rulesエミュレーター回帰すべて合格**）。
