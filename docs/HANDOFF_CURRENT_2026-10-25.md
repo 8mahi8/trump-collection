@@ -3,6 +3,14 @@
 > **次の開発担当AIはまずこの文書と [HANDOFF.md](../HANDOFF.md) を読むこと。**
 > 旧記録には後から変更された計画が残るため、下記の最新方針を優先。
 
+## Phase22（2026-10-26）｜Google Sites統合1HTML保存＋2端末の神経衰弱対局検証
+
+- [詳細](PHASE22_SITES_PACKAGE_AND_TWO_DEVICE_MEMORY_2026-10-26.md)。**4ゲーム統合HTMLを開発ブランチの `dist/trump-collection-integrated-lab.html` に保存**（約201KB、COM4種・友達Firebase3種・神経衰弱Supabase・チャット・退出）。`tests/collection-launcher.test.mjs`で**最新ソースの再ビルド結果と保存ファイルの完全一致をCI検査**。設定未投入のFirebase4人対戦は依然として本番に接続できない。
+- `dev/verify-memory-peers.mjs`新設：2つの独立した800×450 Google Sites風二重iframeで、**ホストがルーム生成→ゲスト参加→双方READY→ゲーム開始→1枚めくると相手に同期→チャット送受信→ホスト退出通知**までテスト。Supabase Phoenix WebSocketを**ローカル模擬relay**で再現。本番Supabaseへは送信しない。
+- Chromium・WebKitの両エンジンで独立してテスト、GitHub ActionsのCIへ追加。古い4人Firebase Emulator・Rulesテストも継続。
+- **学校iPadでのFirebase通信自体はユーザーがBRAWL／小国戦線III／LEMON CLASH等で成功を報告済み**。ただしトランプ独自実装の学校実機試験ではない。今後は通信方式統一などの大変更より、完成・最終実機検査を優先。
+- **未着手の本番変更**：Firebaseの11/8 Rules期限／トランプ専用権限、匿名Auth、実学校版貼付。本人承認なしに既存ゲーム／学校サイト／mainを変えない。
+
 ## Phase21（2026-10-25）｜4ゲーム共通・ルーム内テキストチャット
 
 - 本人の新要望：「同じルーム内の人間でチャットできるように」。**[実装・仕様・制限](PHASE21_ROOM_CHAT_2026-10-25.md)**。
