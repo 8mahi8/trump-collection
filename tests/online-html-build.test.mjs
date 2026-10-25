@@ -10,7 +10,7 @@ test('4人Firebaseオンライン開発版は外部JS不要の単一HTMLに組�
  assert.doesNotMatch(html,/type="module"/);
  assert.doesNotMatch(html,/^\s*import /m);
  for(const name of ['createFirebaseRoomHost','createFirebaseRoomGuest','createFirebaseAnonymousAuth',
-  'createFirebaseRoomStore','createFourSeatAuthority','createBabanuki','createDaifugo']){
+  'createFirebaseRoomStore','validateDedicatedFirebaseConfig','createFourSeatAuthority','createBabanuki','createDaifugo']){
   assert.ok(html.includes(name),name+' not bundled');
  }
  for(const key of ['id="create"','id="join"','id="ready"','id="start"','id="rematch"',
@@ -22,6 +22,8 @@ test('単体HTMLに管理者資格情報や既存ゲームの本番DB URLを含�
   assert.equal(html.includes(prohibited),false,prohibited);
  }
  assert.ok(html.includes('TRUMP_FIREBASE_CONFIG'),'user-provided public project config should be required');
+ assert.ok(html.includes('FIREBASE_DEDICATED_PROJECT_REQUIRED'));
+ assert.ok(html.includes('FIREBASE_PROJECT_DATABASE_MISMATCH'));
 });
 test('ホスト再接続や学校版更新が未完成であることをUIで明示',()=>{
  const html=buildOnlineHtml();
