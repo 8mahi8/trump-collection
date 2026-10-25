@@ -10,7 +10,7 @@ export function createFirebaseRoomHost({store,roomCode,game,seedSource,config,
     roomCode,game,hostId:store.uid,seedSource,config
   });
   const members=new Set([store.uid]);
-  let initialized=false,working=false,publishedRevision=-1;
+  let initialized=false,working=false,closed=false,publishedRevision=-1;
   let heartbeatSequence=0,lastHeartbeatAt=-Infinity;
   async function heartbeat(force=false){
     if(!force&&now()-lastHeartbeatAt<heartbeatIntervalMs)return;
@@ -33,12 +33,28 @@ export function createFirebaseRoomHost({store,roomCode,game,seedSource,config,
     await publish();
     await heartbeat(true);
   }
+  async function closeRoom(reason='host_left'){
+    if(!initialized)throw Error('ROOM_NOT_INITIALIZED');
+    if(closed)return;
+    await store.closeRoom(roomCode,reason);
+    closed=true;
+  }
   async function tick(){
     if(!initialized)throw Error('ROOM_NOT_INITIALIZED');
+    if(closed)return {closed:true};
     if(working)return {busy:true};
     working=true;
     let accepted=0,rejected=0;
     try{
+      if(await store.readClosed(roomCode)){
+        closed=true;
+        return {closed:true};
+      }
+      const leaving=await store.leaveRequests(roomCode)||{};
+      if(Object.keys(leaving).some(uid=>members.has(uid)&&uid!==store.uid&&leaving[uid]===true)){
+        await closeRoom('player_left');
+        return {closed:true};
+      }
       const joins=await store.joinRequests(roomCode)||{};
       for(const uid of Object.keys(joins).sort()){
         if(joins[uid]!==true||uid===store.uid||!/^[A-Za-z0-9_-]{8,100}$/.test(uid))continue;
@@ -88,7 +104,7 @@ export function createFirebaseRoomHost({store,roomCode,game,seedSource,config,
       return {accepted,rejected,revision:authority.revision,phase:authority.phase};
     }finally{working=false;}
   }
-  return {bootstrap,tick,get roomCode(){return roomCode},
+  return {bootstrap,tick,closeRoom,get closed(){return closed},get roomCode(){return roomCode},
     get authority(){return authority},get members(){return [...members]}};
 }
 
@@ -100,6 +116,7 @@ export function createFirebaseRoomGuest({store,roomCode,game,actionIdSource,
   async function requestJoin(){
     const meta=await store.meta(roomCode);
     if(!meta||meta.game!==game||meta.protocol!==2)throw Error('ROOM_NOT_FOUND_OR_WRONG_GAME');
+    if(await store.readClosed(roomCode))throw Error('ROOM_ALREADY_CLOSED');
     try{await store.requestSeat(roomCode);}catch(e){
       if(e.code!=='ALREADY_EXISTS'&&e.code!=='PERMISSION_DENIED')throw e;
       // A denial is only an idempotent retry if the request was already
@@ -110,6 +127,8 @@ export function createFirebaseRoomGuest({store,roomCode,game,actionIdSource,
     }
   }
   async function poll(){
+    const ended=await store.readClosed(roomCode);
+    if(ended){lastSnapshot=null;return {status:'room_closed',reason:ended.reason};}
     if(await store.seat(roomCode)!==true){lastSnapshot=null;return {status:'waiting_for_host'};}
     const [publicView,privateView,pulse]=await Promise.all([
       store.readPublic(roomCode),store.readPrivate(roomCode),store.readHeartbeat(roomCode)]);
@@ -148,5 +167,6 @@ export function createFirebaseRoomGuest({store,roomCode,game,actionIdSource,
     return id;
   }
   async function receipt(actionId){return store.receipt(roomCode,actionId);}
-  return {requestJoin,poll,act,receipt,get snapshot(){return lastSnapshot}};
+  async function leaveRoom(){return store.leaveRoom(roomCode);}
+  return {requestJoin,poll,act,receipt,leaveRoom,get snapshot(){return lastSnapshot}};
 }
