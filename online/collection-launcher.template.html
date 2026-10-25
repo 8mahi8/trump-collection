@@ -90,12 +90,50 @@ function show(game,mode){
  openMode=mode;
  frame.srcdoc=src;
 }
-q('back').onclick=()=>{
- q('play').removeAttribute('srcdoc');
- q('play').src='about:blank';
- q('viewer').classList.remove('open');
- openMode=null;
- q('com').focus();
+// Leaving an online game via the collection's own Back button must notify
+// its host/guest controller before discarding the nested iframe. The two
+// frames can have different origins inside Google Sites: use postMessage.
+// Never trap players if Firebase is offline; fall back after 1.8 seconds.
+let backWorking=false,leaveRequestSequence=0;
+function askFriendsToLeave(frame){
+ return new Promise(resolve=>{
+  const target=frame.contentWindow;
+  if(!target){resolve();return;}
+  const requestId='back-'+(++leaveRequestSequence);
+  let done=false,timeout=null;
+  const complete=()=>{
+   if(done)return;
+   done=true;clearTimeout(timeout);
+   window.removeEventListener('message',onReply);
+   resolve();
+  };
+  const onReply=e=>{
+   if(e.source===target&&e.data?.type==='tc:leave-ack'&&e.data.requestId===requestId)
+    complete();
+  };
+  window.addEventListener('message',onReply);
+  timeout=setTimeout(complete,1800);
+  try{target.postMessage({type:'tc:leave-room',requestId},'*');}
+  catch{complete();}
+ });
+}
+q('back').onclick=async()=>{
+ if(backWorking)return;
+ backWorking=true;
+ q('back').disabled=true;
+ const frame=q('play');
+ try{
+  if(openMode==='friends'&&selected!=='shinkei')
+   await askFriendsToLeave(frame);
+ }finally{
+  frame.removeAttribute('srcdoc');
+  frame.src='about:blank';
+  q('viewer').classList.remove('open');
+  openMode=null;
+  q('back').disabled=false;
+  backWorking=false;
+  q('com').focus();
+ }
 };
 q('com').onclick=()=>show(selected,'com');
 q('friends').onclick=()=>show(selected,'friends');
