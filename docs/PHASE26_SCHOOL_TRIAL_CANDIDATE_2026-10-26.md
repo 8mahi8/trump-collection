@@ -25,4 +25,6 @@
 
 ## 検証ステータス
 - 最後まで成功した通常版総合CI：[Actions #40208972686](https://github.com/8mahi8/trump-collection/actions/runs/40208972686)（Node103/103、Chrome/WebKit・Firebase Emulators、既存ゲーム回帰）。
-- 試遊モード専用のChromium＋WebKit 4人通信試験：[Actions #40210391171](https://github.com/8mahi8/trump-collection/actions/runs/40210391171)（両エンジンの試遊工程成功。各runは最終ステータスを確認して記入）。
+- **最終全工程成功**：[Actions #40210764826](https://github.com/8mahi8/trump-collection/actions/runs/40210764826)（Node**106/106成功**、通常版4人Firebase／試遊版4人FirebaseのGoogle Sites風二重iframe＋Chromium/WebKit双方で入室→READY→開始→チャット→退出成功、神経衰弱2人端末通信成功、旧Rules・新RulesのFirebase Emulator回帰成功）。
+- `tests/open-root-trial.test.mjs` で保存した `dist/trump-collection-open-root-trial.html` の**完全一致**が成功し、古い試遊HTMLが残るとCIが失敗する。
+- **注意**：これらはローカルFirebaseエミュレーターのみでの再現。実学校Firebase DB／Google Sites／iPad Safariでの試験はまだ。
