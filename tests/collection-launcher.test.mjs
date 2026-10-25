@@ -20,7 +20,7 @@ test('統合ランチャー: 3つのモードのJS/CSSは外部SDKなしで閉�
  assert.ok(html.includes('makeRealtimeWire'));
  assert.ok(html.includes('createDaifugo'));
  assert.ok(html.includes('TRUMP_FIREBASE_CONFIG'));
- assert.ok(html.includes('validateDedicatedFirebaseConfig'));
+ assert.ok(html.includes('validateFirebaseConfig'));
  assert.ok(html.includes('projectId:config.projectId'));
  // Firebase Web configuration remains absent until explicitly provided.
  assert.ok(html.includes('実Firebase本番への接続は未設定'));
