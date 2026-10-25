@@ -62,6 +62,13 @@ v1.5.5の通常本体はCOM対戦のみ。別ページの神経衰弱2人オン�
 - 自動検証：`node --test tests/*.mjs`、`python dev/verify_four_seat_browser.py`（Python PlaywrightとChromiumが必要）
 - [4席検証結果とFirebase移行設計](docs/FOUR_SEAT_PHASE3_2026-10-25.md)。**Firebaseへはまだ接続していない**ため、手札の非公開を保証するRules/Authを先にテストする。
 
+## Phase 10｜Firebase専用Sparkプロジェクトの接続前検査（2026-10-25）
+
+- [Firebase専用無料プロジェクトの設定方針](firebase/DEDICATED_SPARK_SETUP.md)を策定。既存小国戦線などのFirebaseと分離し、課金のないSparkプロジェクトのデフォルトRTDBを用いる。**実際のFirebase本番プロジェクトは作成・接続していない**。
+- `online/firebase-dedicated-guard.mjs`は、トランプ専用プロジェクトID・RTDBドメイン・APIキーの整合性を**匿名ログイン前に検査**。既知の他ゲーム接続先を拒否し、任意の管理者設定項目もブロック。`dev/check-firebase-config.mjs`はオフラインチェック専用。
+- [CI #40176489466成功](https://github.com/8mahi8/trump-collection/actions/runs/40176489466)：**Node73/73合格**。4ゲーム統合メニュー、Firebase実エミュレーター3ゲーム完走、Chromium4画面の通信復旧・退出テストも継続合格。
+- Google Sites単体HTML研究版へ検査を組み込み。**学校公開版／現行のFirebase Rules／mainの公開版は変更なし**。
+
 ## Phase 9｜4ゲーム「COM／友達対戦」共通メニュー（2026-10-25）
 
 - [統合ランチャー詳細](docs/ONLINE_COLLECTION_PHASE9_2026-10-25.md)。ババ抜き・七並べ・神経衰弱・大富豪それぞれに「COMと遊ぶ」「友達と遊ぶ」の入口を追加した**独立した開発用の単一HTML**。学校版や従来のCOM版を上書きせず、既存ゲームエンジンをインライン化して再利用。
