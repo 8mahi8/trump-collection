@@ -17,7 +17,7 @@ function plannedLegacyPermission(permission,legacyExpiryDate){
   throw Error('LEGACY_EXPIRY_DATE_MUST_BE_YYYY_MM_DD');
  const iso=legacyExpiryDate+'T00:00:00+09:00';
  const newExpiry=Date.parse(iso);
- if(!Number.isSafeInteger(newExpiry)||new Date(newExpiry).toLocaleDateString('en-CA',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'})!==legacyExpiryDate)
+ if(!Number.isSafeInteger(newExpiry)||new Date(newExpiry+9*60*60*1000).toISOString().slice(0,10)!==legacyExpiryDate)
   throw Error('INVALID_LEGACY_EXPIRY_DATE');
  if(newExpiry<=previousExpiry||newExpiry-previousExpiry>90*24*60*60*1000)
   throw Error('LEGACY_EXPIRY_EXTENSION_OUT_OF_RANGE');
