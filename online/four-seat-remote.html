@@ -20,6 +20,20 @@ select,input{background:#fafff5;color:#223128}input{max-width:140px}
 .card.back{background:#244879;color:white;font-size:22px}
 #notice{font-size:13px;color:#ffdb80;margin:5px}
 @media (max-height:500px){.card{height:50px;min-width:40px}main{padding:5px}.panel{padding:6px;margin:4px 0}h1{font-size:16px}}
+#chatToggle{background:#d7f4f2}
+#chatPanel{position:fixed;right:8px;bottom:8px;width:min(350px,calc(100vw - 16px));
+ max-height:min(68vh,470px);z-index:20;background:#133e30;border:2px solid #97d2b5;
+ border-radius:12px;box-shadow:0 8px 28px #071f19;padding:9px;display:flex;flex-direction:column;gap:6px}
+#chatPanel[hidden]{display:none}
+#chatList{min-height:95px;max-height:230px;overflow-y:auto;overscroll-behavior:contain;
+ background:#082e21;border-radius:8px;padding:6px;overflow-wrap:anywhere;font-size:13px}
+.chat-msg{margin:5px 0;line-height:1.35}
+.chat-name{font-weight:800;color:#ffda7d;margin-right:6px}
+#chatCompose{display:flex;gap:4px}
+#chatInput{flex:1;min-width:0;max-width:none}
+#chatSend{flex:none}
+#chatStatus{font-size:12px;color:#ffdc8b;min-height:14px}
+@media(max-height:460px){#chatPanel{max-height:74vh}#chatList{max-height:110px;min-height:50px}}
 </style></head><body><main>
 <h1>🃏 トランプコレクション｜4人オンライン研究版</h1>
 <small>開発用のFirebase4人対戦ページ。<strong>Firebase接続先が未設定の間は部屋を作成できません。</strong> 学校のGoogle Sites版・公開版は変更せず、実機試験前の開発用として使います。ページを再読み込みした場合は、新しい部屋を作り直してください。</small>
@@ -27,9 +41,15 @@ select,input{background:#fafff5;color:#223128}input{max-width:140px}
 <button id="create">部屋を作る</button><input id="code" placeholder="5桁番号" maxlength="5" inputmode="numeric"><button id="join">参加</button>
 <div id="status" role="status">ゲームを選んで部屋作成、友達は5桁の番号で参加</div></div>
 <div id="lobby" class="panel" hidden><div id="notice" role="status"></div><div>部屋 <span id="roomCode"></span> <span id="role"></span> <span id="roster"></span></div>
-<button id="ready">準備する</button><button id="start">全員準備OK → 開始</button><button id="rematch">再戦</button><button id="leave">退出・部屋を作り直す</button></div>
+<button id="ready">準備する</button><button id="start">全員準備OK → 開始</button><button id="rematch">再戦</button><button id="leave">退出・部屋を作り直す</button><button id="chatToggle" type="button" aria-expanded="false">💬 チャット</button></div>
 <div id="match" class="panel" hidden><div id="state" class="mini"></div><div id="board"></div><div id="hand"></div><div id="actions"></div></div>
-</main><script type="module">
+</main>
+<section id="chatPanel" aria-label="ルーム内チャット" hidden>
+ <div style="display:flex;justify-content:space-between;align-items:center"><strong>💬 ルーム内チャット</strong><button id="chatClose" type="button">閉じる</button></div>
+ <div id="chatList" role="log" aria-live="polite" aria-relevant="additions text"></div>
+ <form id="chatCompose"><input id="chatInput" maxlength="120" autocomplete="off" aria-label="チャットメッセージ" placeholder="メッセージ（120文字まで）"><button id="chatSend" type="submit">送信</button></form>
+ <div id="chatStatus" role="status"></div>
+</section><script type="module">
 import {createFirebaseAnonymousAuth,createFirebaseRoomStore} from './firebase-room-store.mjs';
 import {validateFirebaseConfig} from './firebase-dedicated-guard.mjs';
 import {nextFirebasePollDelay} from './firebase-poll-policy.mjs';
@@ -53,12 +73,16 @@ let session=0,auth=null,store=null,hostRunner=null,guestRunner=null;
 let roomCode='',game='',mySeat=-1,isHost=false,publicState=null,privateState=null;
 let busy=false,pendingAction='',failCount=0,selected=new Set(),lastRender='',online=true;
 let tickTimer=null,pollWorking=false,lastPollStatus='waiting_for_host';
+let chatOpen=false,chatSending=false,chatLoading=false,chatLastPoll=0,chatSeq=0;
 const stateName=()=>isHost?'host':guestRunner?'guest':'menu';
 
 function status(message){$('status').textContent=message;}
 function setupInfo(message){$('notice').textContent=message;}
 function clear(){
  session++;clearTimeout(tickTimer);tickTimer=null;
+ chatOpen=false;chatLoading=false;chatSending=false;chatLastPoll=0;chatSeq=0;
+ $('chatPanel').hidden=true;$('chatToggle').setAttribute('aria-expanded','false');
+ $('chatList').replaceChildren();$('chatInput').value='';$('chatStatus').textContent='';
  hostRunner=guestRunner=null;roomCode='';publicState=privateState=null;
  mySeat=-1;isHost=false;busy=false;pendingAction='';failCount=0;lastPollStatus='waiting_for_host';selected.clear();lastRender='';
  $('lobby').hidden=true;$('match').hidden=true;
@@ -208,6 +232,7 @@ async function poll(epoch){
     }
    }
    render();
+   if(chatOpen&&Date.now()-chatLastPoll>2500)void refreshChat();
   }else{
    online=false;lastPollStatus=result.status;
    status(result.status==='waiting_for_host'?'ホストの入室承認を待っています…':
@@ -249,6 +274,63 @@ async function send(type,extra={}){
   busy=false;status('操作を送れません：'+describe(err));render();
  }
 }
+function setChatOpen(open){
+ chatOpen=Boolean(open);
+ $('chatPanel').hidden=!chatOpen;
+ $('chatToggle').setAttribute('aria-expanded',String(chatOpen));
+ if(chatOpen){chatLastPoll=0;void refreshChat();$('chatInput').focus();}
+}
+async function refreshChat(){
+ if(!chatOpen||chatLoading||!store||!roomCode||mySeat<0)return;
+ const epoch=session,room=roomCode;
+ chatLoading=true;chatLastPoll=Date.now();
+ try{
+  const raw=await store.chat(room)||{};
+  if(epoch!==session||!chatOpen||room!==roomCode)return;
+  const entries=[];
+  for(const [author,slots] of Object.entries(raw)){
+   if(!slots||typeof slots!=='object')continue;
+   for(const m of Object.values(slots)){
+    if(!m||m.uid!==author||typeof m.text!=='string'||
+       !Number.isSafeInteger(m.seq)||!Number.isFinite(m.sentAt))continue;
+    entries.push(m);
+   }
+  }
+  entries.sort((a,b)=>a.sentAt-b.sentAt||a.uid.localeCompare(b.uid)||a.seq-b.seq);
+  const log=$('chatList'),bottom=log.scrollHeight-log.scrollTop-log.clientHeight<28;
+  log.replaceChildren();
+  for(const m of entries.slice(-40)){
+   const line=document.createElement('div');line.className='chat-msg';
+   const author=document.createElement('span');author.className='chat-name';
+   author.textContent=m.uid===store.uid?'自分':'友達 '+m.uid.slice(-3);
+   const content=document.createElement('span');content.textContent=m.text;
+   line.append(author,content);log.appendChild(line);
+  }
+  if(bottom)log.scrollTop=log.scrollHeight;
+  $('chatStatus').textContent='';
+ }catch(e){
+  if(epoch===session&&chatOpen)$('chatStatus').textContent='チャットを取得できません：'+describe(e);
+ }finally{chatLoading=false;}
+}
+async function sendChat(event){
+ event.preventDefault();
+ const text=$('chatInput').value.trim();
+ if(!text||text.length>120||chatSending||!store||!roomCode||mySeat<0)return;
+ if(!online){$('chatStatus').textContent='通信の復帰を待っています';return;}
+ const epoch=session,room=roomCode;
+ chatSending=true;$('chatSend').disabled=true;
+ try{
+  await store.sendChat(room,text,++chatSeq);
+  if(epoch!==session||room!==roomCode)return;
+  $('chatInput').value='';chatLastPoll=0;
+  await refreshChat();
+ }catch(e){
+  if(epoch===session)$('chatStatus').textContent='送信できません：'+describe(e);
+ }finally{chatSending=false;$('chatSend').disabled=false;}
+}
+$('chatToggle').onclick=()=>setChatOpen(!chatOpen);
+$('chatClose').onclick=()=>setChatOpen(false);
+$('chatCompose').onsubmit=sendChat;
 function appendText(parent,text,className=''){
  const item=document.createElement('span');item.textContent=text;if(className)item.className=className;parent.appendChild(item);return item;
 }
