@@ -88,8 +88,12 @@ export function createFirebaseRoomGuest({store,roomCode,game,actionIdSource}){
     const meta=await store.meta(roomCode);
     if(!meta||meta.game!==game||meta.protocol!==2)throw Error('ROOM_NOT_FOUND_OR_WRONG_GAME');
     try{await store.requestSeat(roomCode);}catch(e){
-      // Repeating the original join request is safe if the key already exists.
       if(e.code!=='ALREADY_EXISTS'&&e.code!=='PERMISSION_DENIED')throw e;
+      // A denial is only an idempotent retry if the request was already
+      // recorded or this UID already owns a seat. Never mask real rule errors.
+      if(await store.seat(roomCode)===true)return;
+      if(await store.ownJoinRequest(roomCode)===true)return;
+      throw e;
     }
   }
   async function poll(){
