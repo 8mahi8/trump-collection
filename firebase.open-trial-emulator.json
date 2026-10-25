@@ -1,0 +1,8 @@
+{
+  "database": {"rules":"tests/fixtures/owner-reported-open-root.example.rules.json"},
+  "emulators": {
+    "database": {"host":"127.0.0.1","port":9000},
+    "ui": {"enabled":false}
+  },
+  "singleProjectMode":true
+}
