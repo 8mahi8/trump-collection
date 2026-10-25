@@ -1,5 +1,7 @@
 # 引き継ぎ資料 — トランプコレクション
 
+> **最新の短縮版引き継ぎ（2026-10-25）:** [docs/HANDOFF_CURRENT_2026-10-25.md](docs/HANDOFF_CURRENT_2026-10-25.md)。次のチャットではこちらを最優先し、以下の古い作業記録で上書きしないでください。
+
 ## 2026-10-25｜Phase 13：共有Firebase接続先の対応（最新）
 
 オーナーが既存Firebaseの再利用を希望。**以前の『別プロジェクト必須』ガードは撤回し、既存の `mygame-df915` の正しいデフォルトRTDB URLも設定形式として受け付ける実装へ更新**。`online/firebase-dedicated-guard.mjs` は互換ファイル名のまま `validateFirebaseConfig` を公開（旧名はエイリアス）。`dev/check-firebase-config.mjs` と単一HTML／統合ランチャーも対応。別DBへの向け間違い・偽装URLを拒否。
