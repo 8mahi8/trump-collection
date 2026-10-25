@@ -23,6 +23,16 @@
 - **本番Firebase設定はあえて未設定**。3つの4人対戦は、本番Rulesが権限分離されていない状態で実DBへ接続すると手札が漏れるおそれがあるため、無断で接続・公開しない。神経衰弱は以前から身内向け公開Broadcast試作。
 - Google Sitesの貼り付け上限や学校実機でのパフォーマンス、公開版差し替えは**まだ検証していない**。このファイルが作れたことをもって「学校公開済み」としない。
 
+## 最終CI実績
+
+**[GitHub Actions #40205548624：全工程成功](https://github.com/8mahi8/trump-collection/actions/runs/40205548624)**
+
+- Node **98/98件合格**。保存済みの`dist/trump-collection-integrated-lab.html`と最新ビルドが**完全一致**する追加テストも通過。
+- **Google Sites風の神経衰弱2端末テスト**はChromium・WebKitの両方で成功（同ルーム入室→双方READY→開始→カード同期→HTML安全表示のチャット→終了通知）。
+- Firebase Auth/RTDB Emulatorのババ抜き・七並べ・大富豪の**4端末×3ゲーム**の参加／初手同期／退出とホスト通信復帰は両エンジンで成功。チャットの本人／部外者権限検査も従来どおり通過。
+- 既存共有Rules Emulator、4ルート局所化Rules Emulator、12月8日期限延長の仮案のRules Emulatorを全て成功。
+- これはGitHub Actionsでのテスト成果であり、本番Firebase・Supabase、学校Google Sites実体やiPad実機の検証ではない。
+
 ## 開発の次のゲート
 1. 旧4ゲームの実ルーム領域（現在コードで確認した4パス以外が無いか）をチェック。
 2. 既存のルート全体に対する期限付きFirebase Rules（2026-11-08）について、バックアップ／本人承認のうえで本番変更。現在は移行案のエミュレーター合格のみ。
