@@ -89,8 +89,21 @@ try{
    if(game==='babanuki'){
     await actor.locator('#board button.card.back').first().click();
    }else if(game==='shichinarabe'){
-    if(priv.legalIds?.length)await actor.locator('.hand-cards button:not([disabled])').first().click();
-    else await actor.locator('#actions button').filter({hasText:'パス'}).click();
+    if(priv.legalIds?.length){
+     // Regression: tapping a card selects it; only the confirmation button plays it.
+     await actor.evaluate(id=>{
+      const hand=TCFourRemote.privateView.hand;
+      const n=hand.findIndex(c=>(c.joker?'JK':c.suit+'-'+c.rank)===id);
+      if(n<0)throw Error('Missing legal card: '+id);
+      document.querySelectorAll('.hand-cards button.card')[n].click();
+     },priv.legalIds[0]);
+     const confirm=actor.locator('#actions button').filter({hasText:'選択カードを出す'});
+     assert.equal(await confirm.isDisabled(),false);
+     await actor.waitForTimeout(250);
+     assert.equal(await actor.evaluate(()=>TCFourRemote.view.revision),before,
+      'Seven must not advance from card selection alone');
+     await confirm.click();
+    }else await actor.locator('#actions button').filter({hasText:'パス'}).click();
    }else{
     const moves=priv.legalMoves||[];
     if(moves.length){
