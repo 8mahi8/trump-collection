@@ -30,5 +30,13 @@ jobs:
           java-version: '21'
       - name: Node logic and mock transport regression tests
         run: node --test tests/*.test.mjs
-      - name: Emulator authentication + database authorization and full matches
-        run: npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.emulator.json --only auth,database "node --test tests/firebase-emulator.e2e.mjs"
+      - name: Build standalone Google Sites compatible four-player HTML
+        run: node dev/build-online-html.mjs
+      - name: Prepare Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Browser UI smoke test (offline config guard)
+        run: node dev/verify-online-browser.mjs
+      - name: Emulator authorization and four-browser UI integration
+        run: npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.emulator.json --only auth,database "node --test tests/firebase-emulator.e2e.mjs && TC_BROWSER_EMULATOR=1 node dev/verify-online-browser.mjs"
