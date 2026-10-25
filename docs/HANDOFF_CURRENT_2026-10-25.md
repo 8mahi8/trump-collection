@@ -7,7 +7,7 @@
 
 - [詳細](PHASE22_SITES_PACKAGE_AND_TWO_DEVICE_MEMORY_2026-10-26.md)。**4ゲーム統合HTMLを開発ブランチの `dist/trump-collection-integrated-lab.html` に保存**（約201KB、COM4種・友達Firebase3種・神経衰弱Supabase・チャット・退出）。`tests/collection-launcher.test.mjs`で**最新ソースの再ビルド結果と保存ファイルの完全一致をCI検査**。設定未投入のFirebase4人対戦は依然として本番に接続できない。
 - `dev/verify-memory-peers.mjs`新設：2つの独立した800×450 Google Sites風二重iframeで、**ホストがルーム生成→ゲスト参加→双方READY→ゲーム開始→1枚めくると相手に同期→チャット送受信→ホスト退出通知**までテスト。Supabase Phoenix WebSocketを**ローカル模擬relay**で再現。本番Supabaseへは送信しない。
-- Chromium・WebKitの両エンジンで独立してテスト、GitHub ActionsのCIへ追加。古い4人Firebase Emulator・Rulesテストも継続。
+- **[最終CI #40205548624 成功](https://github.com/8mahi8/trump-collection/actions/runs/40205548624)：Node98/98（保存HTMLの完全一致検査を含む）、Chromium＋WebKitの独立2端末神経衰弱、Firebase4端末×3ゲーム、共有Rules／局所化Rules／延長案Rulesのすべて合格**。古い4人Firebase Emulator・Rulesテストも継続。
 - **学校iPadでのFirebase通信自体はユーザーがBRAWL／小国戦線III／LEMON CLASH等で成功を報告済み**。ただしトランプ独自実装の学校実機試験ではない。今後は通信方式統一などの大変更より、完成・最終実機検査を優先。
 - **未着手の本番変更**：Firebaseの11/8 Rules期限／トランプ専用権限、匿名Auth、実学校版貼付。本人承認なしに既存ゲーム／学校サイト／mainを変えない。
 
@@ -91,7 +91,7 @@
 - GitHub: https://github.com/8mahi8/trump-collection
 - 開発ブランチ: `dev/quality-and-ui-v1-5-20261024`
 - Draft PR: https://github.com/8mahi8/trump-collection/pull/1
-- 最新確認済み GitHub Actions 成功: https://github.com/8mahi8/trump-collection/actions/runs/40204364048 （**Node 97/97件合格**）。CIは Firebase Local Emulator と Chromium **および WebKit** を使用。本番Firebase／学校iPad実機での合格ではない。
+- 最新確認済み GitHub Actions 成功: https://github.com/8mahi8/trump-collection/actions/runs/40205548624 （**Node 98/98件合格**、2端末神経衰弱＋4端末Firebase＋全Rules回帰）。。CIは Firebase Local Emulator と Chromium **および WebKit** を使用。本番Firebase／学校iPad実機での合格ではない。
 - `main/index.html` は公開COM版 **v1.4.0**、開発ブランチの`index.html`はCOM版 **v1.5.5**。本人承認なしに公開・学校Google Sites版を上書きしない。
 
 ## ゲーム仕様・完成状況
