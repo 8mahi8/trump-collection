@@ -12,6 +12,10 @@
 - 新ゲーム追加は原則として既存カードゲームのルールに基づく。独自に複雑化するより、分かりやすく何度も遊べることを優先。
 - 既存ゲームの著作権・商標を尊重し、独自アート・名称を使用。過去の引き継ぎで「UNO」の名称・デザイン不使用は確定済み。
 
+## Phase 12｜既存Firebase共有の方針と実験結果（2026-10-25）
+
+新規Firebase作成必須を撤回。既存学校ゲームと**同じFirebase**の別パス`trumpRoomsV1`を共有することを第一候補とする。既存Rulesのオフライン合成とエミュレーター上の旧ゲーム権限維持・3種の4人対戦完走が成功（[CI #40180826430](https://github.com/8mahi8/trump-collection/actions/runs/40180826430)、Node84/84）。[共有Rules作業手順](../firebase/SHARED_DATABASE_RULES.md)。ただし現在の本番Rulesは未確認。**本番接続、既存Rules反映、学校公開版更新は未実施**。本番Rulesが不適切な場合は別の方法を検討する。
+
 ## Phase 10｜安全なFirebase専用接続の準備（2026-10-25）
 
 トランプ専用Spark Firebaseを別プロジェクトとして使う方針を確定。接続前のプロジェクト名・RTDBアドレス・Web APIキーの一致検査を実装。既存ゲーム`mygame-df915`への接続を拒否する。**本番プロジェクトの作成・接続・Rulesデプロイは未実施**。[専用プロジェクトのセットアップ手順](../firebase/DEDICATED_SPARK_SETUP.md)。[自動検証73/73成功](https://github.com/8mahi8/trump-collection/actions/runs/40176489466)。次は本人の操作を最小限に、専用Firebaseプロジェクトを作成できる段階になった際の実Auth/RTDB通信試験と無料枠監視。学校版はまだ変更しない。
