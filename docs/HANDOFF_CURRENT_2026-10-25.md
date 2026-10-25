@@ -15,6 +15,14 @@
 - **重要な限界**：現行のRoot公開ルールでは、アプリの画面で隠れた他人の手札やチャットも外部のRTDB APIから読み書き可能で、ルーム番号はアクセス制御にならない。個人情報をチャットへ入力しないこと。**11月8日0時JSTのルール失効には試遊モードでも別途対応が必要**。新モードは正式に非公開手札を保証するものではない。
 - ユーザーの出番は実際に学校Google SitesへHTML全文を貼り付けるタイミングから。Firebase本番ルール・匿名Authの変更、既存ゲーム・学校公開版・mainの改変は行っていない。
 
+## Phase26（2026-10-26）｜現行公開ルールで遊ぶ学校試遊HTMLの生成・検証完了
+
+- [試遊向け詳細と注意点](PHASE26_SCHOOL_TRIAL_CANDIDATE_2026-10-26.md)。**学校Google Sitesへ直接貼り付ける単一HTML `dist/trump-collection-open-root-trial.html` を開発ブランチに保存**。COM4ゲーム・友達対戦4ゲーム（Firebase 4人×3ゲーム、Supabase神経衰弱2人）・ルーム内チャットを含む。`tests/open-root-trial.test.mjs`はこの保存HTMLと最新ビルドの**完全一致**を検証。
+- **本番ルールを変えずに試す短期モード**：既存 `mygame-df915` の公開RTDBルールが報告どおり有効な間、**Firebase Anonymous Authを使わず**端末ごとのランダムUIDで4人対戦を試せる。UIに手札／チャットが公開DB上では秘匿されない旨を表示。privateや部屋データはDB URLを知る第三者に読み書きされうるため、個人情報や秘密情報を入力しない。通常の認証付き開発版は別のHTMLとして維持。
+- **[最終CI #40210764826 全工程成功](https://github.com/8mahi8/trump-collection/actions/runs/40210764826)**：Node **106/106**、Google Sites風二重iframeでFirebase通常版・今回試遊版の4人対戦・READY・チャット・退出が**Chromium＋WebKit両方成功**、神経衰弱2人も両エンジン成功、従来3ゲームFirebaseエミュレーター／既存ゲーム共存Rulesも成功。**本番DBには接続していない**。
+- 校内の実公開版・Firebase本番Rules/Auth/DBは変更なし。試遊HTMLを作成したことは学校公開済みを意味しない。次に必要なのは本人による**別のGoogle Sites試験ページへのコード全文貼り付け＋学校iPad同士での実機確認**。ここで初めて実Firebase接続の可否が確定する。
+- **ユーザー方針**：今はルールを変えない。本人報告のルール期限は**2026-11-08 00:00 JST**、切れる前に延長等が必要。トランプ開発を止めて過剰な不正防止を実装しない。
+
 ## Phase24（2026-10-26）｜二重Google Sites iframe上のFirebase4人試験に合格
 
 - 直近の唯一の新規ブロッカーだった`dev/verify-configured-sites-emulator.mjs`の**実Firebase模擬設定付き・外側Google Sites sandbox＋内側srcdoc**の試験を修正。入室成功→ルーム番号の描画を待機→4人全員のREADY反映を順番に確認→開始→チャット→ホスト退出のテストが**Chromium/WebKit両エンジンで成功**。 [CI #40208972686](https://github.com/8mahi8/trump-collection/actions/runs/40208972686)（**全工程成功：Node103/103、Chromium/WebKitの4人Firebase二重iframe、2人Supabaseモック、旧Rulesエミュレーター回帰すべて合格**）。
