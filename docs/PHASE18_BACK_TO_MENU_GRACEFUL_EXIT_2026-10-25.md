@@ -24,4 +24,6 @@
 
 ## リリースゲート
 
-CIのChromium／WebKit／Firebase Emulator完走まで開発版として扱う。実際の学校Google Sites版更新には本人の試遊・承認が必要。
+**[Actions #40200557612](https://github.com/8mahi8/trump-collection/actions/runs/40200557612)：成功**。Node 93/93件合格。Chromium／WebKit両方で4ゲーム×COM/友達8入口、Google Sites風二重iframeの切替・オンライン退出ACK・子無応答の時間制限、Firebase Emulator4端末×3ゲームの同期とホスト／ゲスト退出＋通信断復帰、合成した既存ゲーム共用Rulesのアクセス制御をすべて確認。
+
+**残る未検証：** 実Firebaseサービス、実Google Sites埋込、旧学校iPad Safari。実際のGoogle Sites版更新には本人の試遊・承認が必要。
