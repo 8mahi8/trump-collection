@@ -72,13 +72,17 @@ try{
  sitesPage.on('pageerror',err=>errors.push('Google Sites sandbox: '+err.message));
  // Intercept the Memory Match Supabase socket in Playwright: no production
  // Supabase connection or room traffic is allowed in these browser tests.
- const memoryPackets=[];
+ const memoryPackets=[],memorySockets=[];
  await sitesPage.routeWebSocket('**/realtime/v1/websocket**',socket=>{
+  const remote={socket,topic:''};
+  memorySockets.push(remote);
   socket.onMessage(raw=>{
    let packet;
    try{packet=JSON.parse(raw);}catch{return;}
-   if(packet.event==='phx_join')
+   if(packet.event==='phx_join'){
+    remote.topic=packet.topic;
     socket.send(JSON.stringify({topic:packet.topic,event:'phx_reply',ref:packet.ref,payload:{status:'ok'}}));
+   }
    if(packet.event==='heartbeat')
     socket.send(JSON.stringify({topic:'phoenix',event:'phx_reply',ref:packet.ref,payload:{status:'ok'}}));
    if(packet.event==='broadcast')memoryPackets.push(packet.payload?.payload);
@@ -156,6 +160,23 @@ try{
   assert.equal(await sites.locator('#choices').evaluate(()=>window.__returnAcks),expectedAcks);
   assert.ok(memoryPackets.some(p=>p?.kind==='player_left'&&p.roomCode==='54321'),
     'Supabase guest must announce departure before leaving the iframe');
+
+  // The friend must also see a useful message if the host terminates play.
+  await sites.locator('[data-game="shinkei"]').click();
+  await sites.locator('#friends').click();
+  memory=sites.frameLocator('#play');
+  await memory.locator('#code').fill('54321');
+  await memory.locator('#join').click();
+  await memory.locator('#status').getByText('通信接続OK',{exact:false}).waitFor({timeout:12000});
+  const remote=memorySockets.at(-1);
+  assert.match(remote?.topic||'',/trump-memory-friends-v1-54321$/);
+  remote.socket.send(JSON.stringify({topic:remote.topic,event:'broadcast',
+    payload:{event:'trump-memory-event-v1',
+      payload:{kind:'room_closed',protocol:1,roomCode:'54321',actor:'mock-host'}}}));
+  await memory.locator('#status').getByText('ホストが部屋を終了しました',{exact:false}).waitFor({timeout:12000});
+  assert.equal(await memory.locator('#lobby').isVisible(),false);
+  await sites.locator('#back').click();
+  await sites.locator('#viewer:not(.open)').waitFor({state:'attached',timeout:12000});
 
   await sites.locator('[data-game="shichinarabe"]').click();
   await sites.locator('#com').click();
