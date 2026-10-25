@@ -82,7 +82,10 @@ async function connectAuth(){
  if(!CONFIG.apiKey||!CONFIG.databaseURL)throw Error('FIREBASE_CONFIG_MISSING');
  // The emulator injects a fake transport. Real network access requires
  // a clearly named, separately created Trump Firebase project and matching DB.
- if(!window.TRUMP_FIREBASE_TEST_FETCH)validateDedicatedFirebaseConfig(CONFIG);
+ const emulatorTransport=Boolean(window.TRUMP_FIREBASE_TEST_FETCH);
+ if(emulatorTransport&&!['127.0.0.1','localhost'].includes(location.hostname))
+   throw Error('FIREBASE_TEST_TRANSPORT_FORBIDDEN');
+ if(!emulatorTransport)validateDedicatedFirebaseConfig(CONFIG);
  if(!auth){
   const opts={apiKey:CONFIG.apiKey};
   // Only used by local CI pages, never on GitHub Pages.
@@ -148,6 +151,7 @@ function describe(e){
   FIREBASE_CONFIG_MISSING:'Firebase接続先が未設定（開発用画面）',
   FIREBASE_DEDICATED_PROJECT_REQUIRED:'トランプ専用の別Firebaseプロジェクト設定が必要',
   FIREBASE_PROJECT_DATABASE_MISMATCH:'Firebaseプロジェクト名とDBアドレスが一致しません',
+  FIREBASE_TEST_TRANSPORT_FORBIDDEN:'テスト用の通信設定はローカルの検証環境でのみ使用可能です',
   UNEXPECTED_FIREBASE_CONFIG_FIELD:'接続設定に許可されていない項目があります',
   ROOM_CODE_REQUIRED:'5桁の番号を入力してね',ROOM_NOT_FOUND:'ルームが見つかりません',
   ROOM_CODE_COLLISION:'部屋番号が混雑しています。もう一度作成',
