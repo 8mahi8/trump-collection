@@ -1,10 +1,10 @@
-// Offline-only checker for a NEW, isolated Spark Firebase project.
+// Offline-only config shape checker for dedicated or existing school Firebase.
 // Usage: node dev/check-firebase-config.mjs path/to/web-config.json
 // No remote reads/writes, logins, deployments or secret printing.
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {resolve} from 'node:path';
-import {validateDedicatedFirebaseConfig} from '../online/firebase-dedicated-guard.mjs';
+import {validateFirebaseConfig} from '../online/firebase-dedicated-guard.mjs';
 
 export function checkFirebaseConfigFile(file){
  if(!file||typeof file!=='string')throw Error('CONFIG_FILE_REQUIRED');
@@ -16,7 +16,7 @@ export function checkFirebaseConfigFile(file){
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  try{
   const result=checkFirebaseConfigFile(process.argv[2]);
-  console.log('PASS: dedicated Firebase web-config shape only (OFFLINE)');
+  console.log('PASS: Firebase web-config shape only (OFFLINE; live Rules NOT checked)');
   console.log('Project:',result.projectId,'Database hostname:',result.dbHost);
   console.log('No authentication, database access, rules deployment or billing checks were performed.');
  }catch(e){
