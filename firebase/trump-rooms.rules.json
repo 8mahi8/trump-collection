@@ -83,7 +83,7 @@
           }
         },
         "closed": {
-          ".read": "auth !== null && root.child('trumpRoomsV1/' + $room + '/seats/' + auth.uid).val() === true",
+          ".read": "auth !== null",
           ".write": "auth !== null && auth.uid === root.child('trumpRoomsV1/' + $room + '/meta/hostUid').val() && !data.exists() && newData.exists()",
           ".validate": "newData.hasChildren(['reason']) && (newData.child('reason').val() === 'host_left' || newData.child('reason').val() === 'player_left')",
           "$other": {
