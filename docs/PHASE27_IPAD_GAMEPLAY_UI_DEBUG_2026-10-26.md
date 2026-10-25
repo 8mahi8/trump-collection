@@ -21,7 +21,7 @@
 
 ## 自動テスト実績
 - [Actions #40212479567](https://github.com/8mahi8/trump-collection/actions/runs/40212479567) は**全工程成功**（Node106/106・通常認証版4人二重iframe＋現行公開ルール試遊版3ゲーム×両エンジンも各工程合格）。
-- **タッチタップ版**の [Actions #40212870356](https://github.com/8mahi8/trump-collection/actions/runs/40212870356) でも、**通常版ババ抜き＋試遊版ババ抜き・七並べ・大富豪のChromium/WebKitすべてが合格**。全CI最終ステータスは別途確認。
+- **[タッチタップ版最終CI #40212870356：全工程成功](https://github.com/8mahi8/trump-collection/actions/runs/40212870356)**。Node **106/106**、通常版ババ抜き＋試遊版ババ抜き・七並べ・大富豪のChromium/WebKit **全8ケースでタッチ操作→全員同期→チャット→退出が合格**。神経衰弱2ブラウザ、3ゲームのEmulator完走・通信復帰、既存Rules共存も全て合格。
 
 ## 最終的に残る現実の検証
 1. **学校の実iPad Safari＋実Google Sites埋め込み**で4人入室・カード表示・タップ・チャットを行う。PlaywrightだけではiPadのOS／学校ネットワーク／実Google Sitesの振る舞いを完全には再現できない。
