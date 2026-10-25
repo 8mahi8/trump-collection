@@ -827,35 +827,36 @@ function createFirebaseRoomStore({databaseURL,auth,fetchImpl=globalThis.fetch}){
   };
 }
 
-// Browser-safe preflight for the friends-only trump collection.
-// Prevents accidentally connecting to the other school games' Firebase RTDB.
-// This does NOT prove a project is otherwise unused; its setup must still be
-// reviewed in Firebase Console. No secrets or network calls here.
-const NAME=/^trump-collection-[a-z0-9-]{3,25}$/;
-const API=/^[A-Za-z0-9_-]{8,200}$/;
-const BLOCKED=new Set(['mygame-df915']);
-function validateDedicatedFirebaseConfig(config){
-  if(!config||typeof config!=='object')throw Error('FIREBASE_CONFIG_MISSING');
-  const {projectId,apiKey,databaseURL}=config;
-  if(typeof projectId!=='string'||!NAME.test(projectId)||projectId.endsWith('-')||BLOCKED.has(projectId))
-    throw Error('FIREBASE_DEDICATED_PROJECT_REQUIRED');
-  if(typeof apiKey!=='string'||!API.test(apiKey))throw Error('INVALID_FIREBASE_API_KEY');
-  if(typeof databaseURL!=='string')throw Error('INVALID_DATABASE_URL');
-  let u;
-  try{u=new URL(databaseURL);}catch{throw Error('INVALID_DATABASE_URL');}
-  if(u.protocol!=='https:'||u.username||u.password||u.port||u.search||u.hash||
-     (u.pathname!==''&&u.pathname!=='/'))throw Error('INVALID_DATABASE_URL');
-  const host=u.hostname.toLowerCase();
-  const db=projectId+'-default-rtdb';
-  const validHost=host===db+'.firebaseio.com'||
-    (host.startsWith(db+'.')&&/^[-a-z0-9]+\.firebasedatabase\.app$/.test(host.slice(db.length+1)));
-  if(!validHost)throw Error('FIREBASE_PROJECT_DATABASE_MISMATCH');
-  // Do not accept arbitrary properties or admin credentials in browser config.
-  const keys=Object.keys(config);
-  if(keys.some(k=>!['projectId','apiKey','databaseURL'].includes(k)))
-    throw Error('UNEXPECTED_FIREBASE_CONFIG_FIELD');
-  return Object.freeze({projectId,apiKey,databaseURL:u.origin});
+// Browser-side shape validation, NOT proof of live Firebase RTDB Rules.
+// Shared Firebase may be used only after checking the deployed Rules against
+// firebase/SHARED_DATABASE_RULES.md. RTDB Rules (not this code) enforce privacy.
+const DEDICATED=/^trump-collection-[a-z0-9-]{3,25}$/;
+const SHARED='mygame-df915';
+const WEB_KEY=/^[A-Za-z0-9_-]{8,200}$/;
+function validateFirebaseConfig(config){
+ if(!config||typeof config!=='object'||Array.isArray(config))
+  throw Error('FIREBASE_CONFIG_MISSING');
+ const {projectId,apiKey,databaseURL}=config;
+ const dedicated=typeof projectId==='string'&&DEDICATED.test(projectId)&&!projectId.endsWith('-');
+ if(!dedicated&&projectId!==SHARED)throw Error('FIREBASE_PROJECT_NOT_ALLOWED');
+ if(typeof apiKey!=='string'||!WEB_KEY.test(apiKey))throw Error('INVALID_FIREBASE_API_KEY');
+ if(typeof databaseURL!=='string')throw Error('INVALID_DATABASE_URL');
+ let u;
+ try{u=new URL(databaseURL)}catch{throw Error('INVALID_DATABASE_URL')}
+ if(u.protocol!=='https:'||u.username||u.password||u.port||u.search||u.hash||
+    (u.pathname!==''&&u.pathname!=='/'))throw Error('INVALID_DATABASE_URL');
+ const host=u.hostname.toLowerCase();
+ const db=projectId+'-default-rtdb';
+ const validHost=host===db+'.firebaseio.com'||
+   (host.startsWith(db+'.')&&/^[a-z0-9-]+\.firebasedatabase\.app$/.test(host.slice(db.length+1)));
+ if(!validHost)throw Error('FIREBASE_PROJECT_DATABASE_MISMATCH');
+ if(Object.keys(config).some(k=>!['projectId','apiKey','databaseURL'].includes(k)))
+  throw Error('UNEXPECTED_FIREBASE_CONFIG_FIELD');
+ return Object.freeze({projectId,apiKey,databaseURL:u.origin});
 }
+// Compatibility with existing code and scripts. Despite the old name,
+// shared mygame-df915 is now allowed for the *shape check* only.
+const validateDedicatedFirebaseConfig=validateFirebaseConfig;
 
 // Limit idle RTDB REST polling on older school iPads and Firebase Spark.
 // No timers or state here: callers choose when to schedule a fresh tick.
@@ -926,11 +927,11 @@ function shouldRun(epoch){return epoch===session&&!!guestRunner;}
 async function connectAuth(){
  if(!CONFIG.apiKey||!CONFIG.databaseURL)throw Error('FIREBASE_CONFIG_MISSING');
  // The emulator injects a fake transport. Real network access requires
- // a clearly named, separately created Trump Firebase project and matching DB.
+ // a known Firebase project and exactly matching DB (including the existing school Firebase).
  const emulatorTransport=Boolean(window.TRUMP_FIREBASE_TEST_FETCH);
  if(emulatorTransport&&!['127.0.0.1','localhost'].includes(location.hostname))
    throw Error('FIREBASE_TEST_TRANSPORT_FORBIDDEN');
- if(!emulatorTransport)validateDedicatedFirebaseConfig(CONFIG);
+ if(!emulatorTransport)validateFirebaseConfig(CONFIG);
  if(!auth){
   const opts={apiKey:CONFIG.apiKey};
   // Only used by local CI pages, never on GitHub Pages.
@@ -994,7 +995,7 @@ function describe(e){
  const key=e?.code||e?.message||String(e);
  return ({
   FIREBASE_CONFIG_MISSING:'Firebase接続先が未設定（開発用画面）',
-  FIREBASE_DEDICATED_PROJECT_REQUIRED:'トランプ専用の別Firebaseプロジェクト設定が必要',
+  FIREBASE_PROJECT_NOT_ALLOWED:'トランプ用または確認済みの既存Firebaseプロジェクトを指定してください',
   FIREBASE_PROJECT_DATABASE_MISMATCH:'Firebaseプロジェクト名とDBアドレスが一致しません',
   FIREBASE_TEST_TRANSPORT_FORBIDDEN:'テスト用の通信設定はローカルの検証環境でのみ使用可能です',
   UNEXPECTED_FIREBASE_CONFIG_FIELD:'接続設定に許可されていない項目があります',
