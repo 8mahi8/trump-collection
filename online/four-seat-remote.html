@@ -42,6 +42,9 @@ const $=id=>document.getElementById(id);
 const UI_SUITS=['♠','♥','♦','♣'];
 const CARD_NAMES={1:'A',11:'J',12:'Q',13:'K'};
 const GAMES={babanuki:'ババ抜き',shichinarabe:'七並べ',daifugo:'大富豪'};
+// Launcher-selected game must survive sandboxed Google Sites/nested srcdoc.
+const INITIAL_GAME=window.TRUMP_INITIAL_GAME;
+if(Object.prototype.hasOwnProperty.call(GAMES,INITIAL_GAME))$('game').value=INITIAL_GAME;
 const randomRoom=()=>{const u=new Uint32Array(1);crypto.getRandomValues(u);return String(10000+u[0]%90000)};
 const randomAction=()=>{const u=new Uint32Array(2);crypto.getRandomValues(u);return [...u].map(n=>n.toString(36)).join('-')};
 const uiCardId=c=>c?.joker?'JK':c.suit+'-'+c.rank;
