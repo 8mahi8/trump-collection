@@ -112,7 +112,7 @@ export function createFirebaseRoomGuest({store,roomCode,game,actionIdSource,
   now=Date.now,hostTimeoutMs=15000}){
   if(!store?.uid)throw Error('AUTH_REQUIRED');
   if(typeof actionIdSource!=='function')throw Error('ACTION_ID_SOURCE_REQUIRED');
-  let lastSnapshot=null,lastHostSeq=null,lastHostProgressAt=0;
+  let lastSnapshot=null,lastHostSeq=null,lastHostProgressAt=0,seatConfirmed=false;
   async function requestJoin(){
     const meta=await store.meta(roomCode);
     if(!meta||meta.game!==game||meta.protocol!==2)throw Error('ROOM_NOT_FOUND_OR_WRONG_GAME');
@@ -128,8 +128,14 @@ export function createFirebaseRoomGuest({store,roomCode,game,actionIdSource,
   }
   async function poll(){
     const ended=await store.readClosed(roomCode);
-    if(ended){lastSnapshot=null;return {status:'room_closed',reason:ended.reason};}
-    if(await store.seat(roomCode)!==true){lastSnapshot=null;return {status:'waiting_for_host'};}
+    if(ended){lastSnapshot=null;seatConfirmed=false;return {status:'room_closed',reason:ended.reason};}
+    // A seat can only be granted (never revoked) in this friends-only room.
+    // Once authenticated by RTDB Rules, avoid repeating its GET every poll.
+    // Public/private/heartbeat reads still enforce auth.uid on every request.
+    if(!seatConfirmed){
+      if(await store.seat(roomCode)!==true){lastSnapshot=null;return {status:'waiting_for_host'};}
+      seatConfirmed=true;
+    }
     const [publicView,privateView,pulse]=await Promise.all([
       store.readPublic(roomCode),store.readPrivate(roomCode),store.readHeartbeat(roomCode)]);
     // Compare server-authenticated monotonically increasing heartbeat sequence,
