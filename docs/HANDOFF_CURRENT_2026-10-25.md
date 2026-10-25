@@ -9,7 +9,7 @@
 - 発見した弱点：統合ランチャーの友達対戦で、子`iframe.srcdoc`内のゲーム選択を親`frame.contentDocument`から直接更新していた。Google Sitesの外側sandbox付きiframe下ではアクセス不能なことがあり、**七並べ／大富豪を選んでもババ抜きが起動するリスク**があった。
 - 修正：`online/collection-launcher.template.html`の`configureFriendsGame`が`TRUMP_INITIAL_GAME`を各子ゲームHTMLに直接注入。オンラインUIが起動時に選択ゲームを反映。親DOMアクセスの握りつぶしを廃止。Firebase接続設定なしでも選択が効く。COMは従来の`postMessage`を維持。
 - `dist/trump-collection-online-lab.html`もビルダーと一致するよう再生成、既存COM／オンラインゲームの処理を変更しない。
-- `dev/verify-collection-launcher.mjs`にGoogle Sitesを模した外側`sandbox="allow-scripts allow-forms"`付きiframe＋内側`srcdoc`の二重iframe試験を追加。**Chromium・WebKitともに8入口＋二重iframe選択／COM七並べ起動が合格**。Firebase4人ゲームとRulesの回帰は追加CIを確認。
+- `dev/verify-collection-launcher.mjs`にGoogle Sitesを模した外側`sandbox="allow-scripts allow-forms"`付きiframe＋内側`srcdoc`の二重iframe試験を追加。**Chromium・WebKitともに8入口＋二重iframe選択／COM七並べ起動が合格**。**[Actions #40199559696](https://github.com/8mahi8/trump-collection/actions/runs/40199559696) 成功（Node 93/93、Chromium＋WebKitの二重iframe、Firebase Emulator4画面×3ゲーム、共有Rules／局所化Rules）**。
 - **学校Google Sites公開版・本番Firebase・main未変更。** WebKitはSafari系だが、旧学校iPad実機検証ではない。
 
 ## Phase16（2026-10-25）｜学校Safari系WebKitの対戦試験成功
@@ -48,7 +48,7 @@
 - GitHub: https://github.com/8mahi8/trump-collection
 - 開発ブランチ: `dev/quality-and-ui-v1-5-20261024`
 - Draft PR: https://github.com/8mahi8/trump-collection/pull/1
-- 最新確認済み GitHub Actions 成功: https://github.com/8mahi8/trump-collection/actions/runs/40198456792 （**Node 93/93件合格**）。CIは Firebase Local Emulator と Chromium **および WebKit** を使用。本番Firebase／学校iPad実機での合格ではない。
+- 最新確認済み GitHub Actions 成功: https://github.com/8mahi8/trump-collection/actions/runs/40199559696 （**Node 93/93件合格**）。CIは Firebase Local Emulator と Chromium **および WebKit** を使用。本番Firebase／学校iPad実機での合格ではない。
 - `main/index.html` は公開COM版 **v1.4.0**、開発ブランチの`index.html`はCOM版 **v1.5.5**。本人承認なしに公開・学校Google Sites版を上書きしない。
 
 ## ゲーム仕様・完成状況
