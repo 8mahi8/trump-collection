@@ -8,7 +8,7 @@
 - [実装とリスクの詳細](PHASE20_LEGACY_RULE_EXPIRY_EXTENSION_REVIEW_2026-10-25.md)。オーナー報告の現行Root Rulesは **`now < 1794063600000`、2026-11-08 00:00 JST失効**。そのままでは旧ゲームが停止する恐れがある。
 - `dev/plan-open-root-migration.mjs`に、明示的な`--legacy-expiry-date 2026-12-08`を渡した場合だけ、**確認済み旧ゲーム4ルート**のread/write期限を **12月8日00:00 JST（30日延長）**へ変えるレビュー専用機能を追加。元の期限のままの既存オプションも維持。延長は**最大90日**、入力が想定外・期限の短縮・不正な日付・Root公開の不一致を拒否。
 - 過去の実Rulesを直接取得したのではなく`tests/fixtures/owner-reported-open-root.example.rules.json`はユーザー報告を模した**合成フィクスチャ**。ルートの権限局所化・トランプprivate Rules維持をテスト。Firebase CLIの本番操作やdeployは実装していない。
-- `firebase.extended-emulator.json`とGitHub Actionsへ既存4旧ルートの匿名読書き・トランプ手札権限と4人戦の追加検査を導入。**本番Rules・Auth・Database・Google Sites・mainは無変更**。
+- `firebase.extended-emulator.json`とGitHub Actionsへ既存4旧ルートの匿名読書き・トランプ手札権限と4人戦の追加検査を導入。**[CI #40202568624](https://github.com/8mahi8/trump-collection/actions/runs/40202568624)成功：Node97/97、Chromium＋WebKitのUI／4端末、元スコープ案と12月8日延長案のFirebase Emulator回帰成功**。**本番Rules・Auth・Database・Google Sites・mainは無変更**。
 - **重要**：確認済みのRTDBパスは旧4領域だが、学校公開版の実利用ルートが網羅される保証はない。元ルール全体のバックアップ、本番実ルール照合、別旧パスの有無、匿名Firebase Auth、本人の**本番変更の明示承認**が次のゲート。旧領域は認証なしの暫定権限で、無期限公開とは異なる。
 - 原則は不正対策よりも**学校iPadで友達と遊べること**。今回の対策はトランプ追加と旧ゲーム停止防止の必要最小限。
 
@@ -73,7 +73,7 @@
 - GitHub: https://github.com/8mahi8/trump-collection
 - 開発ブランチ: `dev/quality-and-ui-v1-5-20261024`
 - Draft PR: https://github.com/8mahi8/trump-collection/pull/1
-- 最新確認済み GitHub Actions 成功: https://github.com/8mahi8/trump-collection/actions/runs/40201651323 （**Node 93/93件合格**）。CIは Firebase Local Emulator と Chromium **および WebKit** を使用。本番Firebase／学校iPad実機での合格ではない。
+- 最新確認済み GitHub Actions 成功: https://github.com/8mahi8/trump-collection/actions/runs/40202568624 （**Node 97/97件合格**）。CIは Firebase Local Emulator と Chromium **および WebKit** を使用。本番Firebase／学校iPad実機での合格ではない。
 - `main/index.html` は公開COM版 **v1.4.0**、開発ブランチの`index.html`はCOM版 **v1.5.5**。本人承認なしに公開・学校Google Sites版を上書きしない。
 
 ## ゲーム仕様・完成状況
