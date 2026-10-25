@@ -49,7 +49,7 @@ export function buildConfiguredSitesHtml({config,reviewedRules}){
 export function buildOpenRootTrialSitesHtml({databaseURL,acknowledgePublicData=false}={}){
  if(acknowledgePublicData!==true)throw Error('PUBLIC_DATABASE_RISK_ACKNOWLEDGEMENT_REQUIRED');
  const exact='https://mygame-df915-default-rtdb.firebaseio.com';
- if(typeof databaseURL!=='string'||databaseURL.replace(/\\/$/,'')!==exact)
+ if(typeof databaseURL!=='string'||(databaseURL.endsWith('/')?databaseURL.slice(0,-1):databaseURL)!==exact)
   throw Error('TRIAL_MUST_USE_CONFIRMED_SCHOOL_DATABASE');
  const config={projectId:'mygame-df915',databaseURL:exact};
  const base=buildCollectionLabHtml();
