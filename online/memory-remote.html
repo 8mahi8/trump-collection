@@ -45,7 +45,7 @@ body.inMatch .tile{border-radius:5px}
   <div id="status" aria-live="polite">ホストで部屋作成 → 別端末から5桁で参加（接続先は検証用Supabase）</div>
 </section>
 <section id="lobby" class="panel">
-  <div class="row"><span>ルーム：<span id="room"></span></span><span id="seat"></span><span id="players"></span></div>
+  <div class="row"><span>ルーム：<span id="room"></span></span><span id="seat"></span><span id="players"></span><button id="leave" class="alt" type="button">退出・部屋を作り直す</button></div>
   <div class="row"><button id="ready">準備OK</button><button id="start">対戦開始</button><button id="again">再戦ロビーへ</button></div>
   <div id="notice"></div>
 </section>
@@ -63,19 +63,53 @@ const PUBLIC_KEY='sb_publishable_Ol0Rsa0xGW2_ItAre-_gcQ_p6ZUGbcN';
 const $=id=>document.getElementById(id), suits=['♠','♥','♦','♣'];
 const token=()=>{if(!crypto?.getRandomValues)throw Error('CRYPTO_UNAVAILABLE');const v=new Uint32Array(3);crypto.getRandomValues(v);return [...v].map(x=>x.toString(36)).join('-')};
 const randomRoom=()=>{const v=new Uint32Array(1);crypto.getRandomValues(v);return String(10000+v[0]%90000)};
-let authority=null,wire=null,currentView=null,code='',isHost=false,actor='',sequence=0,settleTimer=null,heartbeatTimer=null,joinWait=null,connected=false,lastHostAt=0,roomGeneration=0;
+let authority=null,wire=null,currentView=null,code='',isHost=false,actor='',sequence=0,settleTimer=null,heartbeatTimer=null,joinWait=null,connected=false,lastHostAt=0,roomGeneration=0,leaving=false;
 function status(text){$('status').textContent=text}
 function closeRoom(){roomGeneration++;if(wire)wire.stop();wire=null;
  for(const t of [settleTimer,heartbeatTimer,joinWait])clearTimeout(t);
  clearInterval(heartbeatTimer);settleTimer=heartbeatTimer=joinWait=null;
  authority=null;currentView=null;connected=false;lastHostAt=0;}
+// A short best-effort Broadcast gives the other friend an immediate
+// explanation instead of leaving them staring at a frozen room. The WebSocket
+// cannot guarantee delivery if the device has already disconnected.
+function endLocalRoom(message){
+ closeRoom();
+ code='';actor='';isHost=false;
+ document.body.classList.remove('inMatch');
+ $('lobby').style.display='none';
+ $('gameArea').style.display='none';
+ status(message);
+}
+async function leaveMemoryRoom(){
+ if(leaving)return;
+ leaving=true;
+ try{
+  if(wire?.connected&&code){
+   try{
+    wire.send({kind:isHost?'room_closed':'player_left',
+      protocol:ROOM_PROTOCOL,roomCode:code,actor});
+    // Allow the browser to put the broadcast on the socket before closing.
+    await new Promise(resolve=>setTimeout(resolve,160));
+   }catch{}
+  }
+  endLocalRoom('部屋を退出しました。新しい部屋を作って遊べます');
+ }finally{leaving=false;}
+}
 function sendView(){
  if(!authority)return;
  currentView=authority.publicView();render();
  wire?.send({kind:'view',protocol:ROOM_PROTOCOL,roomCode:code,view:currentView});
 }
 function receive(m){
- if(!m||m.protocol!==ROOM_PROTOCOL||m.roomCode!==code)return;
+ if(!m||m.protocol!==ROOM_PROTOCOL||m.roomCode!==code||leaving)return;
+ if(!isHost&&m.kind==='room_closed'){
+  endLocalRoom('ホストが部屋を終了しました。新しい部屋を作って遊べます');
+  return;
+ }
+ if(isHost&&m.kind==='player_left'&&authority?.seatOf(m.actor)===1){
+  endLocalRoom('相手が退出したので対戦を終了しました。新しい部屋を作れます');
+  return;
+ }
  if(isHost&&m.kind==='command'){
    const a=m.action;if(!a||typeof a.actor!=='string')return;
    const result=authority.apply(a);
@@ -146,6 +180,16 @@ $('join').onclick=()=>{
 $('ready').onclick=()=>{if(currentView)send('ready',{ready:!currentView.players[isHost?0:1].ready})};
 $('start').onclick=()=>send('start');
 $('again').onclick=()=>send('rematch');
+$('leave').onclick=()=>leaveMemoryRoom();
+// The outer Google Sites collection cannot read a sandboxed child document.
+// It asks for a graceful exit via postMessage and gets an explicit ACK.
+window.addEventListener('message',async event=>{
+ if(event.source!==window.parent||event.data?.type!=='tc:leave-room')return;
+ const requestId=event.data.requestId;
+ if(typeof requestId!=='string'||!/^back-[0-9]{1,12}$/.test(requestId))return;
+ try{await leaveMemoryRoom();}
+ finally{window.parent.postMessage({type:'tc:leave-ack',requestId},'*');}
+});
 window.addEventListener('pagehide',()=>wire?.stop());
 function render(){
  const v=currentView;if(!v)return;
