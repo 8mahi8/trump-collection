@@ -3,6 +3,14 @@
 > **次の開発担当AIはまずこの文書と [HANDOFF.md](../HANDOFF.md) を読むこと。**
 > 旧記録には後から変更された計画が残るため、下記の最新方針を優先。
 
+## Phase24（2026-10-26）｜二重Google Sites iframe上のFirebase4人試験に合格
+
+- 直近の唯一の新規ブロッカーだった`dev/verify-configured-sites-emulator.mjs`の**実Firebase模擬設定付き・外側Google Sites sandbox＋内側srcdoc**の試験を修正。入室成功→ルーム番号の描画を待機→4人全員のREADY反映を順番に確認→開始→チャット→ホスト退出のテストが**Chromium/WebKit両エンジンで成功**。 [CI #40208972686](https://github.com/8mahi8/trump-collection/actions/runs/40208972686)（新規テスト工程は成功。全CIの最終結果は別途確認）。
+- 失敗原因はテスト側がFirebase非同期描画・準備確認前に次の操作へ進んでいたこと。**ゲーム本体・Firebase Rules・既存の学校Google Sites公開版・mainは一切変更していない**。
+- 詳細は[Phase23追記](PHASE23_OFFLINE_CONFIGURED_SITES_GATE_2026-10-26.md)。新規4人二重iframe試験はババ抜きで実施、七並べ・大富豪は従来4人単体ページエミュレーター＋二重iframe起動試験が別々に成功している。**学校実機のテスト成功という意味ではない**。
+- ユーザー確認事項：**本番Firebase Rulesは今すぐ変更しない**。期限は現行のままなら**2026-11-08 00:00 JST**に切れるため、それまでに更新する。今は4ゲームのオンライン実機試遊と公開準備を優先。
+- 次の実ブロッカー：本番FirebaseのWeb設定値（公開用apiKey＋DB URL）、**匿名Firebase Authの使用可否**、本人による学校iPad Google SitesへのHTML直接貼り付けおよび実際の対戦試遊。一般公開の親Rulesを採用するとprivate手札がDB利用者から取得可能な点は公開前に説明する。
+
 ## Phase23（2026-10-26）｜本番設定用Google Sites HTMLのオフライン生成準備
 
 - [実装・操作詳細](PHASE23_OFFLINE_CONFIGURED_SITES_GATE_2026-10-26.md)。`dev/build-configured-sites.mjs`を追加。公開Web APIキー、projectId、databaseURL、レビュー用Rules JSONから**ローカル専用HTML**を生成する。元の設定未投入`dist/trump-collection-integrated-lab.html`は変えない。
