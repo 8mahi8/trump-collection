@@ -113,6 +113,7 @@ test('ACTUAL Firebase Emulator: UID-private hands and three four-player games', 
    // Client must fetch fresh revision before its next action.
    await client.poll();
   }
+  assert.equal((await suite.guests[0].poll()).status,'ready');
   const start=await suite.guests[0].act('start');await suite.host.tick();
   assert.equal((await suite.guests[0].receipt(start)).ok,true);
   assert.equal(suite.host.authority.phase,'playing');
