@@ -11,3 +11,7 @@ firebase/local-current.rules.json
 firebase/current-*.rules.json
 dist/review-merged-school.rules.json
 dist/review-merged-*.rules.json
+
+# Local-only final-paste candidates; must not accidentally appear in PRs.
+dist/local-configured-*.html
+firebase/local-reviewed*.rules.json
