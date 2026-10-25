@@ -99,6 +99,30 @@
             ".read": "auth !== null && auth.uid === $uid",
             ".write": "auth !== null && auth.uid === $uid && root.child('trumpRoomsV1/' + $room + '/seats/' + auth.uid).val() === true && !root.child('trumpRoomsV1/' + $room + '/closed').exists() && !data.exists() && newData.val() === true"
           }
+        },
+        "chat": {
+          ".read": "auth !== null && root.child('trumpRoomsV1/' + $room + '/seats/' + auth.uid).val() === true",
+          "$uid": {
+            "$slot": {
+              ".write": "auth !== null && auth.uid === $uid && $slot.matches(/^[0-9]$/) && root.child('trumpRoomsV1/' + $room + '/seats/' + auth.uid).val() === true && !root.child('trumpRoomsV1/' + $room + '/closed').exists() && newData.exists() && (!data.exists() || newData.child('seq').val() > data.child('seq').val())",
+              ".validate": "newData.hasChildren(['uid','text','seq','sentAt']) && newData.child('uid').val() === $uid && newData.child('seq').isNumber() && newData.child('seq').val() >= 1 && newData.child('seq').val() <= 1000000 && newData.child('text').isString() && newData.child('text').val().length >= 1 && newData.child('text').val().length <= 120 && newData.child('sentAt').isNumber() && newData.child('sentAt').val() > 0",
+              "$other": {
+                ".validate": false
+              },
+              "uid": {
+                ".validate": "newData.isString() && newData.val() === $uid"
+              },
+              "text": {
+                ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 120"
+              },
+              "seq": {
+                ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 1000000"
+              },
+              "sentAt": {
+                ".validate": "newData.isNumber() && newData.val() > 0"
+              }
+            }
+          }
         }
       }
     }
