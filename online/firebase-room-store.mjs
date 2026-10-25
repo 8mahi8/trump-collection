@@ -102,6 +102,7 @@ export function createFirebaseRoomStore({databaseURL,auth,fetchImpl=globalThis.f
     meta:room=>request('GET',fullPath(room,'meta')),
     // Guest may request but only host may grant a seat.
     requestSeat:room=>request('PUT',fullPath(room,'joinRequests',uid),true,true),
+    ownJoinRequest:room=>request('GET',fullPath(room,'joinRequests',uid)),
     seat:room=>request('GET',fullPath(room,'seats',uid)),
     joinRequests:room=>request('GET',fullPath(room,'joinRequests')),
     grantSeat:(room,memberUid)=>{check(room,memberUid);return request('PUT',fullPath(room,'seats',memberUid),true);},
