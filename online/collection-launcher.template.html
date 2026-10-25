@@ -71,7 +71,7 @@ function configureFirebase(html){
  const config=window.TRUMP_FIREBASE_CONFIG;
  if(!config||!config.apiKey||!config.databaseURL)return html;
  // The Web API key is public; admin credentials must NEVER be embedded here.
- const json=JSON.stringify({apiKey:config.apiKey,databaseURL:config.databaseURL}).replace(/</g,'\\u003c');
+ const json=JSON.stringify({projectId:config.projectId,apiKey:config.apiKey,databaseURL:config.databaseURL}).replace(/</g,'\\u003c');
  return html.replace('<script>',()=>'<script>window.TRUMP_FIREBASE_CONFIG='+json+';</'+'script><script>');
 }
 function show(game,mode){
