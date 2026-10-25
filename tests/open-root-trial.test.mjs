@@ -40,3 +40,15 @@ test('Open-root trial single HTML requires explicit acknowledgment and known DB'
  assert.ok(match);
  assert.doesNotThrow(()=>new Function(match[1]));
 });
+
+
+test('Trial HTML checked into dev branch exactly matches acknowledged offline builder',()=>{
+ const expected=buildOpenRootTrialSitesHtml({
+  databaseURL:'https://mygame-df915-default-rtdb.firebaseio.com/',
+  acknowledgePublicData:true
+ });
+ const saved=readFileSync(new URL('../dist/trump-collection-open-root-trial.html',import.meta.url),'utf8');
+ assert.equal(saved,expected,'never hand out stale trial HTML');
+ assert.match(saved,/TRUMP_FIREBASE_OPEN_ROOT_TRIAL=true/);
+ assert.match(saved,/誰でも|第三者/);
+});
