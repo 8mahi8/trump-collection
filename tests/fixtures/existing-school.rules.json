@@ -1,0 +1,28 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rooms": {
+      "$code": {
+        ".read": "auth !== null",
+        ".write": "auth !== null && auth.uid !== null"
+      }
+    },
+    "rooms2v2": {
+      "$code": {
+        ".read": "auth !== null",
+        ".write": "auth !== null && auth.uid !== null"
+      }
+    },
+    "legacyPublic": {
+      ".read": true,
+      ".write": false
+    },
+    "legacyPrivate": {
+      "$uid": {
+        ".read": "auth !== null && auth.uid === $uid",
+        ".write": "auth !== null && auth.uid === $uid"
+      }
+    }
+  }
+}

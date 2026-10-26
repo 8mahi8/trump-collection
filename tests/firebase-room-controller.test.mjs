@@ -1,0 +1,294 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import * as G from '../games.mjs';
+import {createFirebaseRoomHost,createFirebaseRoomGuest} from '../online/firebase-room-controller.mjs';
+
+const IDS=['hostPlayer001','guestPlayer001','guestPlayer002','guestPlayer003'];
+function fakeNetwork(){
+ const state={meta:null,seats:{},joinRequests:{},public:null,private:{},commands:{},receipts:{},
+   failPublishOnce:false,publishCount:0,seatWrites:0,heartbeat:null,failHeartbeatOnce:false,
+   closed:null,leaveRequests:{},seatReads:{}};
+ const clone=v=>v===undefined?null:JSON.parse(JSON.stringify(v));
+ const makeStore=uid=>({
+  uid,
+  async reserve(room,game){if(state.meta)throw Error('COLLISION');state.meta={hostUid:uid,game,protocol:2};},
+  async meta(){return clone(state.meta)},
+  async requestSeat(){state.joinRequests[uid]=true;},
+  async joinRequests(){assert.equal(uid,state.meta.hostUid);return clone(state.joinRequests);},
+  async grantSeat(room,who){assert.equal(uid,state.meta.hostUid);state.seats[who]=true;state.seatWrites++;},
+  async readClosed(){return clone(state.closed);},
+  async closeRoom(room,reason){
+   assert.equal(uid,state.meta.hostUid);
+   if(state.closed)throw Error('ALREADY_CLOSED');
+   state.closed={reason};
+  },
+  async leaveRoom(){
+   assert.equal(state.seats[uid],true);
+   state.leaveRequests[uid]=true;
+  },
+  async leaveRequests(){assert.equal(uid,state.meta.hostUid);return clone(state.leaveRequests);},
+  async seat(){state.seatReads[uid]=(state.seatReads[uid]||0)+1;return state.seats[uid]||null;},
+  async writeHeartbeat(room,seq){
+   assert.equal(uid,state.meta.hostUid);
+   if(state.failHeartbeatOnce){state.failHeartbeatOnce=false;throw Error('SIMULATED_HEARTBEAT_DROP');}
+   assert.ok(!state.heartbeat||seq>state.heartbeat.seq);
+   state.heartbeat={seq};
+  },
+  async readHeartbeat(){if(!state.seats[uid])throw Error('DENIED');return clone(state.heartbeat);},
+  async publishViews(room,authority,members){
+   assert.equal(uid,state.meta.hostUid);
+   if(state.failPublishOnce){state.failPublishOnce=false;throw Error('SIMULATED_LOST_WRITE');}
+   for(const who of members)state.private[who]=clone(authority.privateView(who));
+   state.public=clone(authority.publicView());state.publishCount++;
+  },
+  async readPublic(){if(!state.seats[uid])throw Error('DENIED');return clone(state.public);},
+  async readPrivate(){if(!state.seats[uid])throw Error('DENIED');return clone(state.private[uid]);},
+  async command(room,action){
+   assert.equal(action.actor,uid);
+   const op=state.commands[uid]??={};
+   if(op[action.actionId])throw Error('DUPLICATE');
+   op[action.actionId]=clone(action);
+  },
+  async commands(){assert.equal(uid,state.meta.hostUid);return clone(state.commands);},
+  async writeReceipt(room,who,id,data){
+   assert.equal(uid,state.meta.hostUid);
+   (state.receipts[who]??={})[id]=clone(data);
+  },
+  async removeCommand(room,who,id){
+   assert.equal(uid,state.meta.hostUid);
+   delete state.commands[who][id];
+  },
+  async receipt(room,id){return clone(state.receipts[uid]?.[id]||null);}
+ });
+ return {state,makeStore};
+}
+function setup(game,seed){
+ const net=fakeNetwork(),host=createFirebaseRoomHost({
+   store:net.makeStore(IDS[0]),roomCode:'28371',game,seedSource:()=>seed});
+ let count=0;
+ const clients=IDS.map(uid=>createFirebaseRoomGuest({store:net.makeStore(uid),roomCode:'28371',
+   game,actionIdSource:()=>String(++count).padStart(6,'0')}));
+ return {...net,host,clients};
+}
+async function readyRoom(s){
+ await s.host.bootstrap();
+ for(let p=1;p<4;p++)await s.clients[p].requestJoin();
+ const joins=await s.host.tick();
+ assert.equal(joins.accepted,3);
+ assert.deepEqual(s.host.members,IDS);
+ for(let p=0;p<4;p++){
+   assert.equal((await s.clients[p].poll()).status,'ready');
+   const id=await s.clients[p].act('ready',{ready:true});
+   await s.host.tick();
+   assert.equal((await s.clients[p].receipt(id)).ok,true);
+ }
+ await s.clients[0].poll();
+ const startId=await s.clients[0].act('start');
+ await s.host.tick();
+ assert.equal((await s.clients[0].receipt(startId)).ok,true);
+ assert.equal(s.host.authority.phase,'playing');
+}
+test('Firebase 4人コントローラー: JOIN→READY→START→再戦、3ゲームで対戦完走',async()=>{
+ for(const game of ['babanuki','shichinarabe','daifugo']){
+  const s=setup(game,67);
+  await readyRoom(s);
+  const rng=G.mulberry32(256);
+  let steps=0;
+  while(s.host.authority.phase==='playing'&&steps++<1500){
+   const v=s.host.authority.publicView(),p=v.turn;
+   const snapshot=await s.clients[p].poll();
+   assert.equal(snapshot.status,'ready');
+   const pv=snapshot.privateView;
+   let kind,extra={};
+   if(game==='babanuki'){
+     kind='draw';extra.index=Math.floor(rng()*v.counts[v.drawFrom]);
+   }else if(game==='shichinarabe'){
+     kind=pv.legalIds.length?'play':'pass';
+     if(kind==='play')extra.id=pv.legalIds[0];
+   }else{
+     kind=pv.legalMoves.length?'play':'pass';
+     if(kind==='play')extra.ids=pv.legalMoves[0];
+   }
+   const id=await s.clients[p].act(kind,extra);
+   const result=await s.host.tick();
+   assert.equal(result.rejected,0,game+' '+steps);
+   assert.equal((await s.clients[p].receipt(id)).ok,true);
+   assert.equal(s.state.private[IDS[p]].revision,s.state.public.revision);
+  }
+  assert.equal(s.host.authority.phase,'finished',game+' moves '+steps);
+  assert.deepEqual(Object.values(s.state.public.ranks).sort(),[1,2,3,4]);
+  for(const g of s.clients){
+   const v=await g.poll();assert.equal(v.status,'ready');
+   assert.deepEqual(v.publicView.ranks,s.state.public.ranks);
+  }
+  await s.clients[0].poll();
+  const rematchId=await s.clients[0].act('rematch');
+  await s.host.tick();
+  assert.equal((await s.clients[0].receipt(rematchId)).ok,true);
+  assert.equal(s.state.public.phase,'lobby');
+  assert.equal(s.state.public.round,1);
+  assert.ok(s.state.public.seats.every(x=>!x.ready));
+  assert.equal(s.state.seatWrites,4,'seats should not be rewritten every poll');
+ }
+});
+test('Firebase 4人コントローラー: stale command is rejected and acknowledged',async()=>{
+ const s=setup('shichinarabe',53);
+ await readyRoom(s);
+ await s.clients[0].poll();
+ const stale=s.clients[0].snapshot;
+ const actingSeat=s.host.authority.publicView().turn;
+ await s.clients[actingSeat].poll();
+ const move=s.clients[actingSeat].snapshot;
+ const p=move.privateView;
+ const firstId=await s.clients[actingSeat].act(p.legalIds.length?'play':'pass',
+   p.legalIds.length?{id:p.legalIds[0]}:{});
+ await s.host.tick();
+ assert.equal((await s.clients[actingSeat].receipt(firstId)).ok,true);
+ // Guest who already had the old snapshot sends an action.
+ const other=actingSeat===0?1:0;
+ const oldClient=s.clients[other];
+ assert.equal(oldClient.snapshot?.publicView.revision!==undefined,true);
+ const id=await oldClient.act('pass');
+ await s.host.tick();
+ const receipt=await oldClient.receipt(id);
+ assert.equal(receipt.ok,false);
+ assert.match(receipt.reason,/STALE|NOT_ALLOWED/);
+});
+test('Firebase 4人コントローラー: network failure after applying an action is recoverable',async()=>{
+ const s=setup('babanuki',72);
+ await readyRoom(s);
+ const p=s.host.authority.publicView().turn;
+ await s.clients[p].poll();
+ const id=await s.clients[p].act('draw',{index:0});
+ const old=s.host.authority.revision;
+ s.state.failPublishOnce=true;
+ await assert.rejects(()=>s.host.tick(),/SIMULATED_LOST_WRITE/);
+ assert.equal(s.host.authority.revision,old+1);
+ await s.host.tick();
+ const receipt=await s.clients[p].receipt(id);
+ assert.equal(receipt.ok,true);
+ assert.equal(receipt.reason,'REPLAY_SYNCED');
+ assert.equal(s.state.public.revision,s.host.authority.revision);
+});
+test('Firebase 4人コントローラー: public/private revision mismatch blocks client actions',async()=>{
+ const s=setup('daifugo',45);
+ await readyRoom(s);
+ const p=s.host.authority.publicView().turn;
+ s.state.private[IDS[p]].revision--;
+ assert.equal((await s.clients[p].poll()).status,'syncing');
+ await assert.rejects(()=>s.clients[p].act('pass'),/NO_SYNCED_VIEW/);
+});
+
+test('Firebase 4人コントローラー: ロビー状態配信に失敗しても次回tickで復旧',async()=>{
+ const s=setup('babanuki',15);
+ await s.host.bootstrap();
+ await s.clients[1].requestJoin();
+ s.state.failPublishOnce=true;
+ await assert.rejects(()=>s.host.tick(),/SIMULATED_LOST_WRITE/);
+ assert.equal(s.host.authority.seatOf(IDS[1]),1);
+ assert.equal(s.state.public.revision,0);
+ await s.host.tick();
+ assert.equal(s.state.public.revision,1);
+ assert.equal((await s.clients[1].poll()).status,'ready');
+ assert.equal(s.state.seatWrites,2);
+});
+
+test('Firebase 4人コントローラー: ホスト停止中はゲスト操作を止め、復帰後に再開',async()=>{
+ const s=fakeNetwork();
+ let clock=100000;
+ const host=createFirebaseRoomHost({store:s.makeStore(IDS[0]),roomCode:'28371',
+  game:'shichinarabe',seedSource:()=>123,now:()=>clock,heartbeatIntervalMs:2800});
+ // Recreate one authenticated guest with a deterministic monotonic clock.
+ const p=1,guest=createFirebaseRoomGuest({store:s.makeStore(IDS[p]),roomCode:'28371',
+  game:'shichinarabe',now:()=>clock,hostTimeoutMs:10000,
+  actionIdSource:()=>String(++clock).padStart(6,'0')});
+ await host.bootstrap();
+ await guest.requestJoin();
+ await host.tick();
+ assert.equal((await guest.poll()).status,'ready');
+ const first=guest.snapshot.publicView.revision;
+ clock+=9900;
+ assert.equal((await guest.poll()).status,'ready','just before deadline, last snapshot is still usable');
+ clock+=100;
+ assert.equal((await guest.poll()).status,'host_unavailable');
+ await assert.rejects(()=>guest.act('ready',{ready:true}),/NO_SYNCED_VIEW/);
+ // Same Firebase user and existing seat can resume without creating a new room.
+ await host.tick();
+ assert.equal((await guest.poll()).status,'ready');
+ assert.equal(guest.snapshot.publicView.revision,first);
+ const id=await guest.act('ready',{ready:true});
+ await host.tick();
+ assert.equal((await guest.receipt(id)).ok,true);
+});
+test('Firebase 4人コントローラー: heartbeatに問題が出たら古い状態では操作しない',async()=>{
+ const s=setup('babanuki',333);
+ await s.host.bootstrap();
+ await s.clients[1].requestJoin();
+ await s.host.tick();
+ assert.equal((await s.clients[1].poll()).status,'ready');
+ s.state.heartbeat=null;
+ assert.equal((await s.clients[1].poll()).status,'host_unavailable');
+ await assert.rejects(()=>s.clients[1].act('ready',{ready:true}),/NO_SYNCED_VIEW/);
+});
+test('Firebase 4人コントローラー: 接続エラー後のheartbeatは単調増加する',async()=>{
+ const s=fakeNetwork();
+ let clock=0;
+ const host=createFirebaseRoomHost({store:s.makeStore(IDS[0]),roomCode:'28371',
+  game:'babanuki',seedSource:()=>3,now:()=>clock,heartbeatIntervalMs:1000});
+ await host.bootstrap();
+ assert.equal(s.state.heartbeat.seq,1);
+ clock+=1000;s.state.failHeartbeatOnce=true;
+ await assert.rejects(()=>host.tick(),/SIMULATED_HEARTBEAT_DROP/);
+ clock+=1000;
+ await host.tick();
+ assert.equal(s.state.heartbeat.seq,3,'lost ACK must not reuse old sequence');
+});
+
+test('Firebase friends-only: host exits, everyone sees terminal reason, fresh room can start',async()=>{
+ const s=setup('babanuki',100);
+ await readyRoom(s);
+ await s.host.closeRoom();
+ assert.deepEqual(s.state.closed,{reason:'host_left'});
+ assert.equal((await s.clients[1].poll()).status,'room_closed');
+ assert.equal((await s.clients[1].poll()).reason,'host_left');
+ await assert.rejects(()=>s.clients[1].act('draw',{index:0}),/NO_SYNCED_VIEW/);
+ assert.deepEqual(await s.host.tick(),{closed:true});
+ assert.equal(s.state.public.phase,'playing','closure must not leak secret cards or mutate match');
+});
+test('Firebase friends-only: guest exit closes match for all seats via host',async()=>{
+ const s=setup('shichinarabe',101);
+ await readyRoom(s);
+ await s.clients[2].leaveRoom();
+ assert.deepEqual(s.state.leaveRequests[IDS[2]],true);
+ const processed=await s.host.tick();
+ assert.equal(processed.closed,true);
+ assert.deepEqual(s.state.closed,{reason:'player_left'});
+ for(const client of s.clients){
+  const result=await client.poll();
+  assert.equal(result.status,'room_closed');
+  assert.equal(result.reason,'player_left');
+ }
+});
+test('Firebase friends-only: closed room cannot accept new joins',async()=>{
+ const s=setup('daifugo',102);
+ await s.host.bootstrap();
+ await s.host.closeRoom();
+ await assert.rejects(()=>s.clients[1].requestJoin(),/ROOM_ALREADY_CLOSED/);
+ assert.equal(s.state.joinRequests[IDS[1]],undefined);
+});
+
+test('Firebase guest: seat confirmation is reused without another REST GET during the same match',async()=>{
+ const s=setup('shichinarabe',42);
+ await s.host.bootstrap();
+ const guest=s.clients[1];
+ await guest.requestJoin();
+ assert.equal((await guest.poll()).status,'waiting_for_host');
+ const before=s.state.seatReads[IDS[1]];
+ assert.equal(before,1);
+ await s.host.tick();
+ for(let n=0;n<8;n++)assert.equal((await guest.poll()).status,'ready');
+ assert.equal(s.state.seatReads[IDS[1]],2,'eight successful polls require only one additional seat GET');
+ await s.host.closeRoom('host_left');
+ assert.equal((await guest.poll()).status,'room_closed');
+ assert.equal(s.state.seatReads[IDS[1]],2,'closed room does not fetch or expose old seat');
+});

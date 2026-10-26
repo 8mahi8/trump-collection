@@ -20,8 +20,9 @@ const results = [];
 const step = (name, ok, detail) => { results.push({ name, ok, detail }); console.log(`${ok ? '✔' : '✖'} ${name} ${detail || ''}`); };
 
 // 1) 単体テスト
-const t = spawnSync('node', ['--test', 'tests/games.test.mjs'], { cwd: REPO, encoding: 'utf8' });
-const passM = (t.stdout + t.stderr).match(/ℹ pass (\d+)/), failM = (t.stdout + t.stderr).match(/ℹ fail (\d+)/);
+const suites = readdirSync(REPO + '/tests').filter(name => name.endsWith('.test.mjs')).map(name => 'tests/' + name).sort();
+const t = spawnSync('node', ['--test', ...suites], { cwd: REPO, encoding: 'utf8' });
+const passM = (t.stdout + t.stderr).match(/(?:ℹ|#)\s+pass (\d+)/), failM = (t.stdout + t.stderr).match(/(?:ℹ|#)\s+fail (\d+)/);
 step('単体テスト', t.status === 0, `pass=${passM?.[1]} fail=${failM?.[1]}`);
 
 // 2) ビルド
@@ -36,9 +37,33 @@ let errors = [];
 page.on('pageerror', e => errors.push(e.message));
 await page.goto('file://' + REPO + '/dist/trump-collection.html', { waitUntil: 'domcontentloaded' });
 await new Promise(r => setTimeout(r, 800));
-step('TCフック', await page.evaluate(() => !!window.TC && window.TC.version === '1.4.0'), await page.evaluate(() => window.TC?.version));
+step('TCフック', await page.evaluate(() => !!window.TC && window.TC.version === '1.5.5'), await page.evaluate(() => window.TC?.version));
 await page.screenshot({ path: SHOTS + '/menu.png' });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+ // ババ抜き：自分が引いた札の結果を表示。固定配札（seed=1）でジョーカーとペアを検証
+for (const [cardIndex, expected] of [[0, 'ペアなし'], [2, 'ペア成立']]) {
+  await page.evaluate(index => {
+    const random = Math.random;
+    Math.random = () => 1 / 1e9;
+    window.TC.start('babanuki');
+    Math.random = random;
+    const fan = document.querySelectorAll('#drawFan .card');
+    if (!fan[index]) throw new Error('Old Maid draw fan unavailable');
+    fan[index].click();
+  }, cardIndex);
+  await sleep(420);
+  const reveal = await page.evaluate(() => ({
+    text: document.querySelector('#babaReveal')?.textContent || '',
+    cards: document.querySelectorAll('#babaReveal .card').length,
+    drawer: window.TC.state.lastDraw?.by
+  }));
+  step('ババ抜き引いた札 ' + expected,
+    reveal.cards === 1 && reveal.drawer === 0 && reveal.text.includes(expected),
+    JSON.stringify(reveal));
+  await sleep(1150);
+}
+
 for (const g of ['babanuki', 'shichinarabe', 'shinkei', 'daifugo']) {
   errors = [];
   await page.evaluate(gg => { window.TC.setFast(true); window.TC.start(gg); }, g);
@@ -78,6 +103,57 @@ await page.screenshot({ path: SHOTS + '/phone-land.png' });
 await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
 await sleep(700);
 await page.screenshot({ path: SHOTS + '/phone-port.png' });
+// 4b) 小さいGoogle Sites埋め込み・横向き画面のレイアウト回帰検査
+for (const [w, h] of [[844, 390], [700, 320]]) {
+  await page.setViewport({ width: w, height: h, isMobile: true, hasTouch: true });
+  for (const g of ['babanuki', 'shichinarabe', 'shinkei', 'daifugo']) {
+    await page.evaluate(id => { window.TC.setFast(false); window.TC.start(id); }, g);
+    await sleep(200);
+    const layout = await page.evaluate(() => {
+      const fits = sel => { const el = document.querySelector(sel); if (!el) return true;
+        const r = el.getBoundingClientRect();
+        return r.left >= -1 && r.right <= innerWidth + 1 && r.top >= -1 && r.bottom <= innerHeight + 1;
+      };
+      return { actions: fits('#actions'), handArea: fits('#handArea'), rows: fits('#rows'), grid: fits('#grid') };
+    });
+    step(`コンパクト画面 ${g} ${w}x${h}`, Object.values(layout).every(Boolean), JSON.stringify(layout));
+  }
+}
+// 4c) 神経衰弱の最後の正解ペアが結果画面で遮られないこと
+await page.setViewport({width:844,height:390,isMobile:true,hasTouch:true});
+await page.evaluate(() => {
+  window.TC.start('shinkei');
+  const st = window.TC.state, first = 0;
+  const second = st.board.findIndex((b, i) => i !== first && b.card.rank === st.board[first].card.rank);
+  st.board.forEach((b, i) => { b.taken = i !== first && i !== second; });
+  st.turn = 0; st.scores = [11, 0];
+  document.querySelectorAll('#grid .card')[first].click();
+  document.querySelectorAll('#grid .card')[second].click();
+});
+const beforeFinalPairModal = await page.evaluate(() => !!document.querySelector('.modalWrap'));
+await sleep(950);
+const afterFinalPairModal = await page.evaluate(() => !!document.querySelector('.modalWrap'));
+step('神経衰弱最終ペア演出', !beforeFinalPairModal && afterFinalPairModal,
+  `immediate=${beforeFinalPairModal} after=${afterFinalPairModal}`);
+
+// 4d) Web Animations API未対応ブラウザでもカード出しがクラッシュしないこと
+const priorErrorCount = errors.length;
+await page.evaluate(() => {
+  Element.prototype.animate = undefined;
+  const originalRandom = Math.random;
+  Math.random = () => 0.05;
+  window.TC.start('daifugo');
+  Math.random = originalRandom;
+  const st = window.TC.state;
+  if (st.turn !== 0) throw new Error('Test seed should let human lead');
+  document.querySelector('#hand .card.legal').click();
+  const play = [...document.querySelectorAll('#actions button')].find(b => b.textContent === '出す');
+  if (!play || play.disabled) throw new Error('No playable card selected');
+  play.click();
+});
+await sleep(500);
+step('古いSafariのアニメーション互換', errors.length === priorErrorCount,
+  `newErrors=${errors.slice(priorErrorCount).join(' | ')}`);
 await browser.close();
 
 // 5) 基準画像との差分（PILで縮小して平均差）

@@ -1,0 +1,197 @@
+# トランプコレクション｜最新引き継ぎ（2026-10-25）
+
+> **次の開発担当AIはまずこの文書と [HANDOFF.md](../HANDOFF.md) を読むこと。**
+> 旧記録には後から変更された計画が残るため、下記の最新方針を優先。
+
+## Phase29（2026-10-27）｜横向きiPadのUI改善・実画面検証
+
+- 詳細：[Phase29 UX改善](PHASE29_SCHOOL_IPAD_UX_FIX_2026-10-27.md)。**今までのNode106/106＋通信検証だけでは人が快適に遊べる保証はない**ため、[Phase28レビュー](PHASE28_HUMAN_UI_REVIEW_2026-10-27.md)で見つけたP0・P1を優先して修正。
+- 友達4人対戦：試合中は上部の重い「ルーム作成フォーム」「準備ボタン」「長文注意」の画面占有をなくし、盤面・手札・「出す/パス」を**縦にスクロールせず操作できるflexレイアウト**へ移した。ルーム番号・人数・退出・チャットはコンパクトな上部バーに残す。外側で選んだゲームを内側で二度選ぶ重複セレクタも収納。COM版は大富豪ルール設定を直し、**スタート/もどるを常時表示**。
+- 実画面：Chromiumで**667×375、800×450、1024×768**を検証。特に**667×375の内側iframe=323px**でも、七並べの盤面・13枚手札・選択確定/パスが表示範囲に入り、ドキュメントscrollHeightも323px。COM大富豪設定のスタート/もどるも初期画面内に存在。
+- 自動試験：`dev/verify-configured-sites-emulator.mjs`に**800×450と667×375の縦位置／手札／ボタン／盤面4行**の検査を追加。認証版4人・現行公開Rootルール試遊版3ゲーム×Chromium/WebKitの初手タップと同期は [Actions #40356099055](https://github.com/8mahi8/trump-collection/actions/runs/40356099055) で各工程成功。旧ランチャーテストが今回意図的に隠したセレクタを「表示されるまで待機」していたため全体CIのみ失敗し、テストを新UIに合わせて修正。**[最終CI #40356906552 全工程成功](https://github.com/8mahi8/trump-collection/actions/runs/40356906552)**：Node106/106、3ゲーム×Chromium/WebKitで4人タップ・同期と小画面レイアウト検査、COM4ゲーム起動、神経衰弱2人、旧Rules共存まで合格。
+- `dist/trump-collection-open-root-trial.html` を含む**3単一HTMLを再生成**。新しいGoogle Driveの `.html` と `.txt`： [HTML](https://drive.google.com/file/d/1NphKwaa1ldudQBBHHdjHEc5tictPpluF/view?usp=drivesdk) ／ [TXT](https://drive.google.com/file/d/1cnAS3iYanELZibR-uGA43fnz5Iz6claA/view?usp=drivesdk)。元ファイルは上書きせず保持。
+- **課題**：友達対戦の美術表現、COM七並べの密集手札は追加UX改善余地。**学校実機Safari／本物Google Sites／本番Firebaseの接続は未検証**。Firebase Root Rules・公開学校Sites・mainは変更していない。現行ルール期限2026-11-08 JSTの更新が別件で必要。
+
+## Phase25（2026-10-26）｜Firebaseルールを今は変えず学校で試遊する完成候補
+
+- **ユーザーが優先した方針：既存Firebase `mygame-df915` の2026-11-08期限付きRoot Rulesを今は変更せず、まずトランプの友達対戦を試す。** 前に確認したRoot Rulesの同じスクリーンショットを再要求しない。
+- 既存LEMON CLASH開発版の `src/firebase-config.js`を確認。同じRTDB URLのみを設定しFirebase Authを必須にしない方式が存在したため、トランプに**別系統の身内向け公開DB試遊モード**を実装。認証付きの通常運用コードはそのまま残す。
+- **Google Sites直接埋め込み候補：`dist/trump-collection-open-root-trial.html`**。COM4ゲーム、Firebaseババ抜き・七並べ・大富豪4人、Supabase神経衰弱2人、開閉式ルームチャットを一体化。既存学校Google Sitesへは自動反映しない。
+- `online/firebase-room-store.mjs`の`createFirebaseOpenRootTrialIdentity`はページごとにランダムな非永続UIDを発行、RTDBへAuthクエリーを付けず、匿名Firebase Auth／APIキー／新しいルール導入を要さない。**アカウント認証はしていない**。`online/four-seat-remote.html`は明示フラグ`TRUMP_FIREBASE_OPEN_ROOT_TRIAL`があり既知学校DBの時だけ有効。ブラウザ画面に公開DBリスクの注意書きを表示する。
+- `dev/build-configured-sites.mjs`に`buildOpenRootTrialSitesHtml`とCLI`--open-root-trial --acknowledge-public-db`を追加。元の厳格Rules前提の通常配布処理を削除しない。固定の試遊HTMLもソース再ビルドと完全一致することをNodeで検証。`firebase.open-trial-emulator.json`で本人報告のRoot許可ルールを使用し、**Chromium/WebKit双方で Google Sites風二重iframe×4端末の入室→READY→開始→チャット→退出に成功**。本番Firebaseへは一切接続していない。
+- 仕様・公開注意事項とテスト：[Phase25記録](PHASE25_OPEN_ROOT_FRIEND_TRIAL_2026-10-26.md)。
+- **[CI #40210764826 全工程合格](https://github.com/8mahi8/trump-collection/actions/runs/40210764826)：Node106/106、Chromium/WebKitで認証なし公開Root試遊・従来の認証あり方式・神経衰弱2人・旧ルール共存テストすべて合格。** 実本番・学校iPadは未接続。
+- **重要な限界**：現行のRoot公開ルールでは、アプリの画面で隠れた他人の手札やチャットも外部のRTDB APIから読み書き可能で、ルーム番号はアクセス制御にならない。個人情報をチャットへ入力しないこと。**11月8日0時JSTのルール失効には試遊モードでも別途対応が必要**。新モードは正式に非公開手札を保証するものではない。
+- ユーザーの出番は実際に学校Google SitesへHTML全文を貼り付けるタイミングから。Firebase本番ルール・匿名Authの変更、既存ゲーム・学校公開版・mainの改変は行っていない。
+
+## Phase27（2026-10-26）｜iPad相当のタッチ操作デバッグ
+
+- [検証詳細](PHASE27_IPAD_GAMEPLAY_UI_DEBUG_2026-10-26.md)。Google Sites風の**二重iframe＋4ブラウザ**試験を、初手の**カード選択・確定ボタン・全4人の公開revision一致・チャット・退出・800×450横画面での横はみ出し**まで拡張。
+- ババ抜き、七並べ、大富豪を**通常認証なしの現行公開Rules試遊版**で各Chromium/WebKit両方実行。通常認証版もババ抜きで両エンジン実行。実操作は`hasTouch:true`＋Playwrightの`tap()`によるタッチエミュレーション。
+- 調査時の`MOVE_NOT_SYNCED`は**テスト側が`locator.evaluate`の第1引数DOM要素をrevision引数と誤解していた**ことが原因。診断ログでは**ババ抜きの操作前revision8→4人全員revision9（privateも9）**で通信は正常と判明。判定を修正。
+- 最初の通常版＋試遊版3種×2ブラウザの`click()`検証は [Actions #40212479567](https://github.com/8mahi8/trump-collection/actions/runs/40212479567) の該当各工程が合格。**[タッチ操作版全CI #40212870356 成功](https://github.com/8mahi8/trump-collection/actions/runs/40212870356)：Node106/106、認証版ババ抜き＋公開試遊版3ゲームをChromium/WebKit各4画面でタップ→全員同期→チャット→退出まで全8ケース成功**。学校iPad実機・本番Firebaseは未実施。
+- ゲームソースと学校版、本番Firebase Rulesは変更しない。11月8日失効までに期限延長が別途必要。
+
+## Phase26（2026-10-26）｜現行公開ルールで遊ぶ学校試遊HTMLの生成・検証完了
+
+- [試遊向け詳細と注意点](PHASE26_SCHOOL_TRIAL_CANDIDATE_2026-10-26.md)。**学校Google Sitesへ直接貼り付ける単一HTML `dist/trump-collection-open-root-trial.html` を開発ブランチに保存**。COM4ゲーム・友達対戦4ゲーム（Firebase 4人×3ゲーム、Supabase神経衰弱2人）・ルーム内チャットを含む。`tests/open-root-trial.test.mjs`はこの保存HTMLと最新ビルドの**完全一致**を検証。
+- **本番ルールを変えずに試す短期モード**：既存 `mygame-df915` の公開RTDBルールが報告どおり有効な間、**Firebase Anonymous Authを使わず**端末ごとのランダムUIDで4人対戦を試せる。UIに手札／チャットが公開DB上では秘匿されない旨を表示。privateや部屋データはDB URLを知る第三者に読み書きされうるため、個人情報や秘密情報を入力しない。通常の認証付き開発版は別のHTMLとして維持。
+- **[最終CI #40210764826 全工程成功](https://github.com/8mahi8/trump-collection/actions/runs/40210764826)**：Node **106/106**、Google Sites風二重iframeでFirebase通常版・今回試遊版の4人対戦・READY・チャット・退出が**Chromium＋WebKit両方成功**、神経衰弱2人も両エンジン成功、従来3ゲームFirebaseエミュレーター／既存ゲーム共存Rulesも成功。**本番DBには接続していない**。
+- 校内の実公開版・Firebase本番Rules/Auth/DBは変更なし。試遊HTMLを作成したことは学校公開済みを意味しない。次に必要なのは本人による**別のGoogle Sites試験ページへのコード全文貼り付け＋学校iPad同士での実機確認**。ここで初めて実Firebase接続の可否が確定する。
+- **ユーザー方針**：今はルールを変えない。本人報告のルール期限は**2026-11-08 00:00 JST**、切れる前に延長等が必要。トランプ開発を止めて過剰な不正防止を実装しない。
+
+## Phase24（2026-10-26）｜二重Google Sites iframe上のFirebase4人試験に合格
+
+- 直近の唯一の新規ブロッカーだった`dev/verify-configured-sites-emulator.mjs`の**実Firebase模擬設定付き・外側Google Sites sandbox＋内側srcdoc**の試験を修正。入室成功→ルーム番号の描画を待機→4人全員のREADY反映を順番に確認→開始→チャット→ホスト退出のテストが**Chromium/WebKit両エンジンで成功**。 [CI #40208972686](https://github.com/8mahi8/trump-collection/actions/runs/40208972686)（**全工程成功：Node103/103、Chromium/WebKitの4人Firebase二重iframe、2人Supabaseモック、旧Rulesエミュレーター回帰すべて合格**）。
+- 失敗原因はテスト側がFirebase非同期描画・準備確認前に次の操作へ進んでいたこと。**ゲーム本体・Firebase Rules・既存の学校Google Sites公開版・mainは一切変更していない**。
+- 詳細は[Phase23追記](PHASE23_OFFLINE_CONFIGURED_SITES_GATE_2026-10-26.md)。新規4人二重iframe試験はババ抜きで実施、七並べ・大富豪は従来4人単体ページエミュレーター＋二重iframe起動試験が別々に成功している。**学校実機のテスト成功という意味ではない**。
+- ユーザー確認事項：**本番Firebase Rulesは今すぐ変更しない**。期限は現行のままなら**2026-11-08 00:00 JST**に切れるため、それまでに更新する。今は4ゲームのオンライン実機試遊と公開準備を優先。
+- 次の実ブロッカー：本番FirebaseのWeb設定値（公開用apiKey＋DB URL）、**匿名Firebase Authの使用可否**、本人による学校iPad Google SitesへのHTML直接貼り付けおよび実際の対戦試遊。一般公開の親Rulesを採用するとprivate手札がDB利用者から取得可能な点は公開前に説明する。
+
+## Phase23（2026-10-26）｜本番設定用Google Sites HTMLのオフライン生成準備
+
+- [実装・操作詳細](PHASE23_OFFLINE_CONFIGURED_SITES_GATE_2026-10-26.md)。`dev/build-configured-sites.mjs`を追加。公開Web APIキー、projectId、databaseURL、レビュー用Rules JSONから**ローカル専用HTML**を生成する。元の設定未投入`dist/trump-collection-integrated-lab.html`は変えない。
+- **本番Rootが`.read/.write=false`でない場合、トランプのprivate/チャット権限が正本と一致しない場合、共有Firebaseで旧4ゲームの名前空間が欠けた場合、設定プロジェクトとURLが不一致の場合に生成を拒否**。旧ゲームデータや本番ルールを更新しない。静的な候補ルール照合であり、**実サーバーへ配備済みと証明するものではない**。
+- `dist/local-configured-*.html`は`.gitignore`対象で、名前衝突時に上書き拒否。**本番の管理者認証トークンや秘密鍵は絶対にHTMLへ入れない**。
+- `tests/configured-sites-package.test.mjs`でRoot公開・private/chat改変・旧ゲームパス欠落・接続先誤り等の拒否と正しい単一HTML生成を検査。
+- `dev/verify-configured-sites-emulator.mjs`で、**本番設定を模したHTMLを二重Google Sites sandboxで4独立ページ起動**し、4人入室・準備・チャット・退出をChromium/WebKit＋ローカルFirebase Emulatorで検証するCIを追加。外部Firebase APIはブラウザレベルで遮断し、ローカルエミュレーターだけに中継。本番接続なし。
+- 今後の作業は**現行Rulesと旧ゲーム全パス確認・本人の承認後に設定版HTML生成→Google Sites実機試遊**。Firebase/Supabase通信方式は当面変更しない。11月8日の期限を放置しない。
+
+## Phase22（2026-10-26）｜Google Sites統合1HTML保存＋2端末の神経衰弱対局検証
+
+- [詳細](PHASE22_SITES_PACKAGE_AND_TWO_DEVICE_MEMORY_2026-10-26.md)。**4ゲーム統合HTMLを開発ブランチの `dist/trump-collection-integrated-lab.html` に保存**（約201KB、COM4種・友達Firebase3種・神経衰弱Supabase・チャット・退出）。`tests/collection-launcher.test.mjs`で**最新ソースの再ビルド結果と保存ファイルの完全一致をCI検査**。設定未投入のFirebase4人対戦は依然として本番に接続できない。
+- `dev/verify-memory-peers.mjs`新設：2つの独立した800×450 Google Sites風二重iframeで、**ホストがルーム生成→ゲスト参加→双方READY→ゲーム開始→1枚めくると相手に同期→チャット送受信→ホスト退出通知**までテスト。Supabase Phoenix WebSocketを**ローカル模擬relay**で再現。本番Supabaseへは送信しない。
+- **[最終CI #40205548624 成功](https://github.com/8mahi8/trump-collection/actions/runs/40205548624)：Node98/98（保存HTMLの完全一致検査を含む）、Chromium＋WebKitの独立2端末神経衰弱、Firebase4端末×3ゲーム、共有Rules／局所化Rules／延長案Rulesのすべて合格**。古い4人Firebase Emulator・Rulesテストも継続。
+- **学校iPadでのFirebase通信自体はユーザーがBRAWL／小国戦線III／LEMON CLASH等で成功を報告済み**。ただしトランプ独自実装の学校実機試験ではない。今後は通信方式統一などの大変更より、完成・最終実機検査を優先。
+- **未着手の本番変更**：Firebaseの11/8 Rules期限／トランプ専用権限、匿名Auth、実学校版貼付。本人承認なしに既存ゲーム／学校サイト／mainを変えない。
+
+## Phase21（2026-10-25）｜4ゲーム共通・ルーム内テキストチャット
+
+- 本人の新要望：「同じルーム内の人間でチャットできるように」。**[実装・仕様・制限](PHASE21_ROOM_CHAT_2026-10-25.md)**。
+- 4ゲームの「友達と遊ぶ」に共通で、**💬 チャット**開閉式パネルと120文字のテキスト送信を追加。COM戦には表示しない。送受信のテキストは`textContent`で扱い、カード対戦エンジンのrevision/手札/通信処理と分離。
+- Firebase3ゲーム：`/trumpRoomsV1/$room/chat/$uid/$slot`に**各UID10スロット・最大40件**の固定長履歴を保存、開いた間だけ約2.5秒に一回取得。`firebase/trump-rooms.rules.json`にseat所有者のみread、本人UIDだけwrite、長文拒否のルールを追加。`online/firebase-room-store.mjs`の`chat/sendChat`と`online/four-seat-remote.html`を更新、単体HTML `dist/trump-collection-online-lab.html`再生成。
+- 神経衰弱：既存Supabase Realtime Broadcastに`kind:'chat'`を追加。`online/memory-remote.html`で開閉、40件までメモリ内表示、チャット復元なし。**公開Broadcast試作でありルーム番号を知る相手に対する強いプライバシー保証はない**。本番Supabaseへのデータ書込みはせず模擬WebSocketを使用。
+- **[最新CI #40204364048](https://github.com/8mahi8/trump-collection/actions/runs/40204364048) 成功：Node97/97件、Chromium/WebKitの4人チャット受信・HTML無害化、Firebase Emulator参加者のみread/write・部外者拒否・10件固定長、神経衰弱模擬WebSocket、既存ゲームのルール共存回帰がすべて成功**。本番サーバー試験ではない。
+- 4端末Firebase EmulatorとChromium/WebKitで本人／別端末間の送受信、外部UID拒否、本文長・固定件数・HTML無害化の自動試験を追加。**学校Google Sites公開版・本番Firebase Auth/Rules/DB・既存Supabase・mainは変更していない**。本番用通信ルールの承認と実機確認が未完了。
+- ユーザーの希望「4ゲームの完成優先、無料、友達同士、過剰な不正対策不要」を維持。チャットは最小限で新しいクラウドサービスを追加しない。
+
+## Phase20（2026-10-25）｜11月8日のFirebase旧ルール期限切れ対策（候補のみ）
+
+- [実装とリスクの詳細](PHASE20_LEGACY_RULE_EXPIRY_EXTENSION_REVIEW_2026-10-25.md)。オーナー報告の現行Root Rulesは **`now < 1794063600000`、2026-11-08 00:00 JST失効**。そのままでは旧ゲームが停止する恐れがある。
+- `dev/plan-open-root-migration.mjs`に、明示的な`--legacy-expiry-date 2026-12-08`を渡した場合だけ、**確認済み旧ゲーム4ルート**のread/write期限を **12月8日00:00 JST（30日延長）**へ変えるレビュー専用機能を追加。元の期限のままの既存オプションも維持。延長は**最大90日**、入力が想定外・期限の短縮・不正な日付・Root公開の不一致を拒否。
+- 過去の実Rulesを直接取得したのではなく`tests/fixtures/owner-reported-open-root.example.rules.json`はユーザー報告を模した**合成フィクスチャ**。ルートの権限局所化・トランプprivate Rules維持をテスト。Firebase CLIの本番操作やdeployは実装していない。
+- `firebase.extended-emulator.json`とGitHub Actionsへ既存4旧ルートの匿名読書き・トランプ手札権限と4人戦の追加検査を導入。**[CI #40202568624](https://github.com/8mahi8/trump-collection/actions/runs/40202568624)成功：Node97/97、Chromium＋WebKitのUI／4端末、元スコープ案と12月8日延長案のFirebase Emulator回帰成功**。**本番Rules・Auth・Database・Google Sites・mainは無変更**。
+- **重要**：確認済みのRTDBパスは旧4領域だが、学校公開版の実利用ルートが網羅される保証はない。元ルール全体のバックアップ、本番実ルール照合、別旧パスの有無、匿名Firebase Auth、本人の**本番変更の明示承認**が次のゲート。旧領域は認証なしの暫定権限で、無期限公開とは異なる。
+- 原則は不正対策よりも**学校iPadで友達と遊べること**。今回の対策はトランプ追加と旧ゲーム停止防止の必要最小限。
+
+## Phase19（2026-10-25）｜神経衰弱のオンライン退出を友達対戦メニューに統合
+
+- [実装・試験の詳細](PHASE19_MEMORY_EXIT_GOOGLE_SITES_2026-10-25.md)。神経衰弱も「← ゲーム一覧」による親子の`tc:leave-room`／`tc:leave-ack`を使用する。画面内に「退出・部屋を作り直す」を追加。
+- 退出側がオンライン接続済みなら**Supabase Broadcastの公開チャンネルに対し、ホストは`room_closed`、ゲストは`player_left`をベストエフォート送信**して短時間後に接続を閉じる。残った側は終了を受信すると対戦を閉じて新部屋を作成可能な画面に戻す。急な回線断で確実に届くという保証はない。
+- `dev/verify-collection-launcher.mjs`で**Playwright内の模擬WebSocket**を使い、Google Sites風二重iframeのChromium／WebKitで退出通知を送る／ゲストがホスト終了通知を受信する試験を実施。**[CI #40201651323](https://github.com/8mahi8/trump-collection/actions/runs/40201651323)成功（Node93/93、ブラウザ両エンジン、Firebase4端末＋既存Rulesエミュレーター回帰すべて成功）**。本番Supabaseにはテスト用接続を行わない。
+- Firebase3ゲームの既存4端末エミュレーターを含む回帰CIは継続。**本番Firebase・Supabase設定・Google Sites版・mainは未変更。**
+- 最優先は既存4ゲームのプレイ体験・安定性。無理なセキュリティ強化をせず、本番Firebaseと既存ゲームのルール期限を次の大きな公開ゲートとして扱う。
+
+## Phase18（2026-10-25）｜統合ランチャーからのオンライン退出修正・完走
+
+- [実装・テスト詳細](PHASE18_BACK_TO_MENU_GRACEFUL_EXIT_2026-10-25.md)。**[CI #40200557612](https://github.com/8mahi8/trump-collection/actions/runs/40200557612)成功：Node 93/93、Chromium＋WebKit両方のWeb UI／Firebaseエミュレーター／共有Rules／局所化Rulesすべて合格。**
+- 統合ランチャーの「← ゲーム一覧」でFirebase友達対戦の子`iframe`を即破棄していた問題を改善。親→子`tc:leave-room`、子→親`tc:leave-ack`で退出終了を待つ。ホストの部屋閉鎖・ゲストの退出は既存の`leaveRoom()`経路へ委譲。通信不調／子画面無応答時は**最大1.8秒**でメニューへ戻す。ユーザーに「退出中…」を表示。
+- Google Sites風二重sandboxで3ゲームの退出ACK（Chromium＋WebKit）と、ACKが返らない場合のフォールバックを検証。Firebase Emulator4端末ではホスト／ゲスト両方の退出メッセージで相手側が部屋終了を検知することも確認。
+- Google Sites学校版／本番Firebase／Auth／Rules／mainには変更なし。身内用途に過剰な認証や不正対策を増やさない。実学校iPad Safari検証は未実施。
+- **次の優先**：既存Firebase Rulesの2026-11-08期限と他ゲーム利用領域を壊さない最終準備、許可された実接続テスト、Google Sites貼付版仕上げ。
+
+## Phase17（2026-10-25）｜Google Sites二重iframeへのゲーム選択引継ぎ修正
+
+- [作業・検証の詳細](PHASE17_SITES_NESTED_IFRAME_2026-10-25.md)。
+- 発見した弱点：統合ランチャーの友達対戦で、子`iframe.srcdoc`内のゲーム選択を親`frame.contentDocument`から直接更新していた。Google Sitesの外側sandbox付きiframe下ではアクセス不能なことがあり、**七並べ／大富豪を選んでもババ抜きが起動するリスク**があった。
+- 修正：`online/collection-launcher.template.html`の`configureFriendsGame`が`TRUMP_INITIAL_GAME`を各子ゲームHTMLに直接注入。オンラインUIが起動時に選択ゲームを反映。親DOMアクセスの握りつぶしを廃止。Firebase接続設定なしでも選択が効く。COMは従来の`postMessage`を維持。
+- `dist/trump-collection-online-lab.html`もビルダーと一致するよう再生成、既存COM／オンラインゲームの処理を変更しない。
+- `dev/verify-collection-launcher.mjs`にGoogle Sitesを模した外側`sandbox="allow-scripts allow-forms"`付きiframe＋内側`srcdoc`の二重iframe試験を追加。**Chromium・WebKitともに8入口＋二重iframe選択／COM七並べ起動が合格**。**[Actions #40199559696](https://github.com/8mahi8/trump-collection/actions/runs/40199559696) 成功（Node 93/93、Chromium＋WebKitの二重iframe、Firebase Emulator4画面×3ゲーム、共有Rules／局所化Rules）**。
+- **学校Google Sites公開版・本番Firebase・main未変更。** WebKitはSafari系だが、旧学校iPad実機検証ではない。
+
+## Phase16（2026-10-25）｜学校Safari系WebKitの対戦試験成功
+
+- Playwright **WebKit + Chromium 両エンジン**でCOM4／友達4＝8入口の起動、Firebase Emulatorの**4独立ブラウザ×ババ抜き・七並べ・大富豪**のREADY→初手同期、ホスト通信断復旧、退出→新ルームが合格。
+- **[GitHub Actions #40198456792](https://github.com/8mahi8/trump-collection/actions/runs/40198456792) 成功、Node 93/93、失敗0**。詳細は[Phase16資料](PHASE16_WEBKIT_SAFARI_REGRESSION_2026-10-25.md)。`TC_BROWSER_ENGINE=webkit`でUIテストを再現できる。
+- LEMON CLASHの開発ブランチ `dev/ipad-hand-ui` にて実際の `/lemonClashRoomsV1` 使用・旧Firebase共用時の**Authなし**接続を確認。Phase15を更新。旧ゲームのアクセスをAuth必須に変更してはいけない。
+- 本番Firebase・Google Sites・学校Safari実機は**未変更／未検証**。WebKitの合格はiOS実機合格を意味しない。繰り返しのRulesスクリーンショット要求はしない。
+- 次は実校内Google Sitesで使用中のパスの全件確認、期限切れ（11月8日）の対応案、既存ユーザーの負担を減らす小さなUI改善。高度な不正対策は作らない。
+
+## 最優先のユーザー方針追記（2026-10-25）｜身内対戦、不正対策は軽量でよい
+
+- 利用者は学校の友達だけ。**対戦相手の悪意ある不正・チート対策に時間をかけすぎない**。開発優先順位は「友達と4ゲームで遊べる → 操作が簡単 → iPad Safari/Google Sitesで軽く安定 → 必要最小限の権限と通信費対策」。
+- 高度なチート検知・リプレイ監視・対戦ログ収集・複雑なユーザー認証やホスト移譲・故意の不正操作対策は要求しない。既存のホスト権威方式を無理に強化しない。
+- **不正対策とDBの基本的な権限分離は別**：不用意に全手札を公開したり、他の既存ゲームの読み書きや無料枠を壊したりしないための最低限は維持する。Security Rules移行作業もこの必要最小限に限定し、対戦可能な状態への前進を止める過剰設計を避ける。
+- ルールは前に確認したものから変更していないと本人が確認済み。**同じRulesスクリーンショットは再要求しない**。本番更新・既存ゲームへの影響がある操作は別途慎重に扱い、学校のGoogle Sites版を独断で変更しない。
+- この段落は過去の過剰な不正対策優先案より優先する。
+
+## Phase 15 更新（2026-10-25）｜以前のRulesが現在も変わっていないことを本人が確認
+
+- 本人の説明：以前確認した `mygame-df915` の期限付きルート全体の読書き許可が**現在も変わっていない**。10/22の記録の期限は **2026-11-08 00:00 JST**。この本人確認を受けて**同じスクリーンショットの再提出は求めない**（管理APIで現行Rulesを独立に再読込したわけではない）。
+- 親ルートの許可は子で拒否できないため、いまのまま `/trumpRoomsV1` に非公開手札を置くことはできない。既存Firebaseを再利用しつつ、旧ゲームのルートへ権限を局所化してトランプ専用ルートに別権限を用意する**移行案**を開発ブランチに追加。
+- [Phase 15作業内容](PHASE15_OPEN_ROOT_MIGRATION_2026-10-25.md)／`dev/plan-open-root-migration.mjs`／`tests/plan-open-root-migration.test.mjs`／`tests/firebase-scoped-emulator.e2e.mjs`。架空ルールからレビュー用候補を作り、実FirebaseではなくFirebase Emulatorで旧ルート／手札分離を検証する。**[CI #40197234549](https://github.com/8mahi8/trump-collection/actions/runs/40197234549)成功（Node 93/93、旧4ルートの権限維持＋トランプ手札分離のEmulator確認）**。
+- 本番未解決：実際の全ゲーム利用パスの網羅性、匿名Firebase Auth、旧ゲームのルール期限切れ対処、オーナーの本番変更承認。**本番のFirebase・Google Sites版・main・PRのDraft状態は変更しない**。
+
+## Phase 14 更新（2026-10-25）｜七並べの確定操作・本番Rules未確認
+
+- [作業・ゲートの詳細](PHASE14_SEVEN_AND_FIREBASE_GATE_2026-10-25.md)。オンライン七並べの「タップ選択→確定ボタン」に修正し、誤タップ送信を防止。最新の単体HTMLを再生成・GitHubに保存。
+- **[GitHub Actions #40196219631](https://github.com/8mahi8/trump-collection/actions/runs/40196219631) 成功：Node 89/89、Chromium4ゲーム×COM/友達8入口、Firebase Auth/RTDB Emulator4画面、共有の合成Rules Emulatorすべて合格。**
+- 過去2026-10-22に記録された期限付きルート公開Rulesは、共有ルール合成時に拒否されることを追加テストで確認。**過去スクショを現行本番Rulesと同一視しない。**
+- 本番の `mygame-df915` Realtime Database Security Rulesの全文は今回も取得できなかった。現在のFirebase Console Rules全文の共有が、次の管理者操作の最小要件。
+- Firebase本番・学校Google Sites版・main公開COM版は未変更。PR #1はDraft継続。
+
+## プロジェクトと直近の検証
+
+- GitHub: https://github.com/8mahi8/trump-collection
+- 開発ブランチ: `dev/quality-and-ui-v1-5-20261024`
+- Draft PR: https://github.com/8mahi8/trump-collection/pull/1
+- 最新確認済み GitHub Actions 成功: https://github.com/8mahi8/trump-collection/actions/runs/40208972686 （**Node 103/103件合格**、2端末神経衰弱＋4端末Firebase＋全Rules回帰）。。CIは Firebase Local Emulator と Chromium **および WebKit** を使用。本番Firebase／学校iPad実機での合格ではない。
+- `main/index.html` は公開COM版 **v1.4.0**、開発ブランチの`index.html`はCOM版 **v1.5.5**。本人承認なしに公開・学校Google Sites版を上書きしない。
+
+## ゲーム仕様・完成状況
+
+**学校iPad（Safari）で友達と遊ぶ、軽量なトランプゲーム集**。Google Sitesへの公開方法はGitHub PagesのURL埋め込みではなく、**HTML/CSS/JS全文をGoogle Sitesの「埋め込みコード」に直接貼る**こと。横向き・旧世代iPad・無料運用が条件。
+
+- 4種類：**ババ抜き、七並べ、神経衰弱、大富豪**。COMモードはいずれも開発版に実装。
+- **ババ抜き／七並べ／大富豪**：Firebase Auth匿名認証＋Realtime Database RESTによる**4人オンライン開発版**。ホストがルールと全手札の権威を保持。ゲストは本人のprivate手札だけ閲覧。4人入室、READY、開始、操作、勝敗、再戦、退出、ホスト一時通信断の安全停止／同一ページ内復帰をローカルエミュレーターとChromium4画面で検証済み。
+- **神経衰弱**：**2人のSupabase Realtime公開Broadcast試作**。ユーザーがPC＋スマホで試遊成功。Firebase3ゲームとは別通信・公開ルーム番号に実質的な認証はない。学校Safari未確認。
+- 4ゲーム×「COM／友達」共通選択メニューの**研究用単一HTML**を`dev/build-collection-lab.mjs`からビルド。Chromiumで全8入口を確認。本番Firebase設定はまだ入っていない。
+
+## ユーザーが確定した最新方針
+
+1. **既存のFirebase `mygame-df915` を再利用する方向**。新規Firebase作成を必須としない。既存ゲームを壊さないよう、トランプのパス`/trumpRoomsV1`を独立させる。
+2. **対局中にページ再読み込みした場合、同じ試合への復元は不要**。更新したら新部屋を作り直す。ページを開いたままの一時通信断だけ復旧可能とする。
+3. **複雑なセキュリティ機能より遊びやすさ**を優先。ただし他人の手札が見える状態、既存Firebaseの破壊、意図しない課金・公開変更は避ける。
+4. 原則、細かな確認は挟まず調査→実装→自動テスト→GitHub記録まで進める。「任せた」は継続作業の委任。**実機・管理者操作が不可欠になった場合だけユーザーに最小限の依頼**。
+5. 公開版＝**学校Google Sitesへ直接HTMLを貼り、友達が遊べる状態**。GitHubへのコミットやGitHub Pagesだけでは公開完了ではない。
+
+## Firebase共有で残る唯一の大きなブロッカー
+
+- 最新の`online/firebase-dedicated-guard.mjs`は関数`validateFirebaseConfig`で**既存`mygame-df915`を形式上許容する**よう改修済み。旧関数名は互換エイリアス。これだけで本番利用可能・プライバシー安全とは判断しない。
+- `dev/merge-existing-firebase-rules.mjs`：実際の既存Rulesを**オフライン**で読み、旧ルールを維持して`trumpRoomsV1`だけを追加するレビュー候補を生成。祖先での広い許可、ルートワイルドカードなどは自動合成を拒否。
+- `firebase/SHARED_DATABASE_RULES.md`：監査／合成手順。旧ゲームの**架空サンプルRules**に対する合成のエミュレーター試験では、旧権限維持・手札分離・3ゲーム4人戦完走を確認。
+- **重要：現在のRulesは10/22に確認したルート全体の期限付き許可と変わっていないと本人が確認済み。ただし、管理APIによる現行Rulesの独立再取得は未実施。** 同じスクリーンショットの再提出は求めず、Phase15のオフライン移行候補を先にテストする。実適用前には全利用パスの棚卸し・バックアップ・明示承認が必要。
+- **過去チャットの手がかり**：2026-10-22の別ゲーム開発チャットにFirebase Rules画面のスクリーンショットを送ったという履歴が見つかった。当時の会話ではルート全体を期限付きで許可するルールの可能性が指摘された。ただし**対象プロジェクト名・元画像・現在の適用状態は確認できない**。必ず現Rulesで再判定する。もしルートから読取を許可しているなら、子の非公開手札ルールでは取り消せない。
+- **本番Rulesのデプロイ／既存ゲームのデータ操作は未実施**。本番Rules全文の取得・バックアップ・差分レビュー・旧ゲーム含むEmulator検証までは接続先設定を公開HTMLへ埋め込まない。
+
+## 次の担当AIがする作業
+
+1. まず`HANDOFF.md`／`firebase/SHARED_DATABASE_RULES.md`／現開発PR、CI成功記録を確認。過去資料の「新規Firebase必須」「接続ガード未更新」等は**古い**ので優先しない。
+2. 本人が過去に確認したRulesを今も変えていないと明言済み。同じ資料は再要求せず、開発済みのPhase15スコープ移行案を利用する。既存ゲーム利用パスの洗い出し・旧ゲームを壊さないテストを優先する。管理者秘密鍵やログイン情報は要求しない。
+3. 現Rulesが判明したら、`dev/merge-existing-firebase-rules.mjs`で危険な親許可・既存ゲームの影響を検査。必要なら安全な改善案を検討。**無承認の本番変更はしない**。
+4. 合成候補をローカルEmulatorで旧ゲームの権限・トランプのprivate/command権限と4人戦の両方でテスト。成功後にだけ本番接続作業へ移行する。
+5. 手元で進められる残作業：旧世代Safari向け表示、軽量な放置ルーム整理、統合UIの改善とCI整備。4ゲーム統合は独立iframe研究版であり正式版への配布は未完了。
+
+## 主なコードと検証の入口
+
+- `games.mjs`：4ゲーム共通ルール
+- `online/four-seat-authority.mjs`：4人対戦のホスト権威
+- `online/firebase-room-store.mjs`／`online/firebase-room-controller.mjs`：Auth/RTDBとホスト/ゲストの操作同期
+- `online/four-seat-remote.html` → `dev/build-online-html.mjs` → `dist/trump-collection-online-lab.html`：Firebase4人開発版の単体HTML
+- `online/memory-remote.html`／`online/memory-authority.mjs`／`online/realtime-wire.mjs`：神経衰弱2人Supabase試作
+- `online/collection-launcher.template.html`／`dev/build-collection-lab.mjs`：共通4ゲームメニューと単体HTMLの研究ビルド
+- `firebase/trump-rooms.rules.json`：**単独トランプ専用**のRules。**既存本番Firebaseへファイル丸ごと適用してはいけない**。
+- `firebase.shared-emulator.json`と`tests/firebase-shared-emulator.e2e.mjs`：既存の架空ルールを合成したエミュレーター検証
+- `.github/workflows/firebase-emulator-ci.yml`：Node→単体HTML→Chromium＋WebKit→Firebase Auth/RTDB Emulator（両エンジン）→共有Rules Emulator
+
+ユーザーが「任した」と言ったら**計画だけで止まらず、可能な範囲でGitHubへコミットし、CI結果の成功を確認して報告**すること。学校版・本番Rulesは独断で触らない。

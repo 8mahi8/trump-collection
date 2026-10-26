@@ -1,0 +1,89 @@
+name: Isolated Firebase Auth + RTDB Emulator Tests
+on:
+  push:
+    branches:
+      - dev/quality-and-ui-v1-5-20261024
+    paths:
+      - '.github/workflows/firebase-emulator-ci.yml'
+      - 'firebase/**'
+      - 'firebase.emulator.json'
+      - 'firebase.extended-emulator.json'
+      - 'firebase.open-trial-emulator.json'
+      - 'online/**'
+      - 'games.mjs'
+      - 'tests/**'
+      - 'dev/**'
+      - 'dist/trump-collection-online-lab.html'
+      - 'dist/trump-collection-integrated-lab.html'
+      - 'dist/trump-collection-open-root-trial.html'
+      - 'index.html'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  firebase-authz:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Node logic and mock transport regression tests
+        run: node --test tests/*.test.mjs
+      - name: Build standalone Google Sites compatible four-player HTML
+        run: node dev/build-online-html.mjs
+      - name: Prepare Playwright Chromium and WebKit (Safari engine)
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium webkit
+      - name: Four-seat Firebase inside actual configured Google Sites-style sandbox (Chromium + WebKit)
+        run: npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.emulator.json --only auth,database "node dev/verify-configured-sites-emulator.mjs && TC_BROWSER_ENGINE=webkit node dev/verify-configured-sites-emulator.mjs"
+
+      - name: Four friends without Auth on already-open reported RTDB Rules (3 games, Chromium + WebKit, emulator only)
+        run: npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.open-trial-emulator.json --only database "TC_OPEN_ROOT_TRIAL=1 node dev/verify-configured-sites-emulator.mjs && TC_OPEN_ROOT_TRIAL=1 TC_BROWSER_ENGINE=webkit node dev/verify-configured-sites-emulator.mjs && TC_OPEN_ROOT_TRIAL=1 TC_SITES_GAME=shichinarabe node dev/verify-configured-sites-emulator.mjs && TC_OPEN_ROOT_TRIAL=1 TC_BROWSER_ENGINE=webkit TC_SITES_GAME=shichinarabe node dev/verify-configured-sites-emulator.mjs && TC_OPEN_ROOT_TRIAL=1 TC_SITES_GAME=daifugo node dev/verify-configured-sites-emulator.mjs && TC_OPEN_ROOT_TRIAL=1 TC_BROWSER_ENGINE=webkit TC_SITES_GAME=daifugo node dev/verify-configured-sites-emulator.mjs"
+
+
+      - name: Build integrated COM and friends launcher (research-only)
+        run: node dev/build-collection-lab.mjs
+      - name: Browser tests for all 4 COM and friend entry points
+        run: node dev/verify-collection-launcher.mjs
+      - name: Retain test-only integrated single HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: trump-collection-integrated-lab
+          path: dist/trump-collection-integrated-lab.html
+          retention-days: 7
+      - name: Browser UI smoke test (offline config guard)
+        run: node dev/verify-online-browser.mjs
+      - name: WebKit launcher smoke test (all 4 COM and friend entry points)
+        run: TC_BROWSER_ENGINE=webkit node dev/verify-collection-launcher.mjs
+      - name: Two-device Supabase Memory Match through Google Sites mock (no live service)
+        run: node dev/verify-memory-peers.mjs
+      - name: WebKit two-device Supabase Memory Match through Google Sites mock
+        run: TC_BROWSER_ENGINE=webkit node dev/verify-memory-peers.mjs
+      - name: WebKit standalone four-seat smoke (no live Firebase)
+        run: TC_BROWSER_ENGINE=webkit node dev/verify-online-browser.mjs
+      - name: Emulator authorization and four-browser UI integration (Chromium + WebKit)
+        run: npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.emulator.json --only auth,database "node --test tests/firebase-emulator.e2e.mjs && TC_BROWSER_EMULATOR=1 node dev/verify-online-browser.mjs && TC_BROWSER_EMULATOR=1 TC_BROWSER_ENGINE=webkit node dev/verify-online-browser.mjs"
+
+      - name: Build synthetic merged Rules offline (never deploy)
+        run: node dev/merge-existing-firebase-rules.mjs --existing tests/fixtures/existing-school.rules.json --out dist/review-merged-school.rules.json
+      - name: Emulator regression on merged legacy + private-trump Rules
+        run: npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.shared-emulator.json --only auth,database "node --test tests/firebase-shared-emulator.e2e.mjs && node --test tests/firebase-emulator.e2e.mjs"
+
+      - name: Build scoped migration draft from SYNTHETIC open root (never deploy)
+        run: node dev/plan-open-root-migration.mjs --existing tests/fixtures/open-root.example.rules.json --legacy-roots rooms,rooms2v2,shokokuRooms1v1,lemonClashRoomsV1 --out dist/review-scoped-open-root.rules.json
+      - name: Emulator regression for scoped legacy roots and private trump rooms
+        run: npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.scoped-emulator.json --only auth,database "node --test tests/firebase-scoped-emulator.e2e.mjs && node --test tests/firebase-emulator.e2e.mjs"
+
+      - name: Generate 30-day JST extension draft from owner-reported SYNTHETIC fixture (never deploy)
+        run: node dev/plan-open-root-migration.mjs --existing tests/fixtures/owner-reported-open-root.example.rules.json --legacy-roots rooms,rooms2v2,shokokuRooms1v1,lemonClashRoomsV1 --legacy-expiry-date 2026-12-08 --out dist/review-scoped-open-root-extended.rules.json
+      - name: Validate extended legacy roots and private trump in local emulator only
+        run: npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.extended-emulator.json --only auth,database "node --test tests/firebase-scoped-emulator.e2e.mjs && node --test tests/firebase-emulator.e2e.mjs"

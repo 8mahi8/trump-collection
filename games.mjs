@@ -30,9 +30,10 @@ export function babanukiDraw(st, cardIndex) {
   if (st.phase !== 'play') return st;
   const me = st.turn, target = babanukiNextWithCards(st, me);
   if (target === me) { st.phase = 'end'; return st; }
+  if (!Number.isInteger(cardIndex) || cardIndex < 0 || cardIndex >= st.hands[target].length) return st;
   const card = st.hands[target].splice(cardIndex, 1)[0];
   st.hands[me].push(card);
-  st.lastDraw = { from: target, card };
+  st.lastDraw = { from: target, by: me, card };
   const before = st.hands[me].length;
   st.hands[me] = removePairs(st.hands[me]).hand;
   const paired = st.hands[me].length < before;
@@ -107,13 +108,21 @@ function shichinarabeAdvance(st) {
   st.turn = n;
 }
 export function botShichinarabe(st) {
-  const p = st.turn, legal = shichinarabeLegal(st.hands[p], st.placed);
+  const p = st.turn, hand = st.hands[p];
+  const legal = shichinarabeLegal(hand, st.placed);
   if (!legal.length) return { type: 'pass' };
-  // 自分の次のカードを開ける手を優先
-  legal.sort((a, b) => {
-    const opens = c => st.hands[p].some(o => o.suit === c.suit && (o.rank === c.rank - 1 || o.rank === c.rank + 1)) ? 0 : 1;
-    return opens(a) - opens(b);
-  });
+  // 次の手番でも出せる自分の連番を多く開く。相手の非公開カードは参照しない。
+  const score = c => {
+    const step = c.rank < 7 ? -1 : 1;
+    let chain = 0;
+    for (let rank = c.rank + step; rank >= 1 && rank <= 13; rank += step) {
+      if (hand.some(x => x.suit === c.suit && x.rank === rank)) chain++;
+      else break;
+    }
+    return chain * 10 + hand.filter(x => x.suit === c.suit).length * 0.2;
+  };
+  legal.sort((a, b) => score(b) - score(a));
+  // 意図的なパスは2000試合の比較で成績が悪化したため導入しない。
   return { type: 'play', id: cardId(legal[0]) };
 }
 
@@ -127,7 +136,7 @@ export function createShinkei(seed, difficulty = 1) {
 }
 export function shinkeiObserve(st, pos) { const c = st.board[pos].card; st.memory.set(pos, c.suit + '-' + c.rank); if (st.difficulty === 0 && st.memory.size > 6) { const k = st.memory.keys().next().value; st.memory.delete(k); } if (st.difficulty === 1 && st.memory.size > 14) { const k = st.memory.keys().next().value; st.memory.delete(k); } }
 export function shinkeiFlip(st, pos) {
-  if (st.phase !== 'play' || st.board[pos].taken || st.flipped.includes(pos) || st.flipped.length >= 2) return st;
+  if (st.phase !== 'play' || !Number.isInteger(pos) || pos < 0 || pos >= st.board.length || st.board[pos].taken || st.flipped.includes(pos) || st.flipped.length >= 2) return st;
   st.flipped.push(pos); shinkeiObserve(st, pos);
   if (st.flipped.length === 2) {
     const [a, b] = st.flipped, ca = st.board[a].card, cb = st.board[b].card;
@@ -173,12 +182,19 @@ export function createDaifugo(seed, cfg = DAIFUGO_DEFAULTS, prevRanks = null) {
   st.hands = st.hands.map(sortHand);
   return st;
 }
-function combosOf(hand) { // 同じ数字の組（ジョーカーはワイルドとして各組に合流可能）
+function combosOf(hand) { // 同じ数字のあらゆるスートの組み合わせを列挙
   const groups = new Map(); let joker = null;
   for (const c of hand) { if (c.joker) { joker = c; continue; } if (!groups.has(c.rank)) groups.set(c.rank, []); groups.get(c.rank).push(c); }
   const out = [];
-  for (const [, cs] of groups) for (let n = 1; n <= cs.length; n++) out.push(cs.slice(0, n));
-  if (joker) { out.push([joker]); for (const [, cs] of groups) for (let n = 1; n <= cs.length; n++) out.push([...cs.slice(0, n), joker]); }
+  if (joker) out.push([joker]);
+  for (const [, cs] of groups) {
+    // 接頭辞だけを列挙すると「♥5のみ」など合法手が消えるため、全ての非空部分集合を生成
+    for (let mask = 1; mask < (1 << cs.length); mask++) {
+      const subset = cs.filter((_, i) => (mask & (1 << i)) !== 0);
+      out.push(subset);
+      if (joker) out.push([...subset, joker]);
+    }
+  }
   return out;
 }
 export function comboInfo(cards, st) {
@@ -197,7 +213,11 @@ export function daifugoLegalMoves(st, p) {
     if (cs.length !== f.count) return false;
     const info = comboInfo(cs, st);
     if (cfg.spade3 && f.isJokerSingle && cs.length === 1 && !cs[0].joker && cs[0].suit === 0 && cs[0].rank === 3) return true;
-    if (cfg.suitLock && f.lockSuits) { if (info.suits.size !== f.lockSuits.size || ![...info.suits].every(s => f.lockSuits.has(s))) return false; }
+    if (cfg.suitLock && f.lockSuits) { // ジョーカーは不足したスート1つを補える
+      const extra = [...info.suits].filter(s => !f.lockSuits.has(s)).length;
+      const missing = [...f.lockSuits].filter(s => !info.suits.has(s)).length;
+      if (extra > 0 || missing > (info.hasJoker ? 1 : 0)) return false;
+    }
     if (f.value === 99) return false; // ジョーカー単体にはスペ3以外出せない
     if (info.value === 99) return true;
     return rev ? info.value < f.value : info.value > f.value;
@@ -212,6 +232,7 @@ export function daifugoPlay(st, p, cards) {
   if (!ok) return st;
   const info = comboInfo(cards, st);
   const prevField = st.field;
+  const spade3Clear = !!(st.cfg.spade3 && prevField?.isJokerSingle && cards.length === 1 && !cards[0].joker && cards[0].suit === 0 && cards[0].rank === 3);
   for (const c of cards) { const i = st.hands[p].findIndex(h => cardId(h) === cardId(c)); st.hands[p].splice(i, 1); }
   let lockSuits = prevField?.lockSuits || null;
   if (st.cfg.suitLock && prevField && !prevField.lockSuits && prevField.suits && info.suits.size === prevField.suits.size && [...info.suits].every(s => prevField.suits.has(s)) && info.count === prevField.count) lockSuits = new Set(info.suits);
@@ -236,7 +257,7 @@ export function daifugoPlay(st, p, cards) {
     if (st.finished.length === 2) { /* 残り2人のうち場のリード権は次へ */ }
   }
   // 8切り
-  if (st.cfg.eightCut && info.has8 && st.phase === 'play') { st.field = null; st.lastEvent = (events.join('／') + ' 8切り！続けて出せる').trim(); if (!st.finished.includes(p)) { st.turn = p; st.leader = p; } else { st.turn = daifugoNext(st, p); st.leader = st.turn; } return st; }
+  if (st.phase === 'play' && (spade3Clear || (st.cfg.eightCut && info.has8))) { st.field = null; st.lastEvent = (events.join('／') + (spade3Clear ? ' スペ3返し！続けて出せる' : ' 8切り！続けて出せる')).trim(); if (!st.finished.includes(p)) { st.turn = p; st.leader = p; } else { st.turn = daifugoNext(st, p); st.leader = st.turn; } return st; }
   st.lastEvent = events.join('／');
   st.turn = daifugoNext(st, p);
   return st;
@@ -245,7 +266,8 @@ export function daifugoPass(st, p) {
   if (st.phase !== 'play' || st.turn !== p || !st.field) return st;
   st.passStreak++;
   const activeCount = [0, 1, 2, 3].filter(i => !st.finished.includes(i)).length;
-  if (st.passStreak >= activeCount - 1) { // 全員パスで流れる
+  const requiredPasses = activeCount - (st.finished.includes(st.field.lastPlayer) ? 0 : 1);
+  if (st.passStreak >= requiredPasses) { // 最後に出した人が上がっている場合も、生存者全員のパスを待つ
     const leader = st.field.lastPlayer;
     st.field = null; st.passStreak = 0;
     st.turn = st.finished.includes(leader) ? daifugoNext(st, leader) : leader;
@@ -255,25 +277,44 @@ export function daifugoPass(st, p) {
 }
 export function daifugoNext(st, from) { let n = from; do { n = (n + 1) % 4; } while (st.finished.includes(n)); return n; }
 export function botDaifugo(st, p) {
-  const moves = daifugoLegalMoves(st, p);
-  if (!moves.length) return { type: 'pass' };
-  const hand = st.hands[p], f = st.field;
-  const infos = moves.map(m => ({ cards: m, info: comboInfo(m, st) }));
-  const finishable = infos.filter(o => hand.length - o.cards.length === 0);
-  const foulFinishMove = o => st.cfg.foulFinish && (o.info.value === 12 || o.info.hasJoker || (st.cfg.eightCut && o.info.has8));
-  if (finishable.length) { const good = finishable.find(o => !foulFinishMove(o)); if (good) return { type: 'play', cards: good.cards }; if (!f) return { type: 'play', cards: finishable[0].cards }; return { type: 'pass' }; }
-  const score = o => {
-    let s = o.info.value * 2 - o.cards.length * 1.5; // 弱い・大きい組を優先
-    if (o.info.value >= 12) s += 30; // 2やジョーカーは温存
-    if (o.info.hasJoker) s += 25;
-    if (f && o.info.has8 && st.cfg.eightCut) s -= 8; // 8切りは場を取りたいときに価値
-    if (!f && o.cards.length >= 4 && st.cfg.revolution) { const handPower = hand.reduce((a, c) => a + rankValue(c), 0) / hand.length; if (handPower < 5.5) s -= 20; } // 弱い手札なら革命を狙う
-    const nextP = daifugoNext(st, p);
-    if (st.hands[nextP].length <= 2 && f) s -= (o.info.value) * 0.8; // 次が上がりそうなら強いカードで止める
-    return s;
+  const options = daifugoLegalMoves(st, p);
+  if (!options.length) return { type: 'pass' };
+  const hand = st.hands[p], field = st.field;
+  const reversed = st.revolution !== (field?.tempReverse || false);
+  // 自分の手札＋公開されている残り枚数だけで判断。相手のカードは見ない。
+  const foulFinish = i => st.cfg.foulFinish && (i.value === 12 || i.hasJoker || (st.cfg.eightCut && i.has8));
+  const moves = options.map(cards => ({ cards, info: comboInfo(cards, st) }));
+  const finishes = moves.filter(m => m.cards.length === hand.length);
+  if (finishes.length) {
+    const clean = finishes.find(m => !foulFinish(m.info));
+    if (clean) return { type: 'play', cards: clean.cards };
+    if (!field) return { type: 'play', cards: finishes[0].cards }; // 親で手札が反則札のみなら出すしかない
+    return { type: 'pass' };
+  }
+  const strength = i => i.value === 99 ? 14 : reversed ? 12 - i.value : i.value;
+  const next = daifugoNext(st, p), imminentFinish = st.hands[next].length <= 2;
+  const evaluate = m => {
+    const remain = hand.filter(c => !m.cards.includes(c));
+    const remainRanks = new Map();
+    for (const c of remain) if (!c.joker) remainRanks.set(c.rank, (remainRanks.get(c.rank) || 0) + 1);
+    let score = strength(m.info) * 1.7 - m.cards.length * 6.5; // 弱い札をまとめて減らす
+    if (m.info.hasJoker) score += hand.length > 4 ? 23 : 9;
+    if (m.info.value === 12 && !reversed) score += hand.length > 4 ? 16 : 2;
+    if (st.cfg.eightCut && m.info.has8) score += field ? -4 : 5;
+    if (m.info.count >= 4 && st.cfg.revolution) {
+      const power = remain.length ? remain.reduce((total, c) => total + rankValue(c), 0) / remain.length : 7;
+      score += power > 6 ? 16 : -18; // 残りが弱ければ革命を狙う
+    }
+    // 反則上がりになる札が最後の1枚として残る手を避ける。
+    if (remain.length === 1 && foulFinish(comboInfo(remain, st))) score += 45;
+    if (remain.length === 2 && remain.some(c => c.joker || (!reversed && c.rank === 2))) score += 6;
+    for (const c of m.cards) if (!c.joker && remainRanks.has(c.rank)) score += 3.5; // ペア崩し抑制
+    if (imminentFinish && field) score -= strength(m.info) * 0.6;
+    if (remain.length <= 3) score -= 4;
+    return score;
   };
-  infos.sort((a, b) => score(a) - score(b));
-  const best = infos[0];
-  if (f && best.info.value >= 12 && st.hands[daifugoNext(st, p)].length > 3 && Math.random() < 0.5) return { type: 'pass' }; // 切り札は温存気味に
+  moves.sort((a, b) => evaluate(a) - evaluate(b));
+  const best = moves[0];
+  if (field && !imminentFinish && hand.length > 4 && strength(best.info) >= 11 && Math.random() < 0.7) return { type: 'pass' };
   return { type: 'play', cards: best.cards };
 }
