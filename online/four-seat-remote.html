@@ -59,6 +59,8 @@ body.in-match #leave{font-size:0 !important}
 body.in-match #leave::after{content:'退出';font-size:12px}
 body.in-match #match{margin:3px 0 0;padding:5px 7px}
 body.in-match #board{margin-top:2px;gap:4px}
+#match[data-game="shichinarabe"] #board{flex-flow:column nowrap;align-items:center;justify-content:center;gap:1px}
+#match[data-game="shichinarabe"] .board-line{flex:none}
 body.in-match .board-line{gap:2px;margin:2px 0}
 body.in-match .field-card,body.in-match .field-empty{min-width:clamp(14px,2.6vw,24px);padding:2px 0;font-size:clamp(11px,1.6vw,14px)}
 @media(max-height:500px){
@@ -435,6 +437,7 @@ function render(){
  $('rematch').hidden=!isHost||v.phase!=='finished';
  $('rematch').disabled=!usable;
  $('match').hidden=v.phase==='lobby';
+ $('match').dataset.game=game;
  const state=$('state'),board=$('board'),hand=$('hand'),actions=$('actions');
  board.replaceChildren();hand.replaceChildren();actions.replaceChildren();
  state.textContent=GAMES[game]+'｜'+(v.phase==='finished'?'結果':acting?'あなたの番':'相手の番')+
