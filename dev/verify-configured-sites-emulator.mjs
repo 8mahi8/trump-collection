@@ -185,15 +185,37 @@ try{
   console.error('FIRST MOVE SYNC DEBUG',{game:requestedGame,before,turn,states});
   throw Error('MOVE_NOT_SYNCED_TO_EVERY_SEAT '+requestedGame);
  }));
- // Assert screen has no horizontal overflow at school iPad landscape viewport.
- for(const p of players){
-  const layout=await p.game.locator('body').evaluate(()=>{
-   const w=document.documentElement.clientWidth;
-   return {width:w,scrollWidth:document.documentElement.scrollWidth,hand:document.querySelector('#hand')?.querySelectorAll('button.card').length};
-  });
-  assert.ok(layout.scrollWidth<=layout.width+3,
-   requestedGame+' horizontal overflow on old school-iPad-like viewport: '+JSON.stringify(layout));
+ // Human-usable viewport: all seats must see their cards and controls
+ // without vertically scrolling the whole match, at both school-iPad-like sizes.
+ for(const size of [{width:800,height:450},{width:667,height:375}]){
+  await Promise.all(players.map(p=>p.page.setViewportSize(size)));
+  for(const p of players){
+   const layout=await p.game.locator('body').evaluate(()=>{
+    const rect=id=>{const el=document.getElementById(id);const r=el.getBoundingClientRect();
+     return {top:r.top,bottom:r.bottom,left:r.left,right:r.right,height:r.height,
+      scrollHeight:el.scrollHeight,clientHeight:el.clientHeight,
+      display:getComputedStyle(el).display}};
+    return {width:document.documentElement.clientWidth,height:innerHeight,
+     scrollWidth:document.documentElement.scrollWidth,scrollHeight:document.documentElement.scrollHeight,
+     connect:rect('connectPanel'),board:rect('board'),hand:rect('hand'),
+     actions:rect('actions'),match:rect('match'),lobby:rect('lobby'),
+     game:document.getElementById('match').dataset.game};
+   });
+   assert.ok(layout.scrollWidth<=layout.width+3,'horizontal page overflow: '+JSON.stringify({size,layout}));
+   assert.equal(layout.connect.display,'none','room creation form must disappear after match begins');
+   assert.equal(layout.game,requestedGame);
+   assert.ok(layout.hand.height>25&&layout.hand.bottom<=layout.height+2,
+    'cards must stay in view: '+JSON.stringify({size,layout}));
+   assert.ok(layout.actions.bottom<=layout.height+2&&layout.actions.top>=layout.hand.bottom-2,
+    'action controls must stay below the visible hand: '+JSON.stringify({size,layout}));
+   assert.ok(layout.board.bottom<=layout.hand.top+3,'board must not overlay hand');
+   assert.ok(layout.match.bottom<=layout.height+2,'match must fit iPad height');
+   if(requestedGame==='shichinarabe')
+    assert.ok(layout.board.scrollHeight<=layout.board.clientHeight+5,
+     'all four rows must be visible without board scrolling: '+JSON.stringify({size,layout}));
+  }
  }
+ await Promise.all(players.map(p=>p.page.setViewportSize({width:800,height:450})));
  await host.game.locator('#chatToggle').click();
  await players[1].game.locator('#chatToggle').click();
  await host.game.locator('#chatInput').fill('Google Sites内の4人チャット');
