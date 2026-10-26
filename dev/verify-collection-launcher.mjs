@@ -38,7 +38,20 @@ try{
   // Memory Match and Daifugo correctly show their original settings modal.
   if(games[i]==='shinkei'||games[i]==='daifugo'){
    await frame.locator('#mStart').waitFor({timeout:12000});
+   if(games[i]==='daifugo'){
+    // A real first-time user must see Start without finding a hidden scroll area.
+    await page.setViewportSize({width:667,height:375});
+    const modal=await frame.locator('#mStart').evaluate(button=>{
+     const b=button.getBoundingClientRect();
+     return {top:b.top,bottom:b.bottom,height:innerHeight,
+      scroller:document.querySelector('.rules-scroll')?.clientHeight};
+    });
+    assert.ok(modal.bottom<=modal.height+1 && modal.top>=0,
+     'Daifugo Start must be initially visible on small landscape iPad: '+JSON.stringify(modal));
+    assert.ok(modal.scroller>0,'Rule options need an independent scroll pane');
+   }
    await frame.locator('#mStart').click();
+   if(games[i]==='daifugo')await page.setViewportSize({width:800,height:450});
   }
   await frame.locator('#gameTitle').getByText(names[i],{exact:true}).waitFor({timeout:12000});
   await page.locator('#back').click();
