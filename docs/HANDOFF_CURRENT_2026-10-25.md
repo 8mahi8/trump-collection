@@ -3,6 +3,15 @@
 > **次の開発担当AIはまずこの文書と [HANDOFF.md](../HANDOFF.md) を読むこと。**
 > 旧記録には後から変更された計画が残るため、下記の最新方針を優先。
 
+## Phase29（2026-10-27）｜横向きiPadのUI改善・実画面検証
+
+- 詳細：[Phase29 UX改善](PHASE29_SCHOOL_IPAD_UX_FIX_2026-10-27.md)。**今までのNode106/106＋通信検証だけでは人が快適に遊べる保証はない**ため、[Phase28レビュー](PHASE28_HUMAN_UI_REVIEW_2026-10-27.md)で見つけたP0・P1を優先して修正。
+- 友達4人対戦：試合中は上部の重い「ルーム作成フォーム」「準備ボタン」「長文注意」の画面占有をなくし、盤面・手札・「出す/パス」を**縦にスクロールせず操作できるflexレイアウト**へ移した。ルーム番号・人数・退出・チャットはコンパクトな上部バーに残す。外側で選んだゲームを内側で二度選ぶ重複セレクタも収納。COM版は大富豪ルール設定を直し、**スタート/もどるを常時表示**。
+- 実画面：Chromiumで**667×375、800×450、1024×768**を検証。特に**667×375の内側iframe=323px**でも、七並べの盤面・13枚手札・選択確定/パスが表示範囲に入り、ドキュメントscrollHeightも323px。COM大富豪設定のスタート/もどるも初期画面内に存在。
+- 自動試験：`dev/verify-configured-sites-emulator.mjs`に**800×450と667×375の縦位置／手札／ボタン／盤面4行**の検査を追加。認証版4人・現行公開Rootルール試遊版3ゲーム×Chromium/WebKitの初手タップと同期は [Actions #40356099055](https://github.com/8mahi8/trump-collection/actions/runs/40356099055) で各工程成功。旧ランチャーテストが今回意図的に隠したセレクタを「表示されるまで待機」していたため全体CIのみ失敗し、テストを新UIに合わせて修正。新しい総合CIは [#40356906552](https://github.com/8mahi8/trump-collection/actions/runs/40356906552) で確認。
+- `dist/trump-collection-open-root-trial.html` を含む**3単一HTMLを再生成**。新しいGoogle Driveの `.html` と `.txt`： [HTML](https://drive.google.com/file/d/1NphKwaa1ldudQBBHHdjHEc5tictPpluF/view?usp=drivesdk) ／ [TXT](https://drive.google.com/file/d/1cnAS3iYanELZibR-uGA43fnz5Iz6claA/view?usp=drivesdk)。元ファイルは上書きせず保持。
+- **課題**：友達対戦の美術表現、COM七並べの密集手札は追加UX改善余地。**学校実機Safari／本物Google Sites／本番Firebaseの接続は未検証**。Firebase Root Rules・公開学校Sites・mainは変更していない。現行ルール期限2026-11-08 JSTの更新が別件で必要。
+
 ## Phase25（2026-10-26）｜Firebaseルールを今は変えず学校で試遊する完成候補
 
 - **ユーザーが優先した方針：既存Firebase `mygame-df915` の2026-11-08期限付きRoot Rulesを今は変更せず、まずトランプの友達対戦を試す。** 前に確認したRoot Rulesの同じスクリーンショットを再要求しない。
