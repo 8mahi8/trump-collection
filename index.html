@@ -92,6 +92,18 @@
   /* 結果・設定モーダル */
   .modalWrap { position:absolute; inset:0; background:rgba(4,20,10,.72); display:flex; align-items:center; justify-content:center; z-index:40; padding:14px; }
   .modal { background:#fdfdf8; color:#1d2b20; border-radius:18px; padding:20px 22px; width:min(430px,94vw); max-height:88vh; overflow-y:auto; text-align:center; box-shadow:0 14px 40px rgba(0,0,0,.5); }
+  /* The Start/Back buttons in Daifugo settings must never scroll off-screen. */
+  .modal.daifugo-settings{display:flex;flex-direction:column;overflow:hidden}
+  .modal.daifugo-settings .rules-scroll{min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+  .modal.daifugo-settings .mbtns{flex:none;background:#fdfdf8;padding-top:7px;margin-top:7px;border-top:1px solid #d9e2d9}
+  .modal.daifugo-settings .mbtns button{min-height:44px}
+  @media(max-height:500px){
+    .modal.daifugo-settings{max-height:94vh;padding:10px 14px}
+    .modal.daifugo-settings h2{font-size:17px;margin-bottom:5px;flex:none}
+    .modal.daifugo-settings .chk{font-size:13px;padding:3px 2px}
+    .modal.daifugo-settings .note{font-size:11px;margin:3px 0}
+    .modal.daifugo-settings .mbtns{margin-top:5px;padding-top:5px}
+  }
   .modal h2 { font-size:22px; margin-bottom:10px; }
   .modal .rankline { font-size:16px; padding:4px 0; }
   .modal .mbtns { display:flex; gap:10px; justify-content:center; margin-top:14px; flex-wrap:wrap; }
@@ -305,11 +317,12 @@ function showShinkeiSettings() {
 function showDaifugoSettings() {
   const chk = (k, label) => `<label class="chk"><input type="checkbox" id="cfg_${k}" ${daifugoCfg[k] ? 'checked' : ''}> ${label}</label>`;
   modal(`<h2>大富豪のルール設定</h2>
-    <div style="text-align:left">
+    <div class="rules-scroll" style="text-align:left">
       ${chk('eightCut', '8切り')}${chk('revolution', '革命（4枚以上）')}${chk('suitLock', 'スート縛り')}${chk('spade3', 'スペ3返し')}${chk('elevenBack', 'イレブンバック')}${chk('foulFinish', '反則上がり（2・ジョーカー・8で上がると大貧民）')}${chk('tribute', '献上（2戦目以降）')}
     </div>
     <p class="note">最初は全部ONがおすすめ。♦3を持っている人から始まります。</p>
     <div class="mbtns"><button class="abtn" id="mStart">スタート</button><button class="abtn sub" id="mCancel">もどる</button></div>`);
+  document.querySelector('.modal').classList.add('daifugo-settings');
   $('mStart').onclick = () => { for (const k of Object.keys(daifugoCfg)) daifugoCfg[k] = $('cfg_' + k).checked; $('modalRoot').innerHTML = ''; newMatch(); };
   $('mCancel').onclick = showMenu;
 }
