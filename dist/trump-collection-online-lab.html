@@ -34,10 +34,56 @@ select,input{background:#fafff5;color:#223128}input{max-width:140px}
 #chatSend{flex:none}
 #chatStatus{font-size:12px;color:#ffdc8b;min-height:14px}
 @media(max-height:460px){#chatPanel{max-height:74vh}#chatList{max-height:110px;min-height:50px}}
+/* School iPad landscape: the table, hand and action buttons must stay on screen. */
+html,body{height:100%;height:100dvh;overflow:hidden}
+body>main{height:100%;height:100dvh;display:flex;flex-direction:column;min-width:0;min-height:0}
+#connectPanel,#lobby{flex-shrink:0}
+#match:not([hidden]){min-height:0;flex:1;display:flex;flex-direction:column;gap:4px;overflow:hidden}
+#state{flex:none;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#board{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;align-content:center;justify-content:center}
+#hand{flex:none;min-height:0}
+.hand-cards{flex-wrap:nowrap;justify-content:flex-start;max-width:100%;overflow-x:auto;overflow-y:visible;
+ -webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;min-height:57px;padding:3px 5px 5px}
+#hand .card{flex:none;touch-action:manipulation}
+#actions{flex:none;min-height:42px;align-items:center;gap:6px}
+#actions button{margin:0;padding:5px 9px;min-height:42px}
+#actions .mini{font-size:11px}
+body.in-match h1,body.in-match>main>small,body.in-match #connectPanel{display:none}
+body.in-match #lobby{display:flex;align-items:center;gap:5px;flex-wrap:nowrap;min-height:42px;padding:2px 6px;margin:0}
+body.in-match #notice,body.in-match #ready,body.in-match #start{display:none}
+body.in-match #lobby>div:nth-child(2){min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;flex:1;font-size:12px}
+body.in-match #roomCode{font-size:14px;letter-spacing:1px}
+body.in-match #role{display:none}
+body.in-match #lobby button{margin:1px;min-height:36px;font-size:12px;padding:4px 7px;white-space:nowrap}
+body.in-match #leave{font-size:0 !important}
+body.in-match #leave::after{content:'退出';font-size:12px}
+body.in-match #match{margin:3px 0 0;padding:5px 7px}
+body.in-match #board{margin-top:2px;gap:4px}
+#match[data-game="shichinarabe"] #board{flex-flow:column nowrap;align-items:center;justify-content:center;gap:1px}
+#match[data-game="shichinarabe"] .board-line{flex:none}
+body.in-match .board-line{gap:2px;margin:2px 0}
+body.in-match .field-card,body.in-match .field-empty{min-width:clamp(14px,2.6vw,24px);padding:2px 0;font-size:clamp(11px,1.6vw,14px)}
+@media(max-height:500px){
+ body.in-match>main{padding:3px 5px}
+ body.in-match #match{padding:3px 5px;gap:2px}
+ body.in-match #board{margin:0}
+ body.in-match #lobby{min-height:38px}
+ body.in-match .card{min-width:42px;height:49px}
+ body.in-match .hand-cards{min-height:53px}
+ body.in-match #state{font-size:11px}
+ body.in-match #actions{min-height:40px}
+ body.in-match #actions button{min-height:40px}
+}
+@media(max-height:345px){
+ body.in-match #lobby{min-height:34px}
+ body.in-match .board-line{margin:0}
+ body.in-match .hand-cards{min-height:45px}
+ body.in-match .card{height:43px}
+}
 </style></head><body><main>
 <h1>🃏 トランプコレクション｜4人オンライン研究版</h1>
 <small>開発用のFirebase4人対戦ページ。<strong>Firebase接続先が未設定の間は部屋を作成できません。</strong> 学校のGoogle Sites版・公開版は変更せず、実機試験前の開発用として使います。ページを再読み込みした場合は、新しい部屋を作り直してください。</small>
-<div class="panel"><select id="game"><option value="babanuki">ババ抜き</option><option value="shichinarabe">七並べ</option><option value="daifugo">大富豪</option></select>
+<div id="connectPanel" class="panel"><select id="game"><option value="babanuki">ババ抜き</option><option value="shichinarabe">七並べ</option><option value="daifugo">大富豪</option></select>
 <button id="create">部屋を作る</button><input id="code" placeholder="5桁番号" maxlength="5" inputmode="numeric"><button id="join">参加</button>
 <div id="status" role="status">ゲームを選んで部屋作成、友達は5桁の番号で参加</div></div>
 <div id="lobby" class="panel" hidden><div id="notice" role="status"></div><div>部屋 <span id="roomCode"></span> <span id="role"></span> <span id="roster"></span></div>
@@ -950,7 +996,10 @@ const CARD_NAMES={1:'A',11:'J',12:'Q',13:'K'};
 const GAMES={babanuki:'ババ抜き',shichinarabe:'七並べ',daifugo:'大富豪'};
 // Launcher-selected game must survive sandboxed Google Sites/nested srcdoc.
 const INITIAL_GAME=window.TRUMP_INITIAL_GAME;
-if(Object.prototype.hasOwnProperty.call(GAMES,INITIAL_GAME))$('game').value=INITIAL_GAME;
+if(Object.prototype.hasOwnProperty.call(GAMES,INITIAL_GAME)){
+ $('game').value=INITIAL_GAME;
+ $('game').hidden=true; // Already selected in the parent menu.
+}
 const randomRoom=()=>{const u=new Uint32Array(1);crypto.getRandomValues(u);return String(10000+u[0]%90000)};
 const randomAction=()=>{const u=new Uint32Array(2);crypto.getRandomValues(u);return [...u].map(n=>n.toString(36)).join('-')};
 const uiCardId=c=>c?.joker?'JK':c.suit+'-'+c.rank;
@@ -971,6 +1020,7 @@ function clear(){
  $('chatList').replaceChildren();$('chatInput').value='';$('chatStatus').textContent='';
  hostRunner=guestRunner=null;roomCode='';publicState=privateState=null;
  mySeat=-1;isHost=false;busy=false;pendingAction='';failCount=0;lastPollStatus='waiting_for_host';selected.clear();lastRender='';
+ document.body.classList.remove('in-match');
  $('lobby').hidden=true;$('match').hidden=true;
  $('create').disabled=false;$('join').disabled=false;$('game').disabled=false;
 }
@@ -1242,10 +1292,12 @@ function card(c,clickable=false,click=null){
 }
 function render(){
  if(!publicState){
+  document.body.classList.remove('in-match');
   $('ready').disabled=$('start').disabled=true;
   return;
  }
  const v=publicState,p=mySeat,acting=v.phase==='playing'&&v.turn===p;
+ document.body.classList.toggle('in-match',v.phase==='playing'||v.phase==='finished');
  const key=[v.round,v.revision,p,busy,pendingAction,online,[...selected].sort().join(',')].join('|');
  if(key===lastRender)return;lastRender=key;
  const usable=online&&!busy&&!pendingAction&&p>=0;
@@ -1259,6 +1311,7 @@ function render(){
  $('rematch').hidden=!isHost||v.phase!=='finished';
  $('rematch').disabled=!usable;
  $('match').hidden=v.phase==='lobby';
+ $('match').dataset.game=game;
  const state=$('state'),board=$('board'),hand=$('hand'),actions=$('actions');
  board.replaceChildren();hand.replaceChildren();actions.replaceChildren();
  state.textContent=GAMES[game]+'｜'+(v.phase==='finished'?'結果':acting?'あなたの番':'相手の番')+
