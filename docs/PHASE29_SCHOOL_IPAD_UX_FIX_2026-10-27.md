@@ -22,7 +22,7 @@ Google Sites相当の外側ヘッダーと内側HTML（Googleドライブへ保�
 
 ## 結果と公開範囲
 - 主要UI修正後のオンライン4人 Google Sites風二重iframe＋初手タップ＋横画面のレイアウト検査は通常Auth版Chromium/WebKitと試遊版3ゲーム×Chromium/WebKitともに**各CI工程合格**：[Actions #40356099055](https://github.com/8mahi8/trump-collection/actions/runs/40356099055)。このrun全体は旧ランチャーテストの隠しセレクタ待機で失敗したため、**`dev/verify-collection-launcher.mjs`で表示中の「部屋を作る」ボタン待機に修正**し、次のrunで再確認する。
-- 修正後の総合CI：[Actions #40356906552](https://github.com/8mahi8/trump-collection/actions/runs/40356906552)。**最終結果が成功した場合のみリリース用として合格と呼ぶ**。
+- **[修正後の総合CI #40356906552 全工程成功](https://github.com/8mahi8/trump-collection/actions/runs/40356906552)**。Node **106件合格・失敗0**。ChromiumとWebKitの通常認証版ババ抜き、試遊版ババ抜き・七並べ・大富豪の4端末Google Sites風二重iframeで、タップによるカードの初手・4人同期・チャット・退出・**800×450および667×375の縦表示領域**の検査が全て合格。COM4ゲームのメニュー・神経衰弱2端末・既存Firebaseルールの各回帰も成功。
 - 既存の `dist/trump-collection-online-lab.html`、`dist/trump-collection-integrated-lab.html`、`dist/trump-collection-open-root-trial.html` を再生成し、Nodeで厳密ビルド一致テストを行う。
 - Googleドライブへ**元の試遊HTMLを上書きせず**、改善版 `トランプコレクション_学校試遊版_UI改善_20261027.html` および同名 `.txt` を別途保存。
   - HTML: https://drive.google.com/file/d/1NphKwaa1ldudQBBHHdjHEc5tictPpluF/view?usp=drivesdk
