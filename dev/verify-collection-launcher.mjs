@@ -119,7 +119,7 @@ try{
    await sites.locator('[data-game="'+game+'"]').click();
    await sites.locator('#friends').click();
    const inner=sites.frameLocator('#play');
-   await inner.locator('#game').waitFor({timeout:12000});
+   await inner.locator('#create').waitFor({timeout:12000});
    assert.equal(await inner.locator('#game').inputValue(),game,
     'Nested sandbox must open the requested game: '+game);
    await inner.locator('#create').click();
@@ -133,7 +133,7 @@ try{
   // A blocked/crashed child might never ACK. Back must still finish quickly.
   await sites.locator('[data-game="daifugo"]').click();
   await sites.locator('#friends').click();
-  await sites.frameLocator('#play').locator('#game').waitFor({timeout:12000});
+  await sites.frameLocator('#play').locator('#create').waitFor({timeout:12000});
   await sites.locator('#play').evaluate(frame=>{
    frame.srcdoc='<!doctype html><html><body><p id="no-ack">Child unresponsive</p></body></html>';
   });
