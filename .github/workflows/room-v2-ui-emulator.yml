@@ -40,6 +40,12 @@ jobs:
           npx playwright install --with-deps chromium webkit
       - name: Static check for offline Google Sites connection configuration
         run: node dev/verify-v2-configured-sites-build.mjs
+      - name: Prepare offline school trial HTML with known shared RTDB address
+        run: |
+          node v2/build/build-online-lab.mjs \
+            --database-url https://mygame-df915-default-rtdb.firebaseio.com \
+            --out dist/v2-room-first-sites-school-trial.html
+          test -s dist/v2-room-first-sites-school-trial.html
       - name: Build one HTML for Google Sites-style isolated lab
         run: node v2/build/build-online-lab.mjs
       - name: Four touch browsers and Firebase mock auth + actual RTDB emulator
@@ -51,6 +57,7 @@ jobs:
           name: v2-room-first-online-preview-only
           path: |
             dist/v2-room-first-online-lab.html
+            dist/v2-room-first-sites-school-trial.html
             dist/v2-screens/online-*.png
           retention-days: 7
           if-no-files-found: ignore
