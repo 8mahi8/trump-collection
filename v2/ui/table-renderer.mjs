@@ -1,11 +1,12 @@
 import {GAME_REGISTRY} from '../games/definitions.mjs';
-import {createBoardSurface,glyph,DEFAULT_BOARD_SURFACES} from './board-surfaces.mjs';
+import {createBoardSurface,DEFAULT_BOARD_SURFACES} from './board-surfaces.mjs';
+import {makeCardFace} from './card-face.mjs';
 
 // The same DOM and click handler are used for CPU and network sessions.
 export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY,surfaces=DEFAULT_BOARD_SURFACES}={}){
  if(!root||typeof root.replaceChildren!=='function')throw Error('INVALID_TABLE_ROOT');
  const wrapper=document.createElement('section');wrapper.className='v2-table';
- wrapper.innerHTML='<header class="v2-status" aria-live="polite"></header><div class="v2-players"></div><div class="v2-board"></div><div class="v2-foot"><div class="v2-hand" aria-label="自分の手札"></div><div class="v2-actions"></div></div>';
+ wrapper.innerHTML='<header class="v2-status" aria-live="polite"></header><div class="v2-players"></div><div class="v2-board"></div><div class="v2-foot"><div class="v2-hand-label"></div><div class="v2-hand" aria-label="自分の手札"></div><div class="v2-actions"></div></div>';
  root.replaceChildren(wrapper);
  const $=cls=>wrapper.querySelector('.'+cls);
  let current=null,last='',selected=new Set(),lastRevision=null,paints=0;
@@ -23,18 +24,36 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
    (view.connection?.state==='connected'?'　●オンライン':view.connection?.state==='local'?'　●CPU戦':'');
   const players=document.createDocumentFragment();
   for(const p of view.players){
-   const tag=elem('span','v2-player'+(p.isYou?' v2-you':'')+(p.seat===view.turn?' v2-turn':''),
+   const tag=elem('span','v2-player'+(p.isYou?' v2-you':'')+(p.seat===view.turn?' v2-turn':''));
+   const avatar=elem('span','v2-avatar',p.isYou?'🙂':p.isCpu?'🦊':'👤');
+   const label=elem('span','v2-player-info',
     (p.isYou?'自分':p.isCpu?'CPU'+(p.seat+1):'P'+(p.seat+1))+
-    (p.cardCount===null?'':'　'+p.cardCount+'枚')+(p.score===null?'':'　'+p.score+'点'));
+    (p.cardCount===null?'':' · '+p.cardCount+'枚')+
+    (p.score===null?'':' · '+p.score+'点'));
+   tag.append(avatar,label);
    players.append(tag);
   }
   $('v2-players').replaceChildren(players);
   $('v2-board').replaceChildren(createBoardSurface(view,surfaces));
-  const hand=document.createDocumentFragment(),handIds=new Set();
-  for(const c of view.hand||[]){
-   const key=cardKey(c);handIds.add(key);
-   const b=elem('button','v2-card v2-handcard'+(c.suit===1||c.suit===2?' v2-red':'')+(selected.has(key)?' v2-selected':''),glyph(c));
-   b.type='button';b.dataset.action='select';b.dataset.card=key;b.disabled=!view.isMyTurn||view.phase!=='playing'||!['pick-one','pick-multi'].includes(spec.interaction);
+  const hand=document.createDocumentFragment();
+  const playable=new Set(view.game==='shichinarabe'?view.legal.playIds:
+   view.game==='daifugo'?view.legal.playMoves.flat():[]);
+  const sorted=[...(view.hand||[])].sort((a,b)=>{
+   if(a.joker)return b.joker?0:1;
+   if(b.joker)return -1;
+   return a.rank-b.rank||a.suit-b.suit;
+  });
+  $('v2-hand-label').textContent=sorted.length?'自分の手札　'+sorted.length+'枚':'';
+  for(const c of sorted){
+   const key=cardKey(c),canPlay=playable.has(key)&&view.isMyTurn;
+   const b=makeCardFace(c,{button:true});
+   b.classList.add('v2-handcard');
+   if(selected.has(key))b.classList.add('v2-selected');
+   if(canPlay)b.classList.add('v2-legal');
+   if(view.isMyTurn&&playable.size&&!canPlay)b.classList.add('v2-dimmed');
+   b.dataset.action='select';b.dataset.card=key;
+   b.disabled=!view.isMyTurn||view.phase!=='playing'||
+    !['pick-one','pick-multi'].includes(spec.interaction);
    b.setAttribute('aria-pressed',String(selected.has(key)));
    hand.append(b);
   }
