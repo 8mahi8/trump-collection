@@ -19,6 +19,14 @@ const babanuki={
  id:'babanuki',label:'ババ抜き',seats:4,boardKind:'draw',actions:['draw','rematch'],
  createLocal:(seed)=>G.createBabanuki(seed,4),
  localHand:defaultHand,localCounts:defaultCounts,ranks,
+ localMove:(state,action)=>{
+  if(action?.type!=='draw'||!Number.isInteger(action.index))return false;
+  const target=G.babanukiNextWithCards(state,state.turn);
+  if(target===state.turn||action.index<0||action.index>=state.hands[target].length)return false;
+  G.babanukiDraw(state,action.index);
+  return true;
+ },
+ cpuChoose:state=>({type:'draw',index:G.botBabanuki(state)}),
  localBoard:s=>({kind:'draw',drawFrom:s.phase==='play'?G.babanukiNextWithCards(s,s.turn):null,
   lastAction:s.lastDraw?{by:s.lastDraw.by,paired:s.lastDraw.paired}:null}),
  localLegal:(s,seat)=>{
