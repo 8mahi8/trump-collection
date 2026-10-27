@@ -22,7 +22,7 @@ function validAction(view,action){
 
 export function createRoomSession({game,guest,registry=GAME_REGISTRY}={}){
  const plugin=registry.get(game);
- if(!plugin.remoteBoard||!plugin.remoteLegal||plugin.seats!==4)throw Error('ROOM_GAME_NOT_SUPPORTED');
+ if(!plugin.remoteBoard||!plugin.remoteLegal||![2,4].includes(plugin.seats))throw Error('ROOM_GAME_NOT_SUPPORTED');
  if(!guest||typeof guest.poll!=='function'||typeof guest.act!=='function')throw Error('INVALID_REMOTE_GUEST');
  let current=null,disposed=false,pending=false,receiptId=null,revisionKey=null;
  const listeners=new Set();
