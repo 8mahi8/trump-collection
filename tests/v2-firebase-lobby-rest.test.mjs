@@ -52,3 +52,30 @@ test('missing or public trial auth cannot reach room lobby, invalid URLs/code re
  await assert.rejects(store.read('12345'),e=>e.code==='AUTH_REQUIRED');
  await assert.rejects(store.read('bad'),e=>e.code==='AUTH_REQUIRED');
 });
+
+test('friend-only mode uses Firebase RTDB REST without any authentication request',async()=>{
+ let requests=0;
+ const identity={uid:'tc1234567890abcdef901234'};
+ const store=createFirebaseRoomLobbyRest({
+  databaseURL:'https://example-default-rtdb.firebaseio.com',
+  identity,friendOnlyNoAuth:true,
+  async fetchImpl(url,options){
+   requests++;
+   const parsed=new URL(url);
+   assert.equal(parsed.hostname,'example-default-rtdb.firebaseio.com');
+   assert.equal(parsed.searchParams.has('auth'),false,
+    'friend-only mode must not transmit Firebase Auth token');
+   assert.equal(options.method,'GET');
+   return new Response(JSON.stringify(null),{status:200,headers:{etag:'"null"'}});
+  }
+ });
+ assert.equal(store.uid,identity.uid);
+ const result=await store.read('12345');
+ assert.equal(result.state,null);
+ assert.equal(result.etag,'"null"');
+ assert.equal(requests,1);
+ assert.throws(()=>createFirebaseRoomLobbyRest({
+  databaseURL:'https://example-default-rtdb.firebaseio.com',
+  friendOnlyNoAuth:true
+ }),e=>e.code==='IDENTITY_REQUIRED');
+});
