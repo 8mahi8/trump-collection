@@ -1,3 +1,6 @@
+> **【2026-10-27 本人追加要望：人数不足はCPUで埋める】** 大富豪・七並べ・ババ抜きの4席は人間1〜4人＋空席CPUで自動補完。準備は人間のみ、途中入室した人間は対戦開始前ならCPU席を置換。ホスト側CPUが既存ゲームBOTを使い、追加認証・別Firebase接続は不要。[仕様と検証](V2_CPU_AUTOFILL_2026-10-27.md)。
+>
+> [Foundation V2 #40525433775 success](https://github.com/8mahi8/trump-collection/actions/runs/40525433775)：1人＋CPU3人で3ゲームを完走。[V2 WebKit/Chromium #40525838166 success](https://github.com/8mahi8/trump-collection/actions/runs/40525838166)：友達2人＋CPU2人大富豪が共通ロビーから対戦画面へ移行、CPU席表示。Firebase Auth呼出0。**学校版、main、本番Firebase Rulesは変更しない**。オンライン神経衰弱はまだ未実装。
 > **【2026-10-27 最優先・本人指示による修正】**：学校向けV2のオンラインは **Firebase匿名認証を使わない**。また **ホスト再読み込みからの対戦復帰は作らない**。友達だけで遊べるシンプルな共通ルームを優先する。過去の本引き継ぎやPhase文書の「匿名Auth必須」「reload復帰」は古い案であり、これに上書きされた。
 >
 > 実コード：`v2/online-app.mjs`からAuth signInを削除し、`v2/net/firebase-room-lobby-rest.mjs`に`friendOnlyNoAuth:true`を導入。4人・Chrome/WebKit Google Sites風UIで **Firebase Auth API呼出0回** の試験成功：[Actions #40522130962](https://github.com/8mahi8/trump-collection/actions/runs/40522130962)。[本人指示・技術的注意の詳細](V2_FRIENDS_NOAUTH_DECISION_2026-10-27.md)。**本番Firebase Rules/DB/Google Sites公開版は無変更**。
