@@ -24,7 +24,7 @@ export function createSharedRoom({roomCode,hostId}={}){
  if(typeof roomCode!=='string'||!ROOM_CODE.test(roomCode))reject('INVALID_ROOM_CODE');
  if(!validMember(hostId))reject('INVALID_HOST_ID');
  return {protocol:3,roomCode,hostId,phase:'lobby',members:[hostId],
-  selectedGame:null,participants:[],ready:[],match:null,matchSequence:0,revision:0};
+  selectedGame:null,participants:[],ready:[],match:null,matchSequence:0,selectionEpoch:0,revision:0};
 }
 
 // Applying a room action NEVER modifies an input state. The caller must apply
@@ -58,6 +58,7 @@ export function applySharedRoomAction(room,action,{registry=GAME_REGISTRY}={}){
   const currentParticipant=room.match?.participants.includes(actor);
   const interrupted=currentParticipant&&room.phase==='playing';
   return next(room,{members,participants,ready,
+   selectionEpoch:room.phase==='lobby'?room.selectionEpoch+1:room.selectionEpoch,
    ...(interrupted?{phase:'results',match:{...room.match,status:'aborted'}}:{})});
  }
  if(action.type==='selectGame'){
@@ -69,7 +70,7 @@ export function applySharedRoomAction(room,action,{registry=GAME_REGISTRY}={}){
   // Auto-select everybody only when the whole room exactly fits the game.
   // In a 4-person room, selecting a 2-player game requires an explicit choice.
   const participants=room.members.length===spec.seats?[...room.members]:[];
-  return next(room,{selectedGame:spec.id,participants,ready:[]});
+  return next(room,{selectedGame:spec.id,participants,ready:[],selectionEpoch:room.selectionEpoch+1});
  }
  if(action.type==='setParticipants'){
   lobby(room);host(room,actor);
@@ -78,7 +79,7 @@ export function applySharedRoomAction(room,action,{registry=GAME_REGISTRY}={}){
   const ids=action.memberIds;
   if(!Array.isArray(ids)||ids.length!==size||new Set(ids).size!==size||
    ids.some(id=>!validMember(id)||!has(room,id)))reject('INVALID_PARTICIPANTS');
-  return next(room,{participants:[...ids],ready:[]});
+  return next(room,{participants:[...ids],ready:[],selectionEpoch:room.selectionEpoch+1});
  }
  if(action.type==='setReady'){
   lobby(room);selected(room,actor);
@@ -110,7 +111,7 @@ export function applySharedRoomAction(room,action,{registry=GAME_REGISTRY}={}){
   if(room.phase!=='results')reject('MATCH_NOT_FINISHED');
   if(action.matchId!==room.match?.matchId)reject('STALE_MATCH');
   // Keep members and room identity but clear match and ready for a fresh game.
-  return next(room,{phase:'lobby',match:null,selectedGame:null,participants:[],ready:[]});
+  return next(room,{phase:'lobby',match:null,selectedGame:null,participants:[],ready:[],selectionEpoch:room.selectionEpoch+1});
  }
  reject('UNSUPPORTED_ROOM_ACTION');
 }
