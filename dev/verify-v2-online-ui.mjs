@@ -189,6 +189,94 @@ try{
  }
  console.log('V2 ROOM-FIRST CPU AUTOFILL PASS '+engine+' two humans + two CPUs in Daifugo, no Firebase Auth');
 
+ // Drive the WHOLE mixed Daifugo match through actual tap/click controls.
+ // Never mutate engine state, make backend requests, or bypass the renderer.
+ // CPU seats act solely through the host GameShell's ordinary tick.
+ const duel=[duoOwner,duoFriend];
+ const uidList=await Promise.all(duel.map(p=>p.f.locator('body').evaluate(()=>
+  window.TRUMP_V2_ONLINE_LAB.uid)));
+ const wallStart=Date.now(),humanClicks=0;
+ let humanTurns=0,observedCpuTurns=0,turns=0,lastSeenRev=-1;
+ while(Date.now()-wallStart<270000&&turns<240){
+  const current=await duoOwner.f.locator('body').evaluate(()=>{
+   const lab=window.TRUMP_V2_ONLINE_LAB;
+   return {mode:lab.mode,room:lab.room,view:lab.view};
+  });
+  if(current.mode==='results')break;
+  const v=current.view;
+  if(!v||v.game!=='daifugo'||!current.room||v.revision===null){
+   await new Promise(resolve=>setTimeout(resolve,200));continue;
+  }
+  if(v.revision===lastSeenRev){
+   await new Promise(resolve=>setTimeout(resolve,180));continue;
+  }
+  lastSeenRev=v.revision;
+  const actor=current.room.match.participants[v.turn];
+  const humanIndex=uidList.indexOf(actor);
+  if(humanIndex<0){observedCpuTurns++;await new Promise(resolve=>setTimeout(resolve,180));continue;}
+  const page=duel[humanIndex];
+  await page.f.locator('body').evaluate((body,params)=>new Promise((resolve,reject)=>{
+   const start=Date.now(),timer=setInterval(()=>{
+    const lab=window.TRUMP_V2_ONLINE_LAB;
+    if(lab.mode==='results'||(lab.view?.revision>=params.revision&&
+      lab.view?.isMyTurn&&!lab.pending)){
+     clearInterval(timer);resolve();
+    }else if(Date.now()-start>12000){
+     clearInterval(timer);reject(Error('MIXED_TURN_NOT_READY seat='+params.seat));
+    }
+   },100);
+  }),{revision:v.revision,seat:humanIndex});
+  const actual=await page.f.locator('body').evaluate(()=>({
+   mode:window.TRUMP_V2_ONLINE_LAB.mode,
+   view:window.TRUMP_V2_ONLINE_LAB.view
+  }));
+  if(actual.mode==='results')break;
+  const move=actual.view.legal.playMoves[0];
+  if(move&&move.length){
+   for(const id of move){
+    const card=page.f.locator('.v2-handcard[data-card="'+id+'"]');
+    await card.tap({timeout:9000});
+   }
+   await page.f.locator('.v2-action[data-action="submit"]:not([disabled])').tap({timeout:9000});
+  }else{
+   await page.f.locator('.v2-action[data-action="pass"]:not([disabled])').tap({timeout:9000});
+  }
+  humanTurns++;turns++;
+  const earlier=actual.view.revision;
+  await page.f.locator('body').evaluate((body,rev)=>new Promise((resolve,reject)=>{
+   const start=Date.now(),timer=setInterval(()=>{
+    const lab=window.TRUMP_V2_ONLINE_LAB;
+    if(lab.mode==='results'||(lab.view?.revision>rev&&!lab.pending)){
+     clearInterval(timer);resolve();
+    }else if(Date.now()-start>18000){
+     clearInterval(timer);reject(Error('MIXED_MOVE_NOT_ACKNOWLEDGED rev='+rev+
+      ' status='+document.getElementById('notice')?.textContent));
+    }
+   },120);
+  }),earlier);
+ }
+ assert.ok(humanTurns>0,'mixed Daifugo needs real tapped human turns');
+ assert.ok(observedCpuTurns>0,'mixed Daifugo needs observed CPU turns');
+ await duoOwner.f.locator('button[data-action="back-lobby"]').waitFor({timeout:15000});
+ await duoFriend.f.locator('body').evaluate(()=>new Promise((resolve,reject)=>{
+  const start=Date.now(),timer=setInterval(()=>{
+   if(window.TRUMP_V2_ONLINE_LAB.mode==='results'){
+    clearInterval(timer);resolve();
+   }else if(Date.now()-start>14000){
+    clearInterval(timer);reject(Error('GUEST_DID_NOT_RECEIVE_DAIFUGO_RESULTS'));
+   }
+  },120);
+ }));
+ await duoOwner.f.locator('button[data-action="back-lobby"]').tap();
+ await Promise.all(duel.map(p=>p.f.locator('#shared-code').waitFor({timeout:15000})));
+ for(const page of duel){
+  assert.ok((await page.f.locator('#shared-code').textContent()).includes(duoRoom),
+   'same room retained after a full mixed match');
+ }
+ console.log('V2 MIXED DAIFUGO FULL UI PASS '+engine+' humanMoves='+humanTurns+
+  ' cpuTurnsObserved='+observedCpuTurns+' gameDurationMs='+(Date.now()-wallStart));
+
+
  assert.equal(traffic.auth,0,'V2 friends must not use anonymous Firebase Auth');
  assert.deepEqual(errors,[]);
  console.log('V2 ROOM-FIRST NO-AUTH UI PASS '+engine+' four local player IDs + Google Sites sandbox + card touch + synchronized renderer');
