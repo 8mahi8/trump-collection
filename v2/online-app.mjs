@@ -227,9 +227,10 @@ async function pump(){
  if(disposed||pumping||!client)return;
  pumping=true;
  try{
+  let before=null,matchUpdated=false;
   if(isHost){
    await coordinator.tick();
-   const before=await client.room();
+   before=await client.room();
    if(before?.phase==='playing'&&labGames.has(before.match?.gameId)){
     if(!matchHost||matchHost.matchId!==before.match.matchId){
      matchHost=createRoomMatchHost({store,coordinator,roomCode});
@@ -238,10 +239,11 @@ async function pump(){
       throw Error('MATCH_INTERRUPTED');
      await matchHost.start();
     }
-    await matchHost.tick();
+    const processed=await matchHost.tick({roomSnapshot:before});
+    matchUpdated=processed.processed>0||processed.bots>0;
    }else if(before?.phase==='lobby')matchHost=null;
   }
-  const latest=await client.room();
+  const latest=isHost&&before&&!matchUpdated?before:await client.room();
   if(!latest||latest.phase==='closed'){home();msg('ルームが終了しました');return}
   room=latest;
   if(needJoin&&!room.members.includes(store.uid)){
