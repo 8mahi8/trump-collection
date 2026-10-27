@@ -1,0 +1,38 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "trumpRoomsV2": {
+      "$room": {
+        "lobby": {
+          ".read": "auth !== null",
+          ".write": "auth !== null && newData.exists() && $room.matches(/^[0-9]{5}$/) && (( !data.exists() && newData.child('hostId').val() === auth.uid && newData.child('revision').val() === 0 ) || (data.exists() && data.child('hostId').val() === auth.uid && newData.child('hostId').val() === auth.uid && newData.child('revision').val() === data.child('revision').val() + 1))",
+          ".validate": "newData.hasChildren(['protocol','roomCode','hostId','phase','members','revision','matchSequence']) && newData.child('protocol').val() === 3 && newData.child('roomCode').val() === $room && newData.child('hostId').isString() && newData.child('revision').isNumber() && newData.child('matchSequence').isNumber() && newData.child('phase').isString()"
+        },
+        "requests": {
+          ".read": "auth !== null && auth.uid === root.child('trumpRoomsV2/' + $room + '/lobby/hostId').val()",
+          "$uid": {
+            ".read": "auth !== null && auth.uid === $uid",
+            "$request": {
+              ".write": "auth !== null && root.child('trumpRoomsV2/' + $room + '/lobby').exists() && ((auth.uid === $uid && !data.exists() && newData.exists()) || (auth.uid === root.child('trumpRoomsV2/' + $room + '/lobby/hostId').val() && !newData.exists()))",
+              ".validate": "newData.hasChildren(['protocol','requestId','type','expectedRevision']) && newData.child('protocol').val() === 3 && newData.child('requestId').val() === $request && newData.child('type').isString() && newData.child('expectedRevision').isNumber() && newData.child('expectedRevision').val() >= 0"
+            }
+          }
+        },
+        "receipts": {
+          "$uid": {
+            "$request": {
+              ".read": "auth !== null && (auth.uid === $uid || auth.uid === root.child('trumpRoomsV2/' + $room + '/lobby/hostId').val())",
+              ".write": "auth !== null && auth.uid === root.child('trumpRoomsV2/' + $room + '/lobby/hostId').val() && newData.exists()",
+              ".validate": "newData.hasChildren(['ok','reason','revision']) && newData.child('ok').isBoolean() && newData.child('reason').isString() && newData.child('revision').isNumber()"
+            }
+          }
+        },
+        "$other": {
+          ".read": false,
+          ".write": false
+        }
+      }
+    }
+  }
+}
