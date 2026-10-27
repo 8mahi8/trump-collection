@@ -1,5 +1,13 @@
 # Foundation V2｜学校の実機失敗を受けた全面再設計（2026-10-27）
 
+## Phase V2-1a｜共通UIとCPU試作、Room Viewアダプター（2026-10-27）
+
+- **[実装・検証・残作業の詳細](V2_PHASE1_SHARED_RENDERER_2026-10-27.md)**。COMババ抜きが`v2/ui/table-renderer.mjs`の単一DOM＋`v2/session/cpu-session.mjs`で実際にタップ操作できる。CPU40試合完走。ViewModelは従来の4ゲームPluginを共通利用。
+- `v2/session/room-session.mjs`で既存のFirebase Room Guestの`poll/act/receipt`を共通ViewModelへ投影するアダプターを追加。**実Firebase接続やUIを伴う4人対戦は次工程**。
+- `v2/build/build-lab.mjs`でインラインCSS/JSの単一HTMLが**24,370文字**に収まり、iframeも外部runtime JSもゼロ（**CPUババ抜き機能限定、旧全ゲーム版と直接性能比較不可**）。
+- **[CI #40453199726](https://github.com/8mahi8/trump-collection/actions/runs/40453199726) 全工程成功**：Node126/126、Chromium/WebKit×800×450/667×375で実タップ→状態更新→メニュー復帰＋画面オーバーフロー判定全合格。
+- 学校実機での重さ・神経衰弱のWebSocket/通信障害はまだ解決したと主張しない。本番DB/Rules/学校Google Sites/main/元Driveファイルは未変更。試作HTMLはGitHub Actions artifactに開発用として保管。
+
 ## Phase V2-0b｜外部資料に基づいたゲームプラグイン方式（2026-10-27）
 
 - **[調査レポートと採用方針](V2_EXTERNAL_FRAMEWORK_RESEARCH_AND_PLUGIN_PLAN_2026-10-27.md)**。boardgame.ioのGame definition／moves／phases、Colyseusのサーバー状態差分同期、Board Game Arenaのルール・画面分離、FirebaseのonValue/SSEを公式資料で確認。
