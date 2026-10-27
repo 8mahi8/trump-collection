@@ -14,6 +14,8 @@ on:
       - 'v2/ui/**'
       - 'v2/build/build-online-lab.mjs'
       - 'dev/verify-v2-online-ui.mjs'
+      - 'firebase/trump-rooms-v2-friends-emulator.rules.json'
+      - 'firebase.room-v2-friends-emulator.json'
       - '.github/workflows/room-v2-ui-emulator.yml'
   workflow_dispatch:
 permissions:
@@ -38,7 +40,7 @@ jobs:
       - name: Build one HTML for Google Sites-style isolated lab
         run: node v2/build/build-online-lab.mjs
       - name: Four touch browsers and Firebase mock auth + actual RTDB emulator
-        run: npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.room-v2-emulator.json --only auth,database "node dev/verify-v2-online-ui.mjs && TC_BROWSER_ENGINE=webkit node dev/verify-v2-online-ui.mjs"
+        run: npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.room-v2-friends-emulator.json --only database "node dev/verify-v2-online-ui.mjs && TC_BROWSER_ENGINE=webkit node dev/verify-v2-online-ui.mjs"
       - name: Upload isolated V2 preview for developer inspection only
         uses: actions/upload-artifact@v4
         if: always()
