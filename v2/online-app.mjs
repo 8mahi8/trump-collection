@@ -13,7 +13,7 @@ import {createRoomSession} from './session/room-session.mjs';
 
 const $=id=>document.getElementById(id);
 const main=$('main'),notice=$('notice');
-const labGames=new Set(['babanuki','shichinarabe','daifugo']);
+const labGames=new Set(['babanuki','shichinarabe','daifugo','shinkei']);
 const create=(tag,cls='',label='')=>{
  const x=document.createElement(tag);if(cls)x.className=cls;
  if(label)x.textContent=label;return x;
