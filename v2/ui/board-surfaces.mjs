@@ -1,39 +1,46 @@
-// Only per-board surfaces vary. Shared status, hand, actions and session
-// dispatch are rendered once by table-renderer.mjs, in both CPU and online.
+// Per-game board shapes remain shared by CPU and multiplayer.
+// Cards use the earlier v1.5.x appearance, not the V2 text-only glyphs.
+import {makeCardFace,cardLabel} from './card-face.mjs';
 const make=(tag,cls,text='')=>{
- const el=document.createElement(tag);
- if(cls)el.className=cls;
- el.textContent=text;
- return el;
+ const el=document.createElement(tag);if(cls)el.className=cls;el.textContent=text;return el;
 };
-const glyph=c=>c?.joker?'JOKER':c?['♠','♥','♦','♣'][c.suit]+({1:'A',11:'J',12:'Q',13:'K'}[c.rank]||c.rank):'？';
-const card=(c,{back=false,disabled=false,action=null,index=null}={})=>{
- const el=make(action?'button':'span','v2-card'+(back?' v2-back':'')+(!back&&c?.suit===1||!back&&c?.suit===2?' v2-red':''),back?'✦':glyph(c));
- if(action){el.type='button';el.dataset.action=action;el.dataset.index=index;el.disabled=disabled;}
- return el;
-};
+export const glyph=cardLabel;
 function drawSurface(view){
- const frag=document.createDocumentFragment();
  const seat=view.board.drawFrom;
  const box=make('section','v2-draw');
  if(seat===null||seat===undefined){
   box.append(make('p','v2-help','カードを配っています…'));return box;
  }
- box.append(make('p','v2-help',view.isMyTurn?'相手の伏せ札を1枚タップして引こう':'プレイヤー'+(seat+1)+' のカード'));
+ box.append(make('p','v2-help v2-board-hint',
+  view.isMyTurn?'相手の伏せ札を1枚タップして引こう':'P'+(seat+1)+'のカードを引く番'));
  const count=view.players[seat]?.cardCount??0;
- const backRow=make('div','v2-backrow');
- for(let i=0;i<count;i++)backRow.append(card(null,{back:true,action:view.isMyTurn?'draw':null,index:i,disabled:!view.isMyTurn}));
- box.append(backRow);frag.append(box);return frag;
+ const row=make('div','v2-backrow');
+ for(let i=0;i<count;i++){
+  const el=makeCardFace(null,{back:true,small:true,button:view.isMyTurn});
+  if(view.isMyTurn){el.dataset.action='draw';el.dataset.index=i;el.disabled=false;
+   el.setAttribute('aria-label','相手のカード '+(i+1)+'枚目を引く');}
+  row.append(el);
+ }
+ box.append(row);
+ if(view.board.lastAction?.paired){
+  box.append(make('p','v2-result-note','ペア成立！'));
+ }
+ return box;
 }
 function sevenSurface(view){
  const box=make('section','v2-seven');
  const placed=view.board.placed||[];
  for(let suit=0;suit<4;suit++){
   const row=make('div','v2-seven-row');
-  row.append(make('span','v2-suit-label', ['♠','♥','♦','♣'][suit]));
+  const label=make('span','v2-suit-label'+(suit===1||suit===2?' v2-red':''), ['♠','♥','♦','♣'][suit]);
+  row.append(label);
   for(let rank=1;rank<=13;rank++){
-   const active=!!placed[suit]&&rank>=placed[suit].low&&rank<=placed[suit].high;
-   const cell=make('span','v2-seven-cell'+(active?' v2-placed':''),active?glyph({suit,rank}):'·');
+   const pl=placed[suit];
+   const active=!!pl&&rank>=pl.low&&rank<=pl.high;
+   const next=!!pl&&(rank===pl.low-1||rank===pl.high+1);
+   const cell=make('span','v2-seven-cell'+(active?' v2-placed':'')+(next?' v2-next':''));
+   if(active)cell.append(makeCardFace({suit,rank},{tiny:true}));
+   else cell.textContent=String(rank);
    row.append(cell);
   }
   box.append(row);
@@ -42,25 +49,31 @@ function sevenSurface(view){
 }
 function fieldSurface(view){
  const box=make('section','v2-field');
- box.append(make('p','v2-help',view.board.revolution?'革命中':'現在の場'));
+ const tags=[];
+ if(view.board.revolution)tags.push('🔥 革命中');
+ if(view.board.lastEvent)tags.push(view.board.lastEvent);
+ box.append(make('p','v2-help v2-board-hint',tags.join('　')||'現在の場'));
  const row=make('div','v2-field-row');
- for(const c of view.board.field?.cards||[])row.append(card(c));
+ for(const c of view.board.field?.cards||[])row.append(makeCardFace(c,{small:true}));
  if(!row.childElementCount)row.append(make('span','v2-help','場にカードはありません'));
  box.append(row);
- if(view.board.lastEvent)box.append(make('p','v2-help',view.board.lastEvent));
  return box;
 }
 function memorySurface(view){
  const box=make('section','v2-memory');
  for(const tile of view.board.tiles||[]){
-  const cell=card(tile.card,{back:!tile.card&&!tile.taken,action:'flip',index:tile.index,
-   disabled:!view.isMyTurn||tile.taken||tile.flipped||!view.legal.flipIndices.includes(tile.index)});
-  if(tile.taken){cell.textContent='✓';cell.classList.add('v2-taken');}
-  box.append(cell);
+  const hidden=!tile.card&&!tile.taken;
+  const el=makeCardFace(tile.card,{back:hidden,button:true,small:true});
+  el.dataset.action='flip';el.dataset.index=tile.index;
+  el.disabled=!view.isMyTurn||tile.taken||tile.flipped||
+   !view.legal.flipIndices.includes(tile.index);
+  if(tile.taken){
+   el.classList.add('v2-taken');el.setAttribute('aria-label','取得済み');
+  }else if(tile.flipped)el.classList.add('v2-flipped');
+  box.append(el);
  }
  return box;
 }
-// A fifth game can register a new boardKind without modifying the table UI.
 export const DEFAULT_BOARD_SURFACES=Object.freeze({
  draw:drawSurface,seven:sevenSurface,field:fieldSurface,memory:memorySurface
 });
@@ -69,4 +82,3 @@ export function createBoardSurface(view,surfaces=DEFAULT_BOARD_SURFACES){
  if(typeof fn!=='function')throw Error('BOARD_SURFACE_NOT_REGISTERED');
  return fn(view);
 }
-export {glyph};
