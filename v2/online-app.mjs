@@ -233,7 +233,9 @@ async function pump(){
    before=await client.room();
    if(before?.phase==='playing'&&labGames.has(before.match?.gameId)){
     if(!matchHost||matchHost.matchId!==before.match.matchId){
-     matchHost=createRoomMatchHost({store,coordinator,roomCode});
+     const labSeed=globalThis.TRUMP_V2_TEST_SEED;
+     matchHost=createRoomMatchHost({store,coordinator,roomCode,
+      ...(Number.isSafeInteger(labSeed)?{seedSource:()=>labSeed}:{})});
      // Never silently redeal if an interrupted host still has published state.
      if(await store.matchPublic(roomCode,before.match.matchId))
       throw Error('MATCH_INTERRUPTED');
