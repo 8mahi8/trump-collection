@@ -140,3 +140,39 @@ test('duplicate readiness/restart and stale match transitions cannot bypass stat
  room=step(room,'returnToLobby',A,{matchId:id});
  err(()=>step(room,'returnToLobby',A,{matchId:id}),'MATCH_NOT_FINISHED');
 });
+
+test('choosing a four-seat game before friends arrive auto-fills lineup on fourth join',()=>{
+ let room=createSharedRoom({roomCode:'33333',hostId:A});
+ room=chosen(room,'babanuki');
+ assert.deepEqual(room.participants,[]);
+ room=add(room,B,C);
+ assert.deepEqual(room.participants,[]);
+ room=step(room,'join',D);
+ assert.deepEqual(room.participants,[A,B,C,D]);
+ assert.deepEqual(room.ready,[]);
+ room=start(ready(room,A,B,C,D));
+ assert.equal(room.phase,'playing');
+});
+
+test('default built-in registry supports every current game without special room logic',async()=>{
+ const {GAME_REGISTRY}=await import('../v2/games/definitions.mjs');
+ for(const plugin of GAME_REGISTRY.list()){
+  let room=createSharedRoom({roomCode:'44444',hostId:A});
+  room=add(room,B,C,D);
+  room=applySharedRoomAction(room,{
+   type:'selectGame',actor:A,expectedRevision:room.revision,gameId:plugin.id
+  });
+  assert.equal(room.selectedGame,plugin.id);
+  assert.equal(plugin.seats,plugin.id==='shinkei'?2:4);
+  const participants=plugin.seats===2?[A,C]:[A,B,C,D];
+  if(plugin.seats===2){
+   room=applySharedRoomAction(room,{type:'setParticipants',actor:A,
+    expectedRevision:room.revision,memberIds:participants});
+  }
+  for(const actor of participants)room=applySharedRoomAction(room,{
+   type:'setReady',actor,expectedRevision:room.revision,ready:true});
+  room=applySharedRoomAction(room,{type:'startMatch',actor:A,expectedRevision:room.revision});
+  assert.equal(room.match.gameId,plugin.id);
+  assert.equal(room.match.participants.length,plugin.seats);
+ }
+});
