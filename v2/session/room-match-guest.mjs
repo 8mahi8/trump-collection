@@ -11,8 +11,10 @@ export function createRoomMatchGuest({store,roomCode,matchId,actionIdSource=defa
  let latest=null;
  return Object.freeze({
   get matchId(){return matchId},
-  async poll(){
-   const {state:room}=await store.read(roomCode);
+  async poll({roomSnapshot=null}={}){
+   // A shell tick already fetched the room. Avoid a duplicate GET while
+   // keeping the same match-ID / participant validation below.
+   const room=roomSnapshot||(await store.read(roomCode)).state;
    if(!room||room.match?.matchId!==matchId)return {status:'room_closed'};
    if(!room.match.participants.includes(store.uid))return {status:'spectating'};
    if(!['playing','results'].includes(room.phase))return {status:'syncing'};
