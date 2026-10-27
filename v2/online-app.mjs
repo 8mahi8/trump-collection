@@ -180,6 +180,18 @@ function renderLobby(snapshot){
   if(spec.id===snapshot.selectedGame)b.classList.add('v2-active');
   area.append(b);
  }
+ if(snapshot.selectedGame==='shinkei'&&isHost&&snapshot.members.length>2){
+  area.append(create('p','v2-help','対戦する2人を選択（ほかの友達は待機）'));
+  for(const other of snapshot.members.filter(id=>id!==snapshot.hostId)){
+   const index=snapshot.members.indexOf(other);
+   const chosen=snapshot.participants.includes(other);
+   const pick=button((chosen?'✓ ':'')+'P'+(index+1)+' と対戦',
+    'memory-opponent-'+(index+1),
+    ()=>hostAction('setParticipants',{memberIds:[snapshot.hostId,other]}));
+   if(chosen)pick.classList.add('v2-active');
+   area.append(pick);
+  }
+ }
  if(snapshot.selectedGame){
   const meInMatch=snapshot.participants.includes(store.uid);
   area.append(create('p','v2-help',
@@ -206,6 +218,15 @@ function renderResults(snapshot){
  if(isHost)area.append(button('ロビーに戻る','back-lobby',
   ()=>hostAction('returnToLobby',{matchId:snapshot.match.matchId})));
  else area.append(create('p','v2-help','ホストがロビーに戻るのを待っています…'));
+ main.replaceChildren(area);
+}
+function renderSpectator(snapshot){
+ if(screen==='spectator'&&activeMatchId===snapshot.match.matchId)return;
+ clearSession();activeMatchId=snapshot.match.matchId;screen='spectator';
+ const area=create('section','v2-menu');
+ area.append(create('h2','','対戦を観戦・待機中'));
+ area.append(create('p','','ルーム '+snapshot.roomCode+' はそのままです。'));
+ area.append(create('p','v2-help','2人の対戦が終わるとロビーに戻れます。'));
  main.replaceChildren(area);
 }
 function beginMatch(snapshot){
@@ -255,12 +276,16 @@ async function pump(){
   if(!room.members.includes(store.uid)||room.phase==='lobby'){
    renderLobby(room);
   }else if(room.phase==='playing'){
-   beginMatch(room);
-   const reply=await session.refresh({roomSnapshot:room});
-   if(reply.status==='ready'||reply.status==='ack'){
-    msg('オンライン対戦｜部屋 '+roomCode);
-   }else if(reply.status==='rejected')msg('入力が拒否されました：'+reply.reason);
-   else msg('対戦データの同期中…');
+   if(!room.match.participants.includes(store.uid)){
+    renderSpectator(room);
+   }else{
+    beginMatch(room);
+    const reply=await session.refresh({roomSnapshot:room});
+    if(reply.status==='ready'||reply.status==='ack'){
+     msg('オンライン対戦｜部屋 '+roomCode);
+    }else if(reply.status==='rejected')msg('入力が拒否されました：'+reply.reason);
+    else msg('対戦データの同期中…');
+   }
   }else if(room.phase==='results')renderResults(room);
  }finally{pumping=false}
 }
