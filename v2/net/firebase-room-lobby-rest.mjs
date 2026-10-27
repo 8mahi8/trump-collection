@@ -14,7 +14,8 @@ const fail=(code,status=0)=>{throw new LobbyStoreError(code,status)};
 export function createFirebaseRoomLobbyRest({databaseURL,auth,identity,friendOnlyNoAuth=false,fetchImpl=globalThis.fetch}={}){
  if(typeof databaseURL!=='string'||!DB.test(databaseURL))fail('INVALID_DATABASE_URL');
  const peer=friendOnlyNoAuth?identity:auth;
- if(!peer||typeof peer.uid!=='string'||!UID.test(peer.uid))fail('IDENTITY_REQUIRED');
+ if(!peer||typeof peer.uid!=='string'||!UID.test(peer.uid))
+  fail(friendOnlyNoAuth?'IDENTITY_REQUIRED':'AUTH_REQUIRED');
  if(!friendOnlyNoAuth&&typeof auth.token!=='function')fail('AUTH_REQUIRED');
  if(typeof fetchImpl!=='function')fail('FETCH_REQUIRED');
  const base=databaseURL.replace(/\/$/,'');
