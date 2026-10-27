@@ -19,12 +19,12 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
   current=view;
   const hash=JSON.stringify(view)+'#'+[...selected].sort().join('/');
   if(last===hash)return false;last=hash;
-  $('v2-status').textContent=spec.label+'　'+(view.phase==='finished'?'試合終了':view.isMyTurn?'あなたの番':'プレイヤー'+((view.turn??0)+1)+' の番')+
+  $('v2-status').textContent=spec.label+'　'+(view.phase==='finished'?'試合終了':view.isMyTurn?'あなたの番':(view.players?.[view.turn]?.isCpu?'CPU'+((view.turn??0)+1):'プレイヤー'+((view.turn??0)+1))+' の番')+
    (view.connection?.state==='connected'?'　●オンライン':view.connection?.state==='local'?'　●CPU戦':'');
   const players=document.createDocumentFragment();
   for(const p of view.players){
    const tag=elem('span','v2-player'+(p.isYou?' v2-you':'')+(p.seat===view.turn?' v2-turn':''),
-    (p.isYou?'自分':'P'+(p.seat+1))+
+    (p.isYou?'自分':p.isCpu?'CPU'+(p.seat+1):'P'+(p.seat+1))+
     (p.cardCount===null?'':'　'+p.cardCount+'枚')+(p.score===null?'':'　'+p.score+'点'));
    players.append(tag);
   }
