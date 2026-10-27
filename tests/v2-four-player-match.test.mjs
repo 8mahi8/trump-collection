@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createSharedRoom,applySharedRoomAction} from '../v2/core/shared-room.mjs';
 import {createFourPlayerMatch} from '../v2/session/four-player-match.mjs';
+import {mulberry32} from '../games.mjs';
 const IDS=['hostUIDabc123','friendUIDb123','friendUIDc123','friendUIDd123'];
 function roomFor(game){
  let r=createSharedRoom({roomCode:'67429',hostId:IDS[0]});
@@ -47,18 +48,19 @@ test('room match rejects stale match ID, invalid actor, bad revision and wrong r
 test('four independent seat actions finish a real Old Maid match without exposing hands',()=>{
  const room=roomFor('babanuki'),match=createFourPlayerMatch({room,seedSource:()=>18});
  let turns=0;
- while(match.phase==='playing'&&turns<500){
+ const rng=mulberry32(20261027);
+ while(match.phase==='playing'&&turns<1000){
   const pub=match.publicSnapshot().publicView,actor=IDS[pub.turn];
   const my=match.viewFor(actor);
   assert.equal(my.isMyTurn,true);
   assert.ok(my.legal.drawIndices.length>0);
   const output=match.apply({actor,matchId:match.matchId,
-   type:'draw',index:0,actionId:'turn'+String(turns).padStart(6,'0'),
+   type:'draw',index:Math.floor(rng()*my.legal.drawIndices.length),actionId:'turn'+String(turns).padStart(6,'0'),
    expectedRevision:pub.revision,round:pub.round});
   assert.equal(output.ok,true,'turn '+turns+': '+JSON.stringify(output));
   turns++;
  }
- assert.ok(turns>5&&turns<500,'finished in '+turns+' moves');
+ assert.ok(turns>5&&turns<1000,'finished in '+turns+' moves');
  assert.equal(match.phase,'finished');
  const end=match.publicSnapshot().publicView;
  assert.equal(end.phase,'finished');
