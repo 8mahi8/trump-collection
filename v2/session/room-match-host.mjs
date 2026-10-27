@@ -9,7 +9,7 @@ export function createRoomMatchHost({store,coordinator,roomCode,seedSource,gameC
   !['read','publishMatchPublic','publishMatchPrivate','matchCommands',
    'writeMatchReceipt','removeMatchCommand'].every(k=>typeof store[k]==='function'))
   throw Error('INVALID_MATCH_HOST');
- let engine=null,busy=false;
+ let engine=null,busy=false,pending=null;
  async function readCurrent(){
   const {state:room}=await store.read(roomCode);
   if(!room||room.hostId!==store.uid)throw Error('NOT_ROOM_HOST');
@@ -31,6 +31,35 @@ export function createRoomMatchHost({store,coordinator,roomCode,seedSource,gameC
   await publish();
   return {matchId:engine.matchId,gameId:engine.gameId,revision:engine.revision};
  }
+ async function flushPending(){
+  if(!pending)return;
+  const job=pending,matchId=engine.matchId;
+  if(job.stage==='publish'){
+   // A failed REST publish is retried without applying the card move again.
+   await publish();job.stage='finish';
+  }
+  if(job.stage==='finish'){
+   if(engine.phase==='finished'){
+    const room=await readCurrent();
+    if(room.phase==='playing'){
+     const done=await coordinator.applyHost({type:'completeMatch',matchId});
+     if(!done.ok)throw Error('MATCH_COMPLETION_FAILED_'+done.reason);
+     engine.syncRoom(await readCurrent());
+    }else if(room.phase!=='results'||room.match?.matchId!==matchId)
+     throw Error('MATCH_COMPLETION_OUT_OF_SYNC');
+   }
+   job.stage='receipt';
+  }
+  if(job.stage==='receipt'){
+   await store.writeMatchReceipt(roomCode,matchId,job.actor,job.id,{
+    matchId,ok:!!job.result.ok,reason:job.result.reason||'',revision:engine.revision});
+   job.stage='remove';
+  }
+  if(job.stage==='remove'){
+   await store.removeMatchCommand(roomCode,matchId,job.actor,job.id);
+   pending=null;
+  }
+ }
  async function tick(){
   if(busy)return {status:'busy'};
   if(!engine)throw Error('MATCH_NOT_STARTED');
@@ -39,10 +68,12 @@ export function createRoomMatchHost({store,coordinator,roomCode,seedSource,gameC
    const room=await readCurrent();
    engine.syncRoom(room);
    const matchId=engine.matchId;
-   const pending=await store.matchCommands(roomCode,matchId)||{};
+   // Finish an interrupted publish / ACK before reading the command queue.
+   await flushPending();
+   const commands=await store.matchCommands(roomCode,matchId)||{};
    let processed=0,accepted=0,rejected=0;
-   for(const actor of Object.keys(pending).sort()){
-    const queued=pending[actor];
+   for(const actor of Object.keys(commands).sort()){
+    const queued=commands[actor];
     if(!queued||typeof queued!=='object')continue;
     for(const id of Object.keys(queued).sort()){
      const command=queued[id];
@@ -53,18 +84,8 @@ export function createRoomMatchHost({store,coordinator,roomCode,seedSource,gameC
      else result=engine.apply({actor,matchId,actionId:id,
       type:command.type,expectedRevision:command.expectedRevision,
       round:command.round,index:command.index,id:command.id,ids:command.ids});
-     if(result.ok){
-      await publish();
-      if(engine.phase==='finished'){
-       const done=await coordinator.applyHost({type:'completeMatch',matchId});
-       if(!done.ok)throw Error('MATCH_COMPLETION_FAILED_'+done.reason);
-       engine.syncRoom(await readCurrent());
-      }
-     }
-     await store.writeMatchReceipt(roomCode,matchId,actor,id,{
-      matchId,ok:!!result.ok,reason:result.reason||'',
-      revision:engine.revision});
-     await store.removeMatchCommand(roomCode,matchId,actor,id);
+     pending={actor,id,result,stage:result.ok?'publish':'receipt'};
+     await flushPending();
      processed++;
      if(result.ok)accepted++;else rejected++;
     }
