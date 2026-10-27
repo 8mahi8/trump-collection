@@ -51,7 +51,7 @@
               "$uid": {
                 ".read": "auth !== null && auth.uid === $uid",
                 "$request": {
-                  ".write": "auth !== null && auth.uid === $uid && root.child('trumpRoomsV2/' + $room + '/lobby/phase').val() === 'playing' && root.child('trumpRoomsV2/' + $room + '/lobby/match/matchId').val() === $match && root.child('trumpRoomsV2/' + $room + '/matches/' + $match + '/private/' + $uid).exists() && !data.exists() && newData.exists()",
+                  ".write": "(auth !== null && auth.uid === $uid && root.child('trumpRoomsV2/' + $room + '/lobby/phase').val() === 'playing' && root.child('trumpRoomsV2/' + $room + '/lobby/match/matchId').val() === $match && root.child('trumpRoomsV2/' + $room + '/matches/' + $match + '/private/' + $uid).exists() && !data.exists() && newData.exists()) || (auth !== null && auth.uid === root.child('trumpRoomsV2/' + $room + '/lobby/hostId').val() && !newData.exists())",
                   ".validate": "newData.hasChildren(['protocol','matchId','requestId','actor','type','expectedRevision','round']) && newData.child('protocol').val() === 3 && newData.child('matchId').val() === $match && newData.child('requestId').val() === $request && newData.child('actor').val() === $uid && newData.child('type').isString() && newData.child('expectedRevision').isNumber() && newData.child('round').isNumber()"
                 }
               }
