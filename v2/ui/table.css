@@ -111,7 +111,7 @@ button.v2-card{cursor:pointer}
 /* Memory: 24 cards in a six-by-four compact arrangement. */
 .v2-memory{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;
  max-width:425px;width:min(100%,425px);justify-content:center;padding:2px}
-.v2-memory .v2-card{--tc-w:100%;width:100%;min-width:0;height:clamp(42px,9.2vh,63px)}
+.v2-memory .v2-card{--tc-w:100%;width:100%;min-width:0;height:clamp(42px,9.2vh,63px);font-size:clamp(12px,2.45vw,16px)}
 .v2-memory .v2-card .v2-card-corner{font-size:12px}
 .v2-memory .v2-taken{visibility:hidden}
 .v2-memory .v2-flipped{animation:v2-card-flip .22s ease-out}
