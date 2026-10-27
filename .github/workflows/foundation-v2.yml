@@ -1,0 +1,27 @@
+name: Foundation V2 - Unified View Contract
+on:
+  push:
+    branches:
+      - refactor/unified-core-and-school-network-20261027
+    paths:
+      - 'v2/**'
+      - 'tests/v2-*.test.mjs'
+      - 'games.mjs'
+      - '.github/workflows/foundation-v2.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  foundation-v2:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify legacy game logic and V2 shared model
+        run: node --test tests/*.test.mjs
+      - name: Check that the existing Google Sites build has not been changed
+        run: |
+          node -e "import('node:fs').then(fs=>{for(const p of ['dist/trump-collection-open-root-trial.html','dist/trump-collection-integrated-lab.html'])if(!fs.existsSync(p))throw Error('Legacy HTML missing '+p)})"
