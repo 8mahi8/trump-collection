@@ -79,3 +79,9 @@
 - **詳細報告**：[V2_ROOM_FIRST_PHASE1B_2026-10-27.md](V2_ROOM_FIRST_PHASE1B_2026-10-27.md)。`tests/v2-shared-room.test.mjs` と `tests/v2-firebase-lobby-rest.test.mjs` を追加。
 - **[Actions #40508290755](https://github.com/8mahi8/trump-collection/actions/runs/40508290755) success**：旧ゲームの回帰テストを含むNodeテスト、学校版ソース不変チェック、Chromium/WebKitタップとビルドの全工程成功。
 - **まだ本物のルームオンライン4人対戦は未接続**。Firebase本番Rules/DBの新パスも適用していない。次はRoomCoordinator+ゲスト操作キューをホスト権限・エミュレーターで検証し、ババ抜きMatchの共通UIに接続する。
+## Phase 1c｜共通ルームの実Firebaseエミュレーター接続まで成功（2026-10-27）
+- **実装済**：`v2/session/room-coordinator.mjs` と `v2/net/firebase-room-lobby-rest.mjs`。認証UIDに紐づくリクエストキュー、ホストだけがCASで書き換えるRoom、結果ACK、競合・過去操作拒否。
+- **実装済**：`firebase/trump-rooms-v2.rules.json`（隔離されたエミュレーター専用）。旧本番Rulesには適用していない。
+- **実機Firebase Emulator成功**：[Actions #40510448708](https://github.com/8mahi8/trump-collection/actions/runs/40510448708)。4人同時入室/Ready→ババ抜きMatch→同ルームに戻る→2人神経衰弱Match、他人書込み拒否、古いReady拒否までテスト。
+- [Phase 1c詳細・残作業](V2_ROOM_FIRST_PHASE1C_2026-10-27.md) を参照。次のPhase 2aでは**ババ抜きの実カード配布/操作・秘密手札・オンライン4画面Renderer**を共通Room Matchに接続する。
+- **まだ4人ババ抜きのオンライン対戦完走・学校Safari/Google Sites V2実機確認は未完了**。エミュレーターでLobbyが動いたことをゲーム完成と混同しない。
