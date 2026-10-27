@@ -40,7 +40,13 @@ export function applySharedRoomAction(room,action,{registry=GAME_REGISTRY}={}){
   lobby(room);
   if(has(room,actor))reject('ALREADY_JOINED');
   if(room.members.length>=ROOM_CAPACITY)reject('ROOM_FULL');
-  return next(room,{members:[...room.members,actor]});
+  const members=[...room.members,actor];
+  // If the host selected a four-player game before friends joined, fill
+  // participants automatically when everyone arrives. Avoid extra taps.
+  const seats=room.selectedGame?registry.get(room.selectedGame).seats:null;
+  const participants=room.participants.length===0&&members.length===seats?
+   [...members]:room.participants;
+  return next(room,{members,participants});
  }
  if(!has(room,actor))reject('NOT_A_MEMBER');
  if(action.type==='leave'){
