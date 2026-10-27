@@ -82,7 +82,7 @@ test('actual Firebase: 4 players receive only own hands and play a live room-fir
  }));
  const counters=[0,0,0,0];
  let moves=0;
- for(;moves<16&&runner.phase==='playing';moves++){
+ for(;moves<400&&runner.phase==='playing';moves++){
   const pub=(await host.store.matchPublic(CODE,matchId)).publicView;
   const memberId=room.match.participants[pub.turn];
   const seat=players.findIndex(p=>p.uid===memberId);
@@ -107,7 +107,24 @@ test('actual Firebase: 4 players receive only own hands and play a live room-fir
   // Public payload must have only counts, never complete hands.
   assert.equal(JSON.stringify(updated).includes('"hands"'),false);
  }
- assert.ok(moves>=6,'multiple seats interacted via actual Firebase: '+moves);
+ assert.ok(moves>=6&&moves<400,'full match finished in '+moves+' moves');
+ assert.equal(runner.phase,'finished');
+ const terminal=await host.lobby.room();
+ assert.equal(terminal.phase,'results');
+ assert.equal(terminal.roomCode,CODE);
+ assert.equal(terminal.match.matchId,matchId);
+ assert.equal((await host.store.matchPublic(CODE,matchId)).publicView.phase,'finished');
+ for(let i=0;i<4;i++){
+  await sessions[i].refresh();
+  assert.equal(sessions[i].getView().phase,'finished');
+ }
+ assert.equal((await coord.applyHost({type:'returnToLobby',matchId})).ok,true);
+ assert.equal((await coord.applyHost({type:'selectGame',gameId:'shichinarabe'})).ok,true);
+ const switched=await host.lobby.room();
+ assert.equal(switched.roomCode,CODE);
+ assert.equal(switched.members.length,4);
+ assert.equal(switched.selectedGame,'shichinarabe');
+ assert.equal(switched.match,null);
  const spectator=await raw(outsider,'matches/'+matchId+'/private/'+players[2].uid);
  assert.ok([401,403].includes(spectator.status));
  for(const session of sessions)session.dispose();
