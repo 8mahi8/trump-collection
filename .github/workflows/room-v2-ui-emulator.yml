@@ -14,6 +14,7 @@ on:
       - 'v2/ui/**'
       - 'v2/build/build-online-lab.mjs'
       - 'dev/verify-v2-online-ui.mjs'
+      - 'dev/verify-v2-configured-sites-build.mjs'
       - 'firebase/trump-rooms-v2-friends-emulator.rules.json'
       - 'firebase.room-v2-friends-emulator.json'
       - '.github/workflows/room-v2-ui-emulator.yml'
@@ -37,6 +38,8 @@ jobs:
         run: |
           npm install --no-save esbuild@0.25.12 playwright@1.56.1
           npx playwright install --with-deps chromium webkit
+      - name: Static check for offline Google Sites connection configuration
+        run: node dev/verify-v2-configured-sites-build.mjs
       - name: Build one HTML for Google Sites-style isolated lab
         run: node v2/build/build-online-lab.mjs
       - name: Four touch browsers and Firebase mock auth + actual RTDB emulator
