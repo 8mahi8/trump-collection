@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createSharedRoom,applySharedRoomAction,isCpuSeat} from '../v2/core/shared-room.mjs';
 import {createFourPlayerMatch} from '../v2/session/four-player-match.mjs';
+import {mulberry32} from '../games.mjs';
 const HOST='human-host-1234';
 const ROOM='61728';
 function roomFor(game,humans=1){
@@ -14,17 +15,19 @@ function roomFor(game,humans=1){
   room=applySharedRoomAction(room,{type:'setReady',actor,ready:true,expectedRevision:room.revision});
  return applySharedRoomAction(room,{type:'startMatch',actor:HOST,expectedRevision:room.revision});
 }
-function humanMove(game,view){
- if(game==='babanuki')return {type:'draw',index:0};
- if(game==='shichinarabe')return view.legalIds.length?
-  {type:'play',id:view.legalIds[0]}:{type:'pass'};
- return view.legalMoves.length?{type:'play',ids:view.legalMoves[0]}:{type:'pass'};
+function humanMove(game,view,rng){
+ if(game==='babanuki')return {type:'draw',index:view.legal.drawIndices[
+  Math.floor(rng()*view.legal.drawIndices.length)]};
+ if(game==='shichinarabe')return view.legal.playIds.length?
+  {type:'play',id:view.legal.playIds[0]}:{type:'pass'};
+ return view.legal.playMoves.length?{type:'play',ids:view.legal.playMoves[0]}:{type:'pass'};
 }
 test('one human versus three CPUs fully completes all three existing four-player card games',()=>{
  for(const game of ['babanuki','shichinarabe','daifugo']){
   const room=roomFor(game),match=createFourPlayerMatch({room,seedSource:()=>42});
   assert.equal(match.publicSnapshot().publicView.seats.filter(s=>s.cpu).length,3);
   let cpuMoves=0,humanMoves=0,steps=0;
+  const rng=mulberry32(19301);
   while(match.phase==='playing'&&steps<1800){
    const state=match.publicSnapshot().publicView,actor=room.match.participants[state.turn];
    let move;
@@ -34,8 +37,8 @@ test('one human versus three CPUs fully completes all three existing four-player
     assert.equal(move.ok,true);
     cpuMoves++;
    }else{
-    const mine=match.privateSnapshot(actor).privateView;
-    const action=humanMove(game,mine);
+    const mine=match.viewFor(actor);
+    const action=humanMove(game,mine,rng);
     move=match.apply({...action,actor,matchId:match.matchId,
      actionId:'human'+String(steps).padStart(5,'0'),expectedRevision:state.revision,round:state.round});
     assert.equal(move.ok,true,game+' step='+steps+' '+JSON.stringify(move));
@@ -63,6 +66,7 @@ test('two human players plus two CPUs finish each four-seat game without a human
   const room=roomFor(game,2);
   const match=createFourPlayerMatch({room,seedSource:()=>98765});
   let humans=0,bots=0,steps=0;
+  const rng=mulberry32(271828);
   while(match.phase==='playing'&&steps<1800){
    const pub=match.publicSnapshot().publicView;
    const actor=room.match.participants[pub.turn];
@@ -71,8 +75,8 @@ test('two human players plus two CPUs finish each four-seat game without a human
     assert.equal(move?.ok,true,game+' bot '+steps);
     bots++;
    }else{
-    const priv=match.privateSnapshot(actor).privateView;
-    const move=match.apply({...humanMove(game,priv),actor,matchId:match.matchId,
+    const view=match.viewFor(actor);
+    const move=match.apply({...humanMove(game,view,rng),actor,matchId:match.matchId,
      actionId:'duo'+String(steps).padStart(5,'0'),
      expectedRevision:pub.revision,round:pub.round});
     assert.equal(move.ok,true,game+' human '+steps+' '+JSON.stringify(move));
