@@ -8,13 +8,14 @@ on:
       - 'tests/v2-*.test.mjs'
       - 'games.mjs'
       - '.github/workflows/foundation-v2.yml'
+      - 'dev/verify-v2-browser.mjs'
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   foundation-v2:
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,3 +26,21 @@ jobs:
       - name: Check that the existing Google Sites build has not been changed
         run: |
           node -e "import('node:fs').then(fs=>{for(const p of ['dist/trump-collection-open-root-trial.html','dist/trump-collection-integrated-lab.html'])if(!fs.existsSync(p))throw Error('Legacy HTML missing '+p)})"
+      - name: Prepare pinned build-time bundler and Safari/Chromium browser test
+        run: |
+          npm install --no-save esbuild@0.25.12 playwright@1.56.1
+          npx playwright install --with-deps chromium webkit
+      - name: Build one self-contained lightweight HTML for prototype (never publish)
+        run: node v2/build/build-lab.mjs
+      - name: Touch UI and layout integration with both browsers
+        run: node dev/verify-v2-browser.mjs
+      - name: Upload prototype and screenshots as isolated CI artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v2-babanuki-shared-renderer-preview
+          path: |
+            dist/v2-babanuki-cpu-lab.html
+            dist/v2-screens/*.png
+          if-no-files-found: ignore
+          retention-days: 7
