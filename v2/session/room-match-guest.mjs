@@ -34,7 +34,7 @@ export function createRoomMatchGuest({store,roomCode,matchId,actionIdSource=defa
   },
   async act(type,extra={}){
    if(!latest||latest.room.phase!=='playing')throw Error('MATCH_NOT_READY');
-   if(!['draw','play','pass'].includes(type))throw Error('INVALID_MATCH_ACTION');
+   if(!['draw','play','pass','flip'].includes(type))throw Error('INVALID_MATCH_ACTION');
    const id=actionIdSource();
    if(typeof id!=='string'||!KEY.test(id))throw Error('INVALID_REQUEST_ID');
    const payload={protocol:3,requestId:id,matchId,actor:store.uid,
