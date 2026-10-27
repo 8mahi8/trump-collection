@@ -244,6 +244,17 @@ try{
   assert.equal(players.filter(p=>p.isCpu).length,2);
   assert.equal(await page.f.locator('.v2-players .v2-player').filter({hasText:'CPU'}).count(),2);
  }
+ // Capture the restored physical playing cards in Daifugo, at iPad sizes.
+ for(const size of [{width:800,height:450},{width:667,height:375}]){
+  await duoOwner.page.setViewportSize(size);
+  await duoOwner.f.locator('body').evaluate(()=>{
+   if(!document.querySelector('.v2-hand .v2-card-corner'))
+    throw Error('DAIFUGO_CLASSIC_CARD_FACE_MISSING');
+  });
+  await duoOwner.page.screenshot({path:resolve('dist/v2-screens',
+   'classic-daifugo-'+engine+'-'+size.width+'.png')});
+ }
+ await duoOwner.page.setViewportSize({width:800,height:450});
  console.log('V2 ROOM-FIRST CPU AUTOFILL PASS '+engine+' two humans + two CPUs in Daifugo, no Firebase Auth');
 
  // Drive the WHOLE mixed Daifugo match through actual tap/click controls.
@@ -358,6 +369,16 @@ try{
     else if(Date.now()-began>18000){clearInterval(interval);reject(Error('MIXED_GAME_NOT_STARTED '+g));}
    },100);
   }),game)));
+  if(game==='shichinarabe'){
+   const count=await duoOwner.f.locator('.v2-seven-cell').count();
+   assert.equal(count,52,'Sevens must keep 4 rows x 13 card slots');
+   for(const size of [{width:800,height:450},{width:667,height:375}]){
+    await duoOwner.page.setViewportSize(size);
+    await duoOwner.page.screenshot({path:resolve('dist/v2-screens',
+     'classic-seven-'+engine+'-'+size.width+'.png')});
+   }
+   await duoOwner.page.setViewportSize({width:800,height:450});
+  }
   let attempts=0,botTurns=0,humanMoves=0,lastRevision=-1;
   const start=Date.now();
   while(Date.now()-start<68000&&attempts<180){
