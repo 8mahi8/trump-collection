@@ -390,6 +390,131 @@ try{
  await completeNextMixedGame('babanuki');
  await completeNextMixedGame('shichinarabe');
 
+ // Real 2-person Memory match, after the 3 four-seat games in the SAME room.
+ // The simulated humans remember cards they have actually seen in the public
+ // renderer. They do not inspect the hidden deck or mutate the rule engine.
+ await duoOwner.f.locator('button[data-action="game-shinkei"]').tap();
+ await Promise.all(duel.map(p=>p.f.locator('button[data-action="ready"]').waitFor({timeout:18000})));
+ for(const p of duel){
+  await p.f.locator('button[data-action="ready"]').tap();
+  await p.f.locator('button[data-action="ready"]').filter({hasText:'準備を解除'}).waitFor({timeout:18000});
+ }
+ await duoOwner.f.locator('button[data-action="start"]:not([disabled])').tap({timeout:18000});
+ await Promise.all(duel.map(p=>p.f.locator('.v2-memory').waitFor({timeout:18000})));
+ const remembered=new Map(),memoryStarted=Date.now();
+ let memoryHumanFlips=0;
+ for(let steps=0;steps<220;steps++){
+  const hostState=await duoOwner.f.locator('body').evaluate(()=>{
+   const lab=window.TRUMP_V2_ONLINE_LAB;
+   return {mode:lab.mode,room:lab.room,view:lab.view};
+  });
+  if(hostState.mode==='results')break;
+  const v=hostState.view;
+  if(!v||v.game!=='shinkei'){await new Promise(r=>setTimeout(r,140));continue}
+  for(const tile of v.board.tiles){
+   if(tile.card)remembered.set(tile.index,tile.card.rank);
+   if(tile.taken)remembered.delete(tile.index);
+  }
+  const currentUid=hostState.room.match.participants[v.turn];
+  const userIndex=uidList.indexOf(currentUid);
+  assert.ok(userIndex>=0,'two real humans are the only Memory players');
+  const p=duel[userIndex];
+  await p.f.locator('body').evaluate((body,revision)=>new Promise((resolve,reject)=>{
+   const begun=Date.now(),id=setInterval(()=>{
+    const lab=window.TRUMP_V2_ONLINE_LAB;
+    if(lab.mode==='results'||(lab.view?.game==='shinkei'&&lab.view.revision>=revision&&
+     lab.view.isMyTurn&&!lab.pending)){
+     clearInterval(id);resolve();
+    }else if(Date.now()-begun>15000){
+     clearInterval(id);reject(Error('MEMORY_HUMAN_NOT_READY '+revision));
+    }
+   },90);
+  }),v.revision);
+  const state=await p.f.locator('body').evaluate(()=>({
+   mode:window.TRUMP_V2_ONLINE_LAB.mode,
+   view:window.TRUMP_V2_ONLINE_LAB.view
+  }));
+  if(state.mode==='results')break;
+  const mine=state.view,available=mine.legal.flipIndices;
+  assert.ok(available.length,'Memory legal flips must be populated');
+  const first=mine.board.tiles.find(x=>x.flipped)?.index;
+  let candidate=null;
+  if(first!==undefined){
+   const rank=remembered.get(first);
+   if(rank!==undefined)candidate=available.find(i=>remembered.get(i)===rank);
+  }else{
+   for(const a of available){
+    const r=remembered.get(a);
+    if(r!==undefined&&available.some(b=>b!==a&&remembered.get(b)===r)){
+     candidate=a;break;
+    }
+   }
+  }
+  // Explore face-down cards when no matching revealed pair is known.
+  if(candidate===null||candidate===undefined)
+   candidate=available.find(i=>!remembered.has(i))??available[0];
+  const previous=mine.revision;
+  await p.f.locator('.v2-memory button[data-action="flip"][data-index="'+candidate+'"]:not([disabled])')
+   .tap({timeout:9000});
+  memoryHumanFlips++;
+  await p.f.locator('body').evaluate((body,revision)=>new Promise((resolve,reject)=>{
+   const begun=Date.now(),id=setInterval(()=>{
+    const lab=window.TRUMP_V2_ONLINE_LAB;
+    if(lab.mode==='results'||(lab.view?.revision>revision&&!lab.pending)){
+     clearInterval(id);resolve();
+    }else if(Date.now()-begun>16000){
+     clearInterval(id);reject(Error('MEMORY_FLIP_NOT_APPLIED '+revision+
+      ' notice='+document.getElementById('notice')?.textContent));
+    }
+   },95);
+  }),previous);
+ }
+ await duoOwner.f.locator('button[data-action="back-lobby"]').waitFor({timeout:13000});
+ await duoFriend.f.locator('body').evaluate(()=>new Promise((resolve,reject)=>{
+  const begun=Date.now(),id=setInterval(()=>{
+   if(window.TRUMP_V2_ONLINE_LAB.mode==='results'){clearInterval(id);resolve();}
+   else if(Date.now()-begun>13000){clearInterval(id);reject(Error('MEMORY_FRIEND_NO_RESULTS'))}
+  },110);
+ }));
+ assert.ok(memoryHumanFlips>=24,'entire deck must have been explored');
+ await duoOwner.f.locator('button[data-action="back-lobby"]').tap();
+ await Promise.all(duel.map(p=>p.f.locator('#shared-code').waitFor({timeout:15000})));
+ for(const p of duel)assert.ok((await p.f.locator('#shared-code').textContent()).includes(duoRoom));
+ console.log('V2 MEMORY TWO HUMAN FULL UI PASS '+engine+' flipped='+memoryHumanFlips+
+  ' durationMs='+(Date.now()-memoryStarted));
+
+ // In a four-person lobby selecting Memory requires choosing exactly two.
+ const spectatorHost=await launch();
+ await spectatorHost.f.locator('button[data-action="create-room"]').tap();
+ await spectatorHost.f.locator('#shared-code').waitFor({timeout:18000});
+ const spRoom=(await spectatorHost.f.locator('#shared-code').textContent()).match(/[0-9]{5}/)?.[0];
+ const others=[await launch(),await launch(),await launch()];
+ for(const guest of others){
+  await guest.f.locator('#room-code').fill(spRoom);
+  await guest.f.locator('button[data-action="join-room"]').tap();
+ }
+ await spectatorHost.f.locator('.v2-roster .v2-player').nth(3).waitFor({timeout:25000});
+ await spectatorHost.f.locator('button[data-action="game-shinkei"]').tap();
+ await spectatorHost.f.locator('button[data-action="memory-opponent-3"]').tap();
+ const lineup4=await spectatorHost.f.locator('body').evaluate(()=>window.TRUMP_V2_ONLINE_LAB.room.participants);
+ const chosenUid=await others[1].f.locator('body').evaluate(()=>window.TRUMP_V2_ONLINE_LAB.uid);
+ assert.equal(lineup4.length,2);
+ assert.equal(lineup4[1],chosenUid);
+ for(const page of [spectatorHost,others[1]]){
+  await page.f.locator('button[data-action="ready"]').tap();
+  await page.f.locator('button[data-action="ready"]').filter({hasText:'準備を解除'}).waitFor({timeout:18000});
+ }
+ await spectatorHost.f.locator('button[data-action="start"]:not([disabled])').tap({timeout:18000});
+ await Promise.all([spectatorHost,others[1]].map(p=>p.f.locator('.v2-memory').waitFor({timeout:18000})));
+ await Promise.all([others[0],others[2]].map(p=>p.f.locator('body').evaluate(()=>new Promise((resolve,reject)=>{
+  const begun=Date.now(),id=setInterval(()=>{
+   if(window.TRUMP_V2_ONLINE_LAB.mode==='spectator'){clearInterval(id);resolve();}
+   else if(Date.now()-begun>18000){clearInterval(id);reject(Error('MEMORY_SPECTATOR_NOT_WAITING'))}
+  },100);
+ }))));
+ console.log('V2 MEMORY FOUR ROOM SELECT TWO PASS '+engine+' spectators=2');
+
+
  assert.equal(traffic.auth,0,'V2 friends must not use anonymous Firebase Auth');
  assert.deepEqual(errors,[]);
  console.log('V2 ROOM-FIRST NO-AUTH UI PASS '+engine+' four local player IDs + Google Sites sandbox + card touch + synchronized renderer');
