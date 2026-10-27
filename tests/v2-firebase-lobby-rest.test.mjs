@@ -50,7 +50,7 @@ test('missing or public trial auth cannot reach room lobby, invalid URLs/code re
  assert.throws(()=>createFirebaseRoomLobbyRest({databaseURL:'https://example.firebaseio.com'}),e=>e.code==='AUTH_REQUIRED');
  const store=createFirebaseRoomLobbyRest({databaseURL:'https://example.firebaseio.com',auth:{uid:USER,token:async()=>null},fetchImpl:()=>{throw Error('should not fetch')}});
  await assert.rejects(store.read('12345'),e=>e.code==='AUTH_REQUIRED');
- await assert.rejects(store.read('bad'),e=>e.code==='AUTH_REQUIRED');
+ await assert.rejects(store.read('bad'),e=>e.code==='INVALID_ROOM_CODE');
 });
 
 test('friend-only mode uses Firebase RTDB REST without any authentication request',async()=>{
