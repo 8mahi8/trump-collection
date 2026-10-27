@@ -150,6 +150,45 @@ try{
   await owner.page.screenshot({path:resolve('dist/v2-screens',
    'online-'+engine+'-'+size.width+'x'+size.height+'.png')});
  }
+
+ // A room with only two friends must be able to play four-seat Daifugo:
+ // the two unused seats become host-operated CPUs, not extra auth clients.
+ const duoOwner=await launch();
+ await duoOwner.f.locator('button[data-action="create-room"]').tap();
+ await duoOwner.f.locator('#shared-code').waitFor({timeout:18000});
+ const duoRoom=(await duoOwner.f.locator('#shared-code').textContent()).match(/\\d{5}/)?.[0];
+ assert.match(duoRoom,/^[0-9]{5}$/);
+ const duoFriend=await launch();
+ await duoFriend.f.locator('#room-code').fill(duoRoom);
+ await duoFriend.f.locator('button[data-action="join-room"]').tap();
+ await duoOwner.f.locator('.v2-roster .v2-player').nth(1).waitFor({timeout:26000});
+ await duoOwner.f.locator('button[data-action="game-daifugo"]').tap();
+ for(const page of [duoOwner,duoFriend]){
+  await page.f.locator('.v2-roster .v2-player').filter({hasText:'CPU'}).first().waitFor({timeout:26000});
+ }
+ const lineup=await duoOwner.f.locator('body').evaluate(()=>window.TRUMP_V2_ONLINE_LAB.room.participants);
+ assert.equal(lineup.length,4);
+ assert.equal(lineup.filter(id=>id.startsWith('cpu-')).length,2);
+ await duoOwner.f.locator('button[data-action="ready"]').tap();
+ await duoOwner.f.locator('button[data-action="ready"]').filter({hasText:'準備を解除'}).waitFor({timeout:26000});
+ await duoFriend.f.locator('button[data-action="ready"]').tap();
+ await duoFriend.f.locator('button[data-action="ready"]').filter({hasText:'準備を解除'}).waitFor({timeout:26000});
+ await duoOwner.f.locator('button[data-action="start"]:not([disabled])').tap({timeout:26000});
+ await Promise.all([duoOwner,duoFriend].map(p=>p.f.locator('.v2-table').waitFor({timeout:26000})));
+ await Promise.all([duoOwner,duoFriend].map(p=>p.f.locator('body').evaluate(()=>new Promise((resolve,reject)=>{
+  const begin=Date.now(),id=setInterval(()=>{
+   if(window.TRUMP_V2_ONLINE_LAB.view?.game==='daifugo'){
+    clearInterval(id);resolve();
+   }else if(Date.now()-begin>26000){clearInterval(id);reject(Error('CPU_DAIFUGO_NO_VIEW'))}
+  },120)
+ }))));
+ for(const page of [duoOwner,duoFriend]){
+  const players=await page.f.locator('body').evaluate(()=>window.TRUMP_V2_ONLINE_LAB.view.players);
+  assert.equal(players.filter(p=>p.isCpu).length,2);
+  assert.equal(await page.f.locator('.v2-players .v2-player').filter({hasText:'CPU'}).count(),2);
+ }
+ console.log('V2 ROOM-FIRST CPU AUTOFILL PASS '+engine+' two humans + two CPUs in Daifugo, no Firebase Auth');
+
  assert.equal(traffic.auth,0,'V2 friends must not use anonymous Firebase Auth');
  assert.deepEqual(errors,[]);
  console.log('V2 ROOM-FIRST NO-AUTH UI PASS '+engine+' four local player IDs + Google Sites sandbox + card touch + synchronized renderer');
