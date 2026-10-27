@@ -2,6 +2,7 @@
 // Match authority lives in host memory by design. Reloading the host ends
 // this friend-only game; no reload recovery or anonymous login is required.
 import {createFourPlayerMatch} from './four-player-match.mjs';
+import {createTwoPlayerMemoryMatch} from './two-player-memory-match.mjs';
 import {isCpuSeat} from '../core/shared-room.mjs';
 
 const KEY=/^[A-Za-z0-9_-]{6,60}/;
@@ -32,7 +33,8 @@ export function createRoomMatchHost({store,coordinator,roomCode,seedSource,gameC
  async function start(){
   if(engine)throw Error('MATCH_ALREADY_STARTED');
   const room=await readCurrent();
-  engine=createFourPlayerMatch({room,seedSource,gameConfig});
+  engine=room.match.gameId==='shinkei'?createTwoPlayerMemoryMatch({room,seedSource,gameConfig}):
+   createFourPlayerMatch({room,seedSource,gameConfig});
   await publish();
   return {matchId:engine.matchId,gameId:engine.gameId,revision:engine.revision};
  }
