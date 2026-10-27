@@ -1,3 +1,6 @@
+> **【2026-10-27 最優先・本人指示による修正】**：学校向けV2のオンラインは **Firebase匿名認証を使わない**。また **ホスト再読み込みからの対戦復帰は作らない**。友達だけで遊べるシンプルな共通ルームを優先する。過去の本引き継ぎやPhase文書の「匿名Auth必須」「reload復帰」は古い案であり、これに上書きされた。
+>
+> 実コード：`v2/online-app.mjs`からAuth signInを削除し、`v2/net/firebase-room-lobby-rest.mjs`に`friendOnlyNoAuth:true`を導入。4人・Chrome/WebKit Google Sites風UIで **Firebase Auth API呼出0回** の試験成功：[Actions #40522130962](https://github.com/8mahi8/trump-collection/actions/runs/40522130962)。[本人指示・技術的注意の詳細](V2_FRIENDS_NOAUTH_DECISION_2026-10-27.md)。**本番Firebase Rules/DB/Google Sites公開版は無変更**。
 # トランプコレクション｜V2開発担当AI 引き継ぎ【2026-10-27 夜】
 
 > **重要**：本書は新チャットで開発を直ちに継続するための最新版。GitHubのこの開発ブランチ、開発PR #2、既存の設計資料・テスト実績を自分で確認すること。過去の「V1.5学校試遊版」を完成・軽快と決めつけないこと。
