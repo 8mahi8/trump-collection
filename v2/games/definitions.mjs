@@ -64,7 +64,11 @@ const shinkei={
   return {index:i,taken,flipped,card:taken||flipped?cards([tile.card])[0]:null};
  })}),
  localLegal:s=>({...legal(),flipIndices:s.board.map((tile,i)=>({tile,i}))
-  .filter(({tile,i})=>!tile.taken&&!s.flipped.includes(i)).map(({i})=>i)})
+  .filter(({tile,i})=>!tile.taken&&!s.flipped.includes(i)).map(({i})=>i)}),
+ remoteBoard:s=>({kind:'memory',tiles:(s.tiles||[]).map(tile=>({...tile,
+  card:tile.card?{...tile.card}:null}))}),
+ remoteLegal:pub=>({...legal(),flipIndices:(pub.tiles||[])
+  .filter(tile=>!tile.taken&&!tile.flipped).map(tile=>tile.index)})
 };
 const daifugo={
  id:'daifugo',label:'大富豪',seats:4,boardKind:'field',interaction:'pick-multi',actions:['play','pass','rematch'],
