@@ -82,7 +82,8 @@ test('actual Firebase: four UIDs share one room, switch games and deny guest tam
  assert.equal((await coordinator.applyHost({type:'setReady',ready:true})).ok,true);
  // Guests all use same room revision. Ready can rebase only if game/epoch match.
  await Promise.all([a,b,c].map((u,i)=>send(u,'setReady','ready000'+i,{
-  ready:true,gameId:'babanuki',matchSequence:room.matchSequence})));
+  ready:true,gameId:'babanuki',matchSequence:room.matchSequence,
+  selectionEpoch:room.selectionEpoch})));
  const readied=await coordinator.tick();
  assert.equal(readied.accepted,3,JSON.stringify(readied));
  assert.deepEqual((await host.client.room()).ready.sort(),
@@ -106,7 +107,8 @@ test('actual Firebase: four UIDs share one room, switch games and deny guest tam
  assert.equal((await coordinator.applyHost({type:'setReady',ready:true})).ok,true);
  const beforeReady=await c.client.room();
  await c.client.submit({type:'setReady',ready:true,expectedRevision:beforeReady.revision,
-  gameId:'shinkei',matchSequence:beforeReady.matchSequence},'readyShinkei');
+  gameId:'shinkei',matchSequence:beforeReady.matchSequence,
+  selectionEpoch:beforeReady.selectionEpoch},'readyShinkei');
  assert.equal((await coordinator.tick()).accepted,1);
  assert.equal((await coordinator.applyHost({type:'startMatch'})).ok,true);
  room=await host.client.room();
