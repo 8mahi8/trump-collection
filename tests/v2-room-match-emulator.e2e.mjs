@@ -60,7 +60,12 @@ test('actual Firebase: 4 players receive only own hands and play a live room-fir
  assert.equal((await coord.applyHost({type:'startMatch'})).ok,true);
  const room=await host.lobby.room();
  const matchId=room.match.matchId;
- const runner=createRoomMatchHost({store:host.store,coordinator:coord,roomCode:CODE,seedSource:()=>18});
+ let failPublicOnce=false;
+ const resilientStore={...host.store,publishMatchPublic:async(...args)=>{
+  if(failPublicOnce){failPublicOnce=false;throw Error('SIMULATED_PUBLIC_PUBLISH_DROP')}
+  return host.store.publishMatchPublic(...args);
+ }};
+ const runner=createRoomMatchHost({store:resilientStore,coordinator:coord,roomCode:CODE,seedSource:()=>18});
  const initial=await runner.start();
  assert.equal(initial.gameId,'babanuki');
  assert.equal(initial.matchId,matchId);
@@ -97,8 +102,19 @@ test('actual Firebase: 4 players receive only own hands and play a live room-fir
   const action=await session.dispatch({type:'draw',
    index:Math.floor(rng()*v.legal.drawIndices.length)});
   assert.equal(action.submitted,true);
-  const processed=await runner.tick();
-  assert.equal(processed.accepted,1,JSON.stringify(processed));
+  if(moves===0){
+   // The rule engine already applied the card, but public publishing fails.
+   // A retry MUST only republish/ACK; applying the same card again would
+   // corrupt hands or wedge the turn forever.
+   failPublicOnce=true;
+   await assert.rejects(runner.tick(),/SIMULATED_PUBLIC_PUBLISH_DROP/);
+   assert.equal(await host.store.matchReceipt(CODE,matchId,memberId,action.actionId),null);
+   const retry=await runner.tick();
+   assert.equal(retry.accepted,0,'retry must not apply the move again');
+  }else{
+   const processed=await runner.tick();
+   assert.equal(processed.accepted,1,JSON.stringify(processed));
+  }
   assert.ok((await players[seat].store.matchReceipt(CODE,matchId,memberId,action.actionId)).ok);
   const newer=await session.refresh();
   assert.ok(['ack','ready'].includes(newer.status),newer.status);
