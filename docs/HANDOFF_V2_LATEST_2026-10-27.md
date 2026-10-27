@@ -85,3 +85,9 @@
 - **実機Firebase Emulator成功**：[Actions #40510448708](https://github.com/8mahi8/trump-collection/actions/runs/40510448708)。4人同時入室/Ready→ババ抜きMatch→同ルームに戻る→2人神経衰弱Match、他人書込み拒否、古いReady拒否までテスト。
 - [Phase 1c詳細・残作業](V2_ROOM_FIRST_PHASE1C_2026-10-27.md) を参照。次のPhase 2aでは**ババ抜きの実カード配布/操作・秘密手札・オンライン4画面Renderer**を共通Room Matchに接続する。
 - **まだ4人ババ抜きのオンライン対戦完走・学校Safari/Google Sites V2実機確認は未完了**。エミュレーターでLobbyが動いたことをゲーム完成と混同しない。
+## Phase 2a｜実Firebase通信で4人ババ抜き1試合完走（2026-10-27）
+- **[Phase2aの実装と証拠](V2_ROOM_FIRST_PHASE2A_2026-10-27.md)** を確認。`v2/session/four-player-match.mjs`（既存4席Authority再利用）、`room-match-host.mjs`、`room-match-guest.mjs`、Firebase Match専用REST APIとUID本人だけ読める手札のRulesを実装。
+- **[Actions #40516425639](https://github.com/8mahi8/trump-collection/actions/runs/40516425639) 成功**：認証UID4人が共通Roomでババ抜きを全ターン通して完走。各ターンで手札/盤面/合法操作取得→カード引く→Firebaseキュー→ホストAuthority更新→本人ACK、結果→**同じ部屋に戻り七並べ選択**。部外者・他人の手札を実Rulesで拒否。
+- **この成功は通信・ゲーム進行のCI**。4画面のUIをSafariで実際にタップして遊ぶ完成テストではない。オンラインLobby→共通Table Rendererの画面結合、学校ネットワーク上の重さの計測はPhase 2b以降。
+- **重要**：ホストAuthorityは現在メモリーのみ。ホストがリロード・離脱した時の復帰手段を未実装。学校Google Sites版/main/本番Firebase/Supabase/旧Drive原本は一切変更しない。
+- 次担当：Phase 2bとして**単一GameShellにRoom作成/参加/Ready/選択/結果とオンラインRoomSessionをつなぐ**。4ブラウザ＋Chromium/WebKit Google Sites風iframeで画面を見て操作と描画を検証。ゲーム別ページ/iframeを増やさない。
