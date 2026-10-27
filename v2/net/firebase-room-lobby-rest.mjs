@@ -68,6 +68,59 @@ export function createFirebaseRoomLobbyRest({databaseURL,auth,fetchImpl=globalTh
  };
  const member=uid=>{if(typeof uid!=='string'||!UID.test(uid))fail('INVALID_UID');return uid;};
  const requestId=id=>{if(typeof id!=='string'||!REQUEST.test(id))fail('INVALID_REQUEST_ID');return id;};
+ const matchPath=(code,id)=>{
+  if(typeof id!=='string'||!new RegExp('^'+code+'-m[1-9][0-9]*
+  uid:auth.uid,
+  read:code=>request('GET',code,['lobby'],null,null,true),
+  async reserve(room){validate(room);return request('PUT',room.roomCode,['lobby'],room,'null_etag');},
+  async commit(room,etag){validate(room);return request('PUT',room.roomCode,['lobby'],room,etag);},
+  requests:code=>request('GET',code,['requests']).then(r=>r.state),
+  submit:(code,id,command)=>{
+   requestId(id);
+   if(!command||command.protocol!==3||command.requestId!==id)fail('INVALID_REQUEST');
+   return request('PUT',code,['requests',auth.uid,id],command,'null_etag');
+  },
+  removeRequest:(code,uid,id)=>request('DELETE',code,['requests',member(uid),requestId(id)]),
+  receipt:(code,uid,id)=>request('GET',code,['receipts',member(uid),requestId(id)]).then(r=>r.state),
+  writeReceipt:(code,uid,id,value)=>{
+   if(typeof value?.ok!=='boolean'||!Number.isInteger(value.revision))fail('INVALID_RECEIPT');
+   return request('PUT',code,['receipts',member(uid),requestId(id)],value);
+  },
+  // Match state is completely separate from lobby metadata. Only host may
+  // publish public/private views; Firebase Rules gate each UID's own hand.
+  matchPublic:(code,matchId)=>request('GET',code,[...matchPath(code,matchId),'public']).then(r=>r.state),
+  matchPrivate:(code,matchId,uid)=>request('GET',code,[...matchPath(code,matchId),'private',member(uid)]).then(r=>r.state),
+  publishMatchPublic:(code,matchId,value)=>{
+   if(value?.matchId!==matchId||value?.publicView?.game===undefined)fail('INVALID_MATCH_SNAPSHOT');
+   return request('PUT',code,[...matchPath(code,matchId),'public'],value);
+  },
+  publishMatchPrivate:(code,matchId,uid,value)=>{
+   if(value?.matchId!==matchId||!value?.privateView||value.privateView.game===undefined)
+    fail('INVALID_MATCH_SNAPSHOT');
+   return request('PUT',code,[...matchPath(code,matchId),'private',member(uid)],value);
+  },
+  matchCommands:(code,matchId)=>request('GET',code,[...matchPath(code,matchId),'commands']).then(r=>r.state),
+  submitMatch:(code,matchId,id,value)=>{
+   requestId(id);
+   if(value?.protocol!==3||value?.requestId!==id||value?.matchId!==matchId)
+    fail('INVALID_MATCH_COMMAND');
+   return request('PUT',code,[...matchPath(code,matchId),'commands',auth.uid,id],value,'null_etag');
+  },
+  removeMatchCommand:(code,matchId,uid,id)=>request('DELETE',code,
+   [...matchPath(code,matchId),'commands',member(uid),requestId(id)]),
+  matchReceipt:(code,matchId,uid,id)=>request('GET',code,
+   [...matchPath(code,matchId),'receipts',member(uid),requestId(id)]).then(r=>r.state),
+  writeMatchReceipt:(code,matchId,uid,id,value)=>{
+   if(typeof value?.ok!=='boolean'||!Number.isInteger(value.revision)||value.matchId!==matchId)
+    fail('INVALID_MATCH_RECEIPT');
+   return request('PUT',code,[...matchPath(code,matchId),'receipts',member(uid),requestId(id)],value);
+  }
+ });
+}
+).test(id))
+   fail('INVALID_MATCH_ID');
+  return ['matches',id];
+ };
  return Object.freeze({
   uid:auth.uid,
   read:code=>request('GET',code,['lobby'],null,null,true),
