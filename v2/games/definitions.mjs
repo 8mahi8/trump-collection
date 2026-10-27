@@ -16,7 +16,7 @@ const fieldBoard=s=>({
 });
 
 const babanuki={
- id:'babanuki',label:'ババ抜き',seats:4,boardKind:'draw',actions:['draw','rematch'],
+ id:'babanuki',label:'ババ抜き',seats:4,boardKind:'draw',interaction:'draw',actions:['draw','rematch'],
  createLocal:(seed)=>G.createBabanuki(seed,4),
  localHand:defaultHand,localCounts:defaultCounts,ranks,
  localMove:(state,action)=>{
@@ -43,7 +43,7 @@ const babanuki={
  }
 };
 const shichinarabe={
- id:'shichinarabe',label:'七並べ',seats:4,boardKind:'seven',actions:['play','pass','rematch'],
+ id:'shichinarabe',label:'七並べ',seats:4,boardKind:'seven',interaction:'pick-one',actions:['play','pass','rematch'],
  createLocal:(seed)=>G.createShichinarabe(seed,4),
  localHand:defaultHand,localCounts:defaultCounts,ranks,
  localBoard:s=>({kind:'seven',placed:(s.placed||[]).map(x=>({low:x.low,high:x.high})),
@@ -54,7 +54,7 @@ const shichinarabe={
  remoteLegal:(pub,priv)=>({...legal(),playIds:[...(priv.legalIds||[])],canPass:true})
 };
 const shinkei={
- id:'shinkei',label:'神経衰弱',seats:2,boardKind:'memory',actions:['flip','rematch'],
+ id:'shinkei',label:'神経衰弱',seats:2,boardKind:'memory',interaction:'flip',actions:['flip','rematch'],
  createLocal:(seed,options={})=>G.createShinkei(seed,options.difficulty??1),
  localHand:()=>[],localCounts:()=>null,
  score:(state,seat)=>state.scores?.[seat]??0,
@@ -67,7 +67,7 @@ const shinkei={
   .filter(({tile,i})=>!tile.taken&&!s.flipped.includes(i)).map(({i})=>i)})
 };
 const daifugo={
- id:'daifugo',label:'大富豪',seats:4,boardKind:'field',actions:['play','pass','rematch'],
+ id:'daifugo',label:'大富豪',seats:4,boardKind:'field',interaction:'pick-multi',actions:['play','pass','rematch'],
  createLocal:(seed,options={})=>G.createDaifugo(seed,options.rules||G.DAIFUGO_DEFAULTS),
  localHand:defaultHand,localCounts:defaultCounts,ranks,
  localBoard:fieldBoard,
