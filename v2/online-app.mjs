@@ -256,7 +256,7 @@ async function pump(){
   }else if(room.phase==='results')renderResults(room);
  }finally{pumping=false}
 }
-$('home').addEventListener('click',()=>home());
+$('home').addEventListener('click',()=>{if(roomCode&&client)leave().catch(showError);else home();});
 home();
 globalThis.TRUMP_V2_ONLINE_LAB={get mode(){return screen},get room(){return room},
  get view(){return session?.getView()||null},get uid(){return store?.uid||null},
