@@ -37,10 +37,10 @@ export function createRoomSession({game,guest,registry=GAME_REGISTRY}={}){
    notify();
   }
  }
- async function refresh(){
+ async function refresh(options){
   ensure();
   let result;
-  try{result=await guest.poll();ensure();}
+  try{result=await guest.poll(options);ensure();}
   catch(e){if(!disposed)suspend('reconnecting');throw e;}
   if(result.status!=='ready'){
    suspend(result.status==='room_closed'?'closed':'reconnecting');
