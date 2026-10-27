@@ -24,6 +24,11 @@
 - [Foundation V2 #40596947661 SUCCESS](https://github.com/8mahi8/trump-collection/actions/runs/40596947661)：修正後の既存ルール/通信回帰テスト。
 - 実学校Firebaseへの読取専用確認 [#40551481506 SUCCESS](https://github.com/8mahi8/trump-collection/actions/runs/40551481506)：匿名AuthなしRTDB GET=200、ETag取得、OPTIONSによるCORS確認。本番書き込みはゼロ。実際にルーム作成（PUT）が認可されるかはまだ本番で未確認。
 
+## 最終確認：ロビー改善後の実画面・4ゲーム完走
+- **[UI Safari/Chromium #40597869423 SUCCESS](https://github.com/8mahi8/trump-collection/actions/runs/40597869423)**：新しい2×2ロビー配置の667×375／800×450スクリーンショットを撮影し、**退出ボタンが画面下に隠れない**ことを機械検証。4人ルームへの誤番号→正しい番号での再参加、4ゲーム連続の実タップ試合完走、神経衰弱の2人選択／残り2人待機、匿名Auth 0をChromium/WebKit両方で合格。
+- **[Memory CPU #40596947657 SUCCESS](https://github.com/8mahi8/trump-collection/actions/runs/40596947657)**：1人＋CPU1人の神経衰弱を両ブラウザエンジンで完走。
+- **[Foundation V2 #40596947661 SUCCESS](https://github.com/8mahi8/trump-collection/actions/runs/40596947661)**：ルール・通信の基礎回帰テスト成功。
+- 学校試遊用オフラインHTMLは上記UI Actions Artifact `v2-room-first-sites-school-trial.html`、内容約75KB、同一生成物SHA256 `d6dfb3415163aac5add1d1adafc3cb1a5fa2fb0ad9721940566c45388c0f715e`。これは本番FirebaseルールへのPUTを検証した証拠ではない。
 ## 本番変更なし
 - **main／本番Firebase RTDB Rules／本番DB／Google Sites公開版／Google Driveを変更していない**。
 - エミュレーターの校内ブラウザ再現が成功しても、実学校のiPadとFirebase本番のPUTが成功するかは本人の実機試遊まで保証できない。
