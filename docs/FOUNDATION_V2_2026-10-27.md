@@ -1,5 +1,12 @@
 # Foundation V2｜学校の実機失敗を受けた全面再設計（2026-10-27）
 
+## Phase V2-0b｜外部資料に基づいたゲームプラグイン方式（2026-10-27）
+
+- **[調査レポートと採用方針](V2_EXTERNAL_FRAMEWORK_RESEARCH_AND_PLUGIN_PLAN_2026-10-27.md)**。boardgame.ioのGame definition／moves／phases、Colyseusのサーバー状態差分同期、Board Game Arenaのルール・画面分離、FirebaseのonValue/SSEを公式資料で確認。
+- **新規ゲームごとに個別のCOM HTML、対人HTML、通信、メニューを作る方式は廃止予定**。軽量`v2/core/game-registry.mjs`でゲームプラグインを管理する。`v2/games/definitions.mjs`にババ抜き、七並べ、神経衰弱、大富豪を登録し、`v2/core/unified-view.mjs`から**ゲーム固有のif分岐を排除**。
+- `tests/v2-game-registry.test.mjs`で架空の**5本目を共通CPU/オンラインViewへ追加可能**なことを検証。**[GitHub Actions #40450636133](https://github.com/8mahi8/trump-collection/actions/runs/40450636133) Node121/121合格**。現在の4ゲームも既存テストを維持。
+- **まだV2の1DOM/1Renderer/共通Sessionは完成していない**。次工程で新しいババ抜き画面をCPU/オンライン共通で1本実装する。学校の重さやSupabase接続不良も未解決。旧Google Sites版・main・Firebase本番・Google Driveは無変更。
+
 ## 0. 実際に起きたこと／前提
 - 本人が学校のiPad / Google Sites直接HTML埋め込みを試し、**大幅な重さ・神経衰弱のオンライン接続不可・COMと友達対戦の極端なUI差**を報告。**実際の通信エラーコード・CPU消費・WebSocketブロック有無は未測定**。
 - これまでのChromium/WebKit Playwright＋Firebaseエミュレーターの106/106合格は**実際の学校ネットワーク上での操作感や通信を保証しなかった**。V1.5系へ表面的なパッチを続けるのを中断。
