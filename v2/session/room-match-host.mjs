@@ -66,7 +66,7 @@ export function createRoomMatchHost({store,coordinator,roomCode,seedSource,gameC
    pending=null;
   }
  }
- async function tick(){
+ async function tick({roomSnapshot=null}={}){
   if(busy)return {status:'busy'};
   if(!engine)throw Error('MATCH_NOT_STARTED');
   busy=true;
@@ -75,7 +75,8 @@ export function createRoomMatchHost({store,coordinator,roomCode,seedSource,gameC
    // Finish an interrupted publish / ACK before reading the command queue.
    await flushPending();
    const commands=await store.matchCommands(roomCode,matchId)||{};
-   const room=await readCurrent();
+   // The GameShell has already fetched this room revision for its frame.
+   const room=roomSnapshot||await readCurrent();
    engine.syncRoom(room);
    let processed=0,accepted=0,rejected=0;
    for(const actor of Object.keys(commands).sort()){
