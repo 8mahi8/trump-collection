@@ -277,6 +277,108 @@ try{
   ' cpuTurnsObserved='+observedCpuTurns+' gameDurationMs='+(Date.now()-wallStart));
 
 
+
+ // Continue in the SAME two-human room after Daifugo, switching games
+ // without rejoining. Play two more full games by real UI taps.
+ async function completeNextMixedGame(game){
+  await duoOwner.f.locator('button[data-action="game-'+game+'"]').tap();
+  for(const p of duel){
+   await p.f.locator('button[data-action="ready"]').waitFor({timeout:18000});
+   await p.f.locator('button[data-action="ready"]').tap();
+   await p.f.locator('button[data-action="ready"]').filter({hasText:'準備を解除'})
+    .waitFor({timeout:16000});
+  }
+  await duoOwner.f.locator('button[data-action="start"]:not([disabled])').tap({timeout:16000});
+  await Promise.all(duel.map(async p=>p.f.locator('body').evaluate((body,g)=>new Promise((resolve,reject)=>{
+   const began=Date.now(),interval=setInterval(()=>{
+    const lab=window.TRUMP_V2_ONLINE_LAB;
+    if(lab.mode==='match'&&lab.view?.game===g){clearInterval(interval);resolve();}
+    else if(Date.now()-began>18000){clearInterval(interval);reject(Error('MIXED_GAME_NOT_STARTED '+g));}
+   },100);
+  }),game)));
+  let attempts=0,botTurns=0,humanMoves=0,lastRevision=-1;
+  const start=Date.now();
+  while(Date.now()-start<240000&&attempts<420){
+   const current=await duoOwner.f.locator('body').evaluate(()=>{
+    const lab=window.TRUMP_V2_ONLINE_LAB;
+    return {mode:lab.mode,room:lab.room,view:lab.view};
+   });
+   if(current.mode==='results')break;
+   const v=current.view;
+   if(!v||v.game!==game||!current.room||!Number.isInteger(v.revision)){
+    await new Promise(r=>setTimeout(r,120));continue;
+   }
+   if(v.revision===lastRevision){await new Promise(r=>setTimeout(r,140));continue;}
+   lastRevision=v.revision;
+   const actor=current.room.match.participants[v.turn];
+   const seat=uidList.indexOf(actor);
+   if(seat<0){botTurns++;await new Promise(r=>setTimeout(r,110));continue;}
+   const player=duel[seat];
+   await player.f.locator('body').evaluate((body,arg)=>new Promise((resolve,reject)=>{
+    const began=Date.now(),interval=setInterval(()=>{
+     const lab=window.TRUMP_V2_ONLINE_LAB;
+     if(lab.mode==='results'||(lab.view?.game===arg.game&&
+       lab.view.revision>=arg.revision&&lab.view.isMyTurn&&!lab.pending)){
+      clearInterval(interval);resolve();
+     }else if(Date.now()-began>15000){
+      clearInterval(interval);reject(Error('MIXED_WAIT_HUMAN_'+arg.game+
+       '_'+arg.revision+' '+document.getElementById('notice')?.textContent));
+     }
+    },100);
+   }),{game,revision:v.revision});
+   const actual=await player.f.locator('body').evaluate(()=>({
+    mode:window.TRUMP_V2_ONLINE_LAB.mode,view:window.TRUMP_V2_ONLINE_LAB.view
+   }));
+   if(actual.mode==='results')break;
+   if(game==='babanuki'){
+    const index=actual.view.legal.drawIndices[0];
+    assert.ok(Number.isInteger(index), 'Babanuki human must have a legal draw index');
+    await player.f.locator('.v2-backrow button[data-action="draw"]:not([disabled])')
+     .nth(index).tap({timeout:9000});
+   }else if(game==='shichinarabe'){
+    const id=actual.view.legal.playIds[0];
+    if(id){
+     await player.f.locator('.v2-handcard[data-card="'+id+'"]:not([disabled])').tap({timeout:9000});
+     await player.f.locator('.v2-action[data-action="submit"]:not([disabled])').tap({timeout:9000});
+    }else{
+     assert.equal(actual.view.legal.canPass,true);
+     await player.f.locator('.v2-action[data-action="pass"]:not([disabled])').tap({timeout:9000});
+    }
+   }
+   humanMoves++;attempts++;
+   await player.f.locator('body').evaluate((body,revision)=>new Promise((resolve,reject)=>{
+    const began=Date.now(),interval=setInterval(()=>{
+     const lab=window.TRUMP_V2_ONLINE_LAB;
+     if(lab.mode==='results'||(lab.view?.revision>revision&&!lab.pending)){
+      clearInterval(interval);resolve();
+     }else if(Date.now()-began>16000){
+      clearInterval(interval);reject(Error('MIXED_HUMAN_ACTION_NOT_SYNCED revision='+revision+
+       ' notice='+document.getElementById('notice')?.textContent));
+     }
+    },100);
+   }),actual.view.revision);
+  }
+  assert.ok(humanMoves>0&&botTurns>0,game+' needs active human and CPU turns');
+  await duoOwner.f.locator('button[data-action="back-lobby"]').waitFor({timeout:14000});
+  await duoFriend.f.locator('body').evaluate(()=>new Promise((resolve,reject)=>{
+   const began=Date.now(),interval=setInterval(()=>{
+    if(window.TRUMP_V2_ONLINE_LAB.mode==='results'){clearInterval(interval);resolve();}
+    else if(Date.now()-began>14000){clearInterval(interval);reject(Error('GUEST_RESULTS_NOT_SYNCED'));}
+   },100);
+  }));
+  await duoOwner.f.locator('button[data-action="back-lobby"]').tap();
+  await Promise.all(duel.map(p=>p.f.locator('#shared-code').waitFor({timeout:15000})));
+  for(const p of duel){
+   assert.ok((await p.f.locator('#shared-code').textContent()).includes(duoRoom),
+    game+' must retain the room after finishing');
+  }
+  console.log('V2 MIXED '+game.toUpperCase()+' FULL UI PASS '+engine+
+   ' humanMoves='+humanMoves+' cpuTurnsObserved='+botTurns+
+   ' durationMs='+(Date.now()-start));
+ }
+ await completeNextMixedGame('babanuki');
+ await completeNextMixedGame('shichinarabe');
+
  assert.equal(traffic.auth,0,'V2 friends must not use anonymous Firebase Auth');
  assert.deepEqual(errors,[]);
  console.log('V2 ROOM-FIRST NO-AUTH UI PASS '+engine+' four local player IDs + Google Sites sandbox + card touch + synchronized renderer');
