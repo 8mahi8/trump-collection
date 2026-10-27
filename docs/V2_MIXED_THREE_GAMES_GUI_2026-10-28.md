@@ -10,6 +10,7 @@
 - [GitHub Actions #40531186111 SUCCESS](https://github.com/8mahi8/trump-collection/actions/runs/40531186111)：Chromium + WebKit で3ゲームのUI操作から結果/共通ルーム復帰まで完走。
 - Chromium：大富豪人間41手・CPU手番20回、ババ抜き人間34手・CPU手番11回、七並べ人間25手・CPU手番13回。
 - WebKit：大富豪人間40手・CPU手番20回、ババ抜き人間35手・CPU手番9回、七並べ人間27手・CPU手番13回。
+- [Actions #40532356911 SUCCESS](https://github.com/8mahi8/trump-collection/actions/runs/40532356911)：**配札固定の再現性検証もChromium/WebKitの両方で3ゲーム連続完走**。Chromium大富豪39手・ババ抜き18手・七並べ26手、WebKit大富豪39手・ババ抜き35手・七並べ26手（いずれも人間の操作数）。匿名認証呼出0件。
 - [Foundation V2 #40532710527 SUCCESS](https://github.com/8mahi8/trump-collection/actions/runs/40532710527)：157テスト合格、失敗0。Nodeゲーム実装上で人間2人＋CPU2人の3ゲーム完走（ババ抜き21ターン、七並べ53ターン、大富豪68ターン）。
 - [Firebase Room Emulator #40532356924 SUCCESS](https://github.com/8mahi8/trump-collection/actions/runs/40532356924)：4人ルーム・既存REST Room Match回帰。
 
@@ -22,7 +23,7 @@
 ## 未完了・守る事項
 - 本当に学校のiPad Safariで動くか、Google Sitesの直接埋め込みで接続できるかはまだ現地検証していない。
 - 神経衰弱の2人オンラインは未実装。今回完走したのはババ抜き、七並べ、大富豪の3ゲーム。
-- 初回の連続テストと別に、固定シードの新規テスト実行結果はCIから都度確認すること。
+- 追加の固定シード検証も #40532356911 で成功。日常対戦では固定シードにせずWeb Crypto乱数で配札する。
 - 本番Firebase Rules/DB、Google Sites公開版、main、既存Driveファイルは無変更。
 - ユーザーの確定方針：匿名認証なし／リロードからの試合復帰なし／人数不足はCPU補充／共通ルームは作り直さない。
 
