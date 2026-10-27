@@ -1,3 +1,4 @@
+> **2026-10-28 新規確認：本番Firebaseへの読取専用検査は成功**。 [Actions #40551481506](https://github.com/8mahi8/trump-collection/actions/runs/40551481506) にて、実際の `mygame-df915` の `/trumpRoomsV2/00000/lobby.json` に匿名認証なしのGETを送信し、HTTP 200・ETag取得成功。Opaque iframe向けのCORS PUTプリフライト（OPTIONS）もHTTP 200、許可ヘッダーを確認。**本番のPUT/ルーム作成/書込権限は実行・検証していない（本番書込0件）**。現在のRules内容そのものは未取得。
 # トランプV2｜Google Sites直接貼付けの学校試遊前チェック（2026-10-28）
 
 ## 対象
