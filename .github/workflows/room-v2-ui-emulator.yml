@@ -39,6 +39,8 @@ jobs:
         if: always()
         with:
           name: v2-room-first-online-preview-only
-          path: dist/v2-room-first-online-lab.html
+          path: |
+            dist/v2-room-first-online-lab.html
+            dist/v2-screens/online-*.png
           retention-days: 7
           if-no-files-found: ignore
