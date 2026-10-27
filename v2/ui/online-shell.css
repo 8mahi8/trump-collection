@@ -4,6 +4,8 @@
 .v2-room-lobby .v2-menu-button{min-width:168px;padding:6px 12px;min-height:34px}
 .v2-room-lobby .v2-roster{display:flex;gap:5px;flex-wrap:wrap;justify-content:center}
 .v2-room-lobby .v2-roster .v2-player{padding:4px 6px}
+.v2-room-lobby .v2-game-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;width:min(390px,100%)}
+.v2-room-lobby .v2-game-picker .v2-menu-button{min-width:0;width:100%}
 .v2-room-lobby .v2-active{outline:2px solid white}
 .v2-room-input{display:flex;gap:6px;justify-content:center;max-width:100%}
 .v2-room-input input{width:140px;max-width:35vw;background:#f8f9f4;color:#182922;border:0;border-radius:9px;min-height:42px;padding:7px;font-size:16px;text-align:center}
