@@ -184,7 +184,7 @@ function renderLobby(snapshot){
   const meInMatch=snapshot.participants.includes(store.uid);
   area.append(create('p','v2-help',
    '人間：'+snapshot.participants.filter(id=>snapshot.members.includes(id)).length+'人 ／ CPU：'+
-   snapshot.participants.filter(id=>isCpuSeat(snapshot,id)).length+'人');
+   snapshot.participants.filter(id=>isCpuSeat(snapshot,id)).length+'人'));
   if(meInMatch)area.append(button(snapshot.ready.includes(store.uid)?'準備を解除':'準備完了',
    'ready',()=>isHost?
     hostAction('setReady',{ready:!snapshot.ready.includes(store.uid)}):guestReady()));
