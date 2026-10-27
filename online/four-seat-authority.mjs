@@ -82,13 +82,10 @@ const adapters={
 export function createFourSeatAuthority({roomCode,hostId,game,seedSource=()=>{
   if(!globalThis.crypto?.getRandomValues)throw Error('Secure random unavailable');
   const u=new Uint32Array(1);globalThis.crypto.getRandomValues(u);return u[0];
-},config=null,cpuIds=[]}){
+},config=null}){
   if(!validRoom(roomCode)||!validActor(hostId)||!FOUR_GAMES.includes(game))throw Error('Invalid four-seat room setup');
   const adapter=adapters[game],seats=[{id:hostId,ready:false},null,null,null];
   const cfg=game==='daifugo'?safeCfg(config):null;
-  const cpuSet=new Set(cpuIds);
-  if(cpuIds.some(id=>!validActor(id)||id===hostId)||cpuSet.size!==cpuIds.length)
-   throw Error('INVALID_CPU_SEATS');
   let phase='lobby',round=0,revision=0,state=null,previous=null;
   const seen=new Set();
   const seatOf=actor=>seats.findIndex(s=>s?.id===actor);
@@ -96,7 +93,7 @@ export function createFourSeatAuthority({roomCode,hostId,game,seedSource=()=>{
   const advance=()=>{revision++;return answer(true)};
   function publicView(){
     return {protocol:FOUR_ROOM_PROTOCOL,roomCode,game,round,revision,phase,
-      seats:seats.map(s=>({present:!!s,ready:!!s?.ready,cpu:!!s&&cpuSet.has(s.id)})),
+      seats:seats.map(s=>({present:!!s,ready:!!s?.ready})),
       ...(state?adapter.public(state):{})};
   }
   function privateView(actor){
@@ -136,17 +133,7 @@ export function createFourSeatAuthority({roomCode,hostId,game,seedSource=()=>{
     if(!ok)return answer(false,'NOT_ALLOWED');
     seen.add(a.actionId);return advance();
   }
-  function botDecision(actor){
-    const p=seatOf(actor);
-    if(!cpuSet.has(actor)||p<0||phase!=='playing'||state?.turn!==p)
-     return null;
-    if(game==='babanuki')return {type:'draw',index:G.botBabanuki(state)};
-    if(game==='shichinarabe')return G.botShichinarabe(state);
-    const move=G.botDaifugo(state,p);
-    return move.type==='pass'?{type:'pass'}:
-     {type:'play',ids:move.cards.map(G.cardId)};
-  }
-  return {apply,publicView,privateView,seatOf,botDecision,
+  return {apply,publicView,privateView,seatOf,
     get phase(){return phase},get round(){return round},get revision(){return revision}};
 }
 export function makeFourSeatCommand(view,actor,type,actionId,extra={}){
