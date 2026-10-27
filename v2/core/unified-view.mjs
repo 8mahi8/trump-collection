@@ -46,7 +46,8 @@ export function viewFromFourPlayerRoom({game,publicView,privateView,registry=GAM
  const legal=phase==='playing'&&turn===seat?
   spec.remoteLegal(publicView,privateView,seat):blankLegal();
  const players=Array.from({length:spec.seats},(_,i)=>({
-  seat:i,isYou:i===seat,cardCount:publicView.counts?.[i]??null,
+  seat:i,isYou:i===seat,isCpu:!!publicView.seats?.[i]?.cpu,
+  cardCount:publicView.counts?.[i]??null,
   score:null,rank:publicView.ranks?.[i]??null
  }));
  return {game,phase,seat,turn,isMyTurn:phase==='playing'&&turn===seat,
