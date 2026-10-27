@@ -41,6 +41,10 @@ function showError(e){
   ROOM_CONFLICT:'その部屋番号は使用中です。もう一度ルームを作成してください。',
   NETWORK_ERROR:'通信できませんでした。Wi-Fi接続を確認してください。',
   ROOM_NOT_FOUND:'その番号のルームは見つかりませんでした。',
+  ROOM_FULL:'このルームは4人で満員です。',
+  INVALID_ROOM_CODE:'部屋番号は5桁の数字で入力してください。',
+  ROOM_ALREADY_CLOSED:'このルームは終了しています。',
+  ROOM_REQUEST_FAILED:'Firebaseとの通信に失敗しました。もう一度試してください。',
   MATCH_INTERRUPTED:'ホストの試合が中断しました。新しい部屋で始めてください。'
  };
  msg(useful[code]||'操作エラー：'+code);
