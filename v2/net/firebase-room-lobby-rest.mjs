@@ -69,7 +69,13 @@ export function createFirebaseRoomLobbyRest({databaseURL,auth,fetchImpl=globalTh
  const member=uid=>{if(typeof uid!=='string'||!UID.test(uid))fail('INVALID_UID');return uid;};
  const requestId=id=>{if(typeof id!=='string'||!REQUEST.test(id))fail('INVALID_REQUEST_ID');return id;};
  const matchPath=(code,id)=>{
-  if(typeof id!=='string'||!new RegExp('^'+code+'-m[1-9][0-9]*
+  const prefix=code+'-m';
+  const suffix=typeof id==='string'&&id.startsWith(prefix)?id.slice(prefix.length):'';
+  if(!suffix||suffix[0]==='0'||!/^[0-9]+/.test(suffix)||
+   suffix.match(/[0-9]+/)[0].length!==suffix.length)fail('INVALID_MATCH_ID');
+  return ['matches',id];
+ };
+ return Object.freeze({
   uid:auth.uid,
   read:code=>request('GET',code,['lobby'],null,null,true),
   async reserve(room){validate(room);return request('PUT',room.roomCode,['lobby'],room,'null_etag');},
