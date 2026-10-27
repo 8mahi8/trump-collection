@@ -40,7 +40,10 @@ function scheduleBot(){
 }
 function startCpu(game){
  destroy();
- session=createCpuSession({game,seed:crypto.getRandomValues(new Uint32Array(1))[0],seat:0});
+ const seedParam=new URLSearchParams(location.search).get('seed');
+ const seed=seedParam&&/^[0-9]{1,10}$/.test(seedParam)?Number(seedParam):
+  crypto.getRandomValues(new Uint32Array(1))[0];
+ session=createCpuSession({game,seed,seat:0});
  renderer=createTableRenderer(main,{onAction(action){
   if(session.dispatch(action))scheduleBot();
  }});
