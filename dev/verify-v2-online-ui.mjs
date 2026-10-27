@@ -147,7 +147,21 @@ try{
   assert.equal(await p.f.locator('.v2-player').count(),4);
   assert.equal(await p.f.locator('.v2-table').count(),1);
   assert.equal(await p.f.locator('iframe').count(),0,'no nested iframe inside Google Sites embed');
+  // v1.5 card design must survive transport refactoring.
+  const visual=await p.f.locator('body').evaluate(()=>{
+   const hand=[...document.querySelectorAll('.v2-handcard')];
+   const back=document.querySelector('.v2-backrow .v2-back');
+   const one=hand[0],two=hand[1];
+   return {count:hand.length,
+    corners:one?.querySelectorAll('.v2-card-corner').length||0,
+    hasBackSpade:!!back?.querySelector('.v2-back-symbol'),
+    backPattern:back?getComputedStyle(back,'::before').backgroundImage:'none',
+    overlap:two?two.getBoundingClientRect().left-one.getBoundingClientRect().right:null};
+  });
+  assert.ok(visual.count>=1&&visual.corners>=1,'v1.5 card corner art missing');
+  assert.ok(visual.overlap===null||visual.overlap<0,'hand cards must overlap like v1.5');
  }
+
  const pub=await owner.f.locator('body').evaluate(()=>window.TRUMP_V2_ONLINE_LAB.view);
  const active=group.findIndex(async ()=>false); // resolved below by UID-to-seat map
  const actingUid=await owner.f.locator('body').evaluate(()=>{
