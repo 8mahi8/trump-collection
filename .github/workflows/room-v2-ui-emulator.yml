@@ -5,6 +5,11 @@ on:
       - refactor/unified-core-and-school-network-20261027
     paths:
       - 'v2/online-app.mjs'
+      - 'v2/session/**'
+      - 'v2/net/**'
+      - 'v2/core/**'
+      - 'v2/games/**'
+      - 'online/four-seat-authority.mjs'
       - 'v2/online-lab.html'
       - 'v2/ui/**'
       - 'v2/build/build-online-lab.mjs'
