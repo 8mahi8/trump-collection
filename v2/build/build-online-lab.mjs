@@ -13,7 +13,7 @@ export function validateV2DatabaseURL(input){
  try{url=new URL(input);}catch{throw Error('V2_DATABASE_URL_INVALID')}
  if(url.protocol!=='https:'||url.username||url.password||url.search||url.hash||
   (url.pathname!==''&&url.pathname!=='/')||url.port||
-  !/^[a-z0-9-]+(?:\\.[a-z0-9-]+)*\\.(?:firebaseio\\.com|firebasedatabase\\.app)$/.test(url.hostname))
+  !/^[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:firebaseio\.com|firebasedatabase\.app)$/.test(url.hostname))
   throw Error('V2_DATABASE_URL_INVALID');
  return url.origin;
 }
@@ -33,8 +33,8 @@ export async function buildV2OnlineLab({databaseURL=null}={}){
   .replace('<link rel="stylesheet" href="./ui/online-shell.css">',
    ()=>'<style>'+read('v2/ui/online-shell.css')+'</style>')
   .replace('<script type="module" src="./online-app.mjs"></script>',
-   ()=>config+'<script>'+b.outputFiles[0].text.replace(/<\\/script/gi,'<\\\\/script')+'</script>');
- if(/<iframe\\b|<script\\b[^>]+src=|<link\\b[^>]+stylesheet|<script\\b[^>]+type="module"/i.test(html))
+   ()=>config+'<script>'+b.outputFiles[0].text.replace(/<\/script/gi,'<\\/script')+'</script>');
+ if(/<iframe\b|<script\b[^>]+src=|<link\b[^>]+stylesheet|<script\b[^>]+type="module"/i.test(html))
   throw Error('NOT_A_SELF_CONTAINED_SCHOOL_HTML');
  if(config&&!html.includes('window.TRUMP_V2_FIREBASE_CONFIG='))
   throw Error('CONFIG_NOT_EMBEDDED');
@@ -46,7 +46,7 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  const endpoint=flag('--database-url'),out=flag('--out');
  try{
   if((endpoint===null)!==(out===null))throw Error('CONFIGURED_BUILD_REQUIRES_DATABASE_URL_AND_OUT');
-  if(out&&!/^v2-room-first-sites-[a-zA-Z0-9_-]+\\.html$/.test(basename(out)))
+  if(out&&!/^v2-room-first-sites-[a-zA-Z0-9_-]+\.html$/.test(basename(out)))
    throw Error('SITES_OUTPUT_FILENAME_REQUIRED');
   const dest=out?resolve(out):resolve(root,'dist/v2-room-first-online-lab.html');
   if(out&&(!dest.startsWith(resolve(root,'dist')+'/')||existsSync(dest)))
