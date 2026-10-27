@@ -1,3 +1,6 @@
+> **【2026-10-28｜CPU混合大富豪ブラウザ完全完走・通信軽量化成功】**
+> [詳細検証報告](V2_MIXED_DAIFUGO_FULL_GUI_2026-10-28.md)、[実Safari/Chromium相当4画面CI #40527541963 SUCCESS](https://github.com/8mahi8/trump-collection/actions/runs/40527541963)。友達2人＋CPU2人大富豪を、**実際の画面タップだけで対局最後まで完走→結果→同じルームに戻る**ところまで成功（Chromium人間44手・CPU18手番、WebKit人間41手・CPU19手番）。匿名認証0。初手のHTTP GETを同条件比15回削減。 [Foundation V2全回帰 #40527425180 SUCCESS](https://github.com/8mahi8/trump-collection/actions/runs/40527425180)。
+> 学校iPad実機では未検証。**匿名認証・リロード復帰は実装しない**。main/学校Google Sites公開版/本番Firebase/Driveは不変更。
 > **【2026-10-27 本人追加要望：人数不足はCPUで埋める】** 大富豪・七並べ・ババ抜きの4席は人間1〜4人＋空席CPUで自動補完。準備は人間のみ、途中入室した人間は対戦開始前ならCPU席を置換。ホスト側CPUが既存ゲームBOTを使い、追加認証・別Firebase接続は不要。[仕様と検証](V2_CPU_AUTOFILL_2026-10-27.md)。
 >
 > [Foundation V2 #40525433775 success](https://github.com/8mahi8/trump-collection/actions/runs/40525433775)：1人＋CPU3人で3ゲームを完走。[V2 WebKit/Chromium #40525838166 success](https://github.com/8mahi8/trump-collection/actions/runs/40525838166)：友達2人＋CPU2人大富豪が共通ロビーから対戦画面へ移行、CPU席表示。Firebase Auth呼出0。**学校版、main、本番Firebase Rulesは変更しない**。オンライン神経衰弱はまだ未実装。
