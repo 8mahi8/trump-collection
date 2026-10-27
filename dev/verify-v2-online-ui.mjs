@@ -90,6 +90,19 @@ try{
  assert.match(room,/^[0-9]{5}$/);
  for(let i=0;i<3;i++){
   const guest=await launch();group.push(guest);
+  if(i===0){
+   // A mistyped/nonexistent room must not leave a stale client behind.
+   await guest.f.locator('#room-code').fill('00000');
+   await guest.f.locator('button[data-action="join-room"]').tap();
+   await guest.f.locator('#notice').filter({hasText:'見つかりません'})
+    .waitFor({timeout:15000});
+   const state=await guest.f.locator('body').evaluate(()=>({
+    mode:window.TRUMP_V2_ONLINE_LAB.mode,
+    room:window.TRUMP_V2_ONLINE_LAB.room
+   }));
+   assert.equal(state.mode,'connect');
+   assert.equal(state.room,null);
+  }
   await guest.f.locator('#room-code').fill(room);
   await guest.f.locator('button[data-action="join-room"]').tap();
  }
