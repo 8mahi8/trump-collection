@@ -30,6 +30,8 @@ const cors={'access-control-allow-origin':'*',
  'access-control-max-age':'600'};
 await context.addInitScript(()=>{
  window.TRUMP_V2_FIREBASE_CONFIG={databaseURL:'https://trump-ci-default-rtdb.firebasedatabase.app'};
+ // Fixed game shuffle in CI. Real friend games still use crypto randomness.
+ window.TRUMP_V2_TEST_SEED=98765;
 });
 await context.route('**/*',async route=>{
  const req=route.request(),u=new URL(req.url());
