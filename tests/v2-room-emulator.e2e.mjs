@@ -79,6 +79,16 @@ test('actual Firebase: four UIDs share one room, switch games and deny guest tam
  assert.equal((await coordinator.applyHost({type:'selectGame',gameId:'babanuki'})).ok,true);
  room=await a.client.room();
  assert.deepEqual(room.participants.slice().sort(),[host.uid,a.uid,b.uid,c.uid].sort());
+ // A delayed Ready for an earlier selection of the SAME game must not
+ // become valid just because the host selects that game again.
+ await a.client.submit({type:'setReady',ready:true,expectedRevision:room.revision,
+  gameId:'babanuki',matchSequence:room.matchSequence,
+  selectionEpoch:room.selectionEpoch},'staleReady77');
+ assert.equal((await coordinator.applyHost({type:'selectGame',gameId:'babanuki'})).ok,true);
+ const obsolete=await coordinator.tick();
+ assert.equal(obsolete.rejected,1);
+ assert.equal((await receipt(a,'staleReady77')).reason,'STALE_ROOM_REVISION');
+ room=await a.client.room();
  assert.equal((await coordinator.applyHost({type:'setReady',ready:true})).ok,true);
  // Guests all use same room revision. Ready can rebase only if game/epoch match.
  await Promise.all([a,b,c].map((u,i)=>send(u,'setReady','ready000'+i,{
