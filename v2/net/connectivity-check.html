@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>トランプコレクション｜学校ネットワーク診断（読み取り専用）</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:system-ui,sans-serif;background:#0e3728;color:#f5f9f0}
+main{max-width:690px;margin:auto;padding:12px}
+h1{font-size:clamp(18px,3.5vw,25px);margin:0 0 8px}
+p{font-size:13px;line-height:1.6;color:#d0e7d8;margin:5px 0}
+button{background:#ffda69;border:0;border-radius:12px;color:#203222;padding:10px 18px;min-height:46px;font-size:16px;font-weight:800}
+button:disabled{opacity:.55}
+section{padding:12px;margin:10px 0;border:1px solid #598c72;border-radius:12px;background:#194b36}
+h2{font-size:15px;margin:0 0 5px}
+strong{font-size:15px}
+.detail{font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;color:#e2eedf}
+.good{color:#8bfbb2}.bad{color:#ffd88d}
+</style></head>
+<body><main>
+<h1>🃏 学校ネットワーク診断</h1>
+<p>神経衰弱がつながらなかった原因を切り分けるための開発用。<b>ボタンを押すまで通信せず、データベースへの書き込み・ルーム参加・チャット送信はしません。</b></p>
+<button id="run">通信をチェック</button>
+<section><h2>① Firebase（HTTPS GET）</h2><strong id="firebase">未確認</strong><p id="firebaseDetail" class="detail"></p></section>
+<section><h2>② Supabase（WebSocket接続・空チャンネル参加）</h2><strong id="supabase">未確認</strong><p id="supabaseDetail" class="detail"></p></section>
+<p>「WebSocketがつながらない」だけでは学校側のブロックと確定しません。ドメイン規制・公開鍵やチャンネル設定・ネットワークなど、原因の候補を絞るための診断です。操作後の結果を開発担当に伝えてください。</p>
+</main>
+<script>
+const FIREBASE_URL='https://mygame-df915-default-rtdb.firebaseio.com/trumpRoomsV1/__tc_v2_read_only_probe__.json';
+const SUPABASE_URL='https://itqimlgnrjikaamstdlp.supabase.co';
+const SUPABASE_PUBLIC_KEY="sb_publishable_Ol0Rsa0xGW2_ItAre-_gcQ_p6ZUGbcN";
+const $=id=>document.getElementById(id);
+function report(type,status,detail,ok){
+ const value=$(type),desc=$(type+'Detail');
+ value.textContent=status;value.className=ok?'good':'bad';desc.textContent=detail;
+}
+async function firebaseProbe(){
+ const start=performance.now(),ctrl=new AbortController();
+ const timer=setTimeout(()=>ctrl.abort(),9000);
+ try{
+  const response=await fetch(FIREBASE_URL,{method:'GET',mode:'cors',cache:'no-store',signal:ctrl.signal});
+  const rtt=Math.round(performance.now()-start);
+  if(response.ok)report('firebase','接続OK','HTTP '+response.status+' / '+rtt+'ms。公開データへのHTTPS通信に成功。',true);
+  else report('firebase','HTTP '+response.status,'サーバーから応答あり（'+rtt+'ms）。通信経路は届いているがアクセス設定または認証等を確認。',false);
+ }catch(e){
+  report('firebase','接続失敗',e.name==='AbortError'?'9秒以内に応答なし':'ブラウザからHTTPS応答を取得できません：'+String(e),false);
+ }finally{clearTimeout(timer);}
+}
+function supabaseProbe(){
+ return new Promise(resolve=>{
+  const start=performance.now(),topic='realtime:trump-memory-friends-v1-'+String(10000+crypto.getRandomValues(new Uint32Array(1))[0]%90000);
+  const url=new URL(SUPABASE_URL.replace('https:','wss:')+'/realtime/v1/websocket');
+  url.searchParams.set('apikey',SUPABASE_PUBLIC_KEY);url.searchParams.set('vsn','1.0.0');
+  let socket=null,complete=false,opened=false;
+  const end=(status,detail,good)=>{
+   if(complete)return;complete=true;clearTimeout(timer);
+   report('supabase',status,detail,good);
+   try{socket?.close(1000,'probe finished')}catch{}
+   resolve();
+  };
+  const timer=setTimeout(()=>end('接続タイムアウト','10秒経過。WebSocket未接続またはルーム参加に応答なし。接続は'+(opened?'開始済み':'未成立'),false),10000);
+  try{
+   socket=new WebSocket(url.href);
+   socket.onopen=()=>{
+    opened=true;
+    const frame={topic,event:'phx_join',payload:{config:{broadcast:{ack:false,self:false},presence:{enabled:false},private:false}},ref:'1',join_ref:'1'};
+    socket.send(JSON.stringify(frame));
+   };
+   socket.onmessage=e=>{
+    let msg;try{msg=JSON.parse(e.data)}catch{return}
+    if(msg.topic!==topic||msg.event!=='phx_reply'||msg.ref!=='1')return;
+    const ms=Math.round(performance.now()-start);
+    if(msg.payload?.status==='ok')end('接続OK','WebSocketが開き、Supabase公開チャンネルへの参加にも成功：'+ms+'ms',true);
+    else end('チャンネル参加拒否','WebSocket接続は成功。Supabase側の鍵・チャンネル設定・サービス状態を調べる必要があります。応答：'+String(msg.payload?.status),false);
+   };
+   socket.onerror=()=>{/* close event or timer gives the final status */};
+   socket.onclose=e=>end('接続失敗','WebSocket '+(opened?'開始後':'接続前')+'に切断。close code '+e.code+'。接続先設定、学校回線制限等の候補を確認。',false);
+  }catch(e){end('接続開始失敗',String(e),false);}
+ });
+}
+$('run').onclick=async()=>{
+ $('run').disabled=true;
+ $('firebase').textContent='確認中';$('supabase').textContent='確認中';
+ await Promise.all([firebaseProbe(),supabaseProbe()]);
+ $('run').disabled=false;
+};
+</script></body></html>
