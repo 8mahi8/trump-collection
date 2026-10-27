@@ -266,4 +266,5 @@ $('home').addEventListener('click',()=>{if(roomCode&&client)leave().catch(showEr
 home();
 globalThis.TRUMP_V2_ONLINE_LAB={get mode(){return screen},get room(){return room},
  get view(){return session?.getView()||null},get uid(){return store?.uid||null},
- get matchId(){return activeMatchId},get version(){return 'phase2c-cpu-fill-1'}};
+ get matchId(){return activeMatchId},get pending(){return session?.pending??false},
+ get version(){return 'phase2d-mixed-full-1'}};
