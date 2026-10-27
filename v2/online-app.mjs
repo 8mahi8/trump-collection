@@ -1,10 +1,9 @@
 // V2 room-first single-shell online lab. Same table renderer for CPU/online.
-// This is NOT a production page: anonymous Firebase Auth, host-memory match
-// recovery and school network compatibility still need separate validation.
+// Friend-only / no-auth REST transport: no sign-in and no reload restoration.
+// School iPad / real Google Sites compatibility still needs hands-on testing.
 import {GAME_REGISTRY} from './games/definitions.mjs';
 import {createCpuSession} from './session/cpu-session.mjs';
 import {createTableRenderer} from './ui/table-renderer.mjs';
-import {createFirebaseAnonymousAuth} from '../online/firebase-room-store.mjs';
 import {createFirebaseRoomLobbyRest} from './net/firebase-room-lobby-rest.mjs';
 import {createRoomCoordinator,createRoomLobbyClient} from './session/room-coordinator.mjs';
 import {createRoomMatchHost} from './session/room-match-host.mjs';
@@ -29,7 +28,7 @@ const requestId=()=> 'r'+secureId();
 const randomCode=()=>String(10000+crypto.getRandomValues(new Uint32Array(1))[0]%90000);
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const cfg=globalThis.TRUMP_V2_FIREBASE_CONFIG||null;
-let auth=null,store=null,roomCode=null,isHost=false,coordinator=null,client=null;
+let store=null,roomCode=null,isHost=false,coordinator=null,client=null;
 let room=null,matchHost=null,activeMatchId=null,session=null,renderer=null,unsubscribe=null;
 let timer=null,pumping=false,screen='home',lastRoomKey='',botTimer=null,disposed=false;
 let needJoin=false,joinId=null;
@@ -97,11 +96,11 @@ function openConnect(){
 }
 async function connect(){
  if(store)return;
- if(!cfg?.apiKey||!cfg?.databaseURL)throw Error('ONLINE_CONFIG_NOT_SET');
- auth=createFirebaseAnonymousAuth({apiKey:cfg.apiKey,
-  fetchImpl:globalThis.TRUMP_V2_TEST_FETCH||globalThis.fetch.bind(globalThis)});
- await auth.signIn();
- store=createFirebaseRoomLobbyRest({databaseURL:cfg.databaseURL,auth,
+ if(!cfg?.databaseURL)throw Error('ONLINE_CONFIG_NOT_SET');
+ // Device-local random player ID, NOT a Firebase login/token.
+ // Reload starts a new session; no rejoin/restoration is promised.
+ store=createFirebaseRoomLobbyRest({databaseURL:cfg.databaseURL,
+  identity:{uid:'tc'+secureId()},friendOnlyNoAuth:true,
   fetchImpl:globalThis.TRUMP_V2_TEST_FETCH||globalThis.fetch.bind(globalThis)});
 }
 async function enterRoom(host,code){
@@ -229,9 +228,9 @@ async function pump(){
    if(before?.phase==='playing'&&labGames.has(before.match?.gameId)){
     if(!matchHost||matchHost.matchId!==before.match.matchId){
      matchHost=createRoomMatchHost({store,coordinator,roomCode});
-     // Host reload is not recoverable yet; do not silently redeal a live match.
+     // Never silently redeal if an interrupted host still has published state.
      if(await store.matchPublic(roomCode,before.match.matchId))
-      throw Error('HOST_MATCH_RECOVERY_REQUIRED');
+      throw Error('MATCH_INTERRUPTED');
      await matchHost.start();
     }
     await matchHost.tick();
