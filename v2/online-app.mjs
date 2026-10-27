@@ -157,6 +157,7 @@ async function enterRoom(host,code){
   clearInterval(timer);timer=null;
   coordinator=null;client=null;roomCode=null;room=null;
   isHost=false;needJoin=false;joinId=null;lastRoomKey='';
+  if(screen==='room')openConnect();
   throw e;
  }finally{entering=false;}
 }
