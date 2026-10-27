@@ -60,6 +60,7 @@ for(const game of ['babanuki','shichinarabe','daifugo']){
   if(game==='daifugo'){
    publicView.field=st.field;
    publicView.revolution=st.revolution;
+   publicView.lastEvent=st.lastEvent;
    privateView.legalMoves=daifugoLegalMoves(st,seat).map(x=>x.map(cardId));
   }
   const remote=viewFromFourPlayerRoom({game,publicView,privateView});
