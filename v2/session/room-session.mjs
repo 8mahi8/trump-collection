@@ -28,22 +28,40 @@ export function createRoomSession({game,guest,registry=GAME_REGISTRY}={}){
  const listeners=new Set();
  function notify(){for(const fn of listeners)fn(current)}
  function ensure(){if(disposed)throw Error('SESSION_DISPOSED')}
+ const emptyLegal=()=>({drawIndices:[],playIds:[],playMoves:[],flipIndices:[],canPass:false});
+ // An old snapshot must never remain actionable while the network or host is unavailable.
+ function suspend(state){
+  revisionKey=null; // Even the same authoritative revision must repaint on recovery.
+  if(current&&current.connection.state!==state){
+   current={...current,isMyTurn:false,legal:emptyLegal(),connection:{state}};
+   notify();
+  }
+ }
  async function refresh(){
   ensure();
-  const result=await guest.poll();
-  ensure();
-  if(result.status!=='ready')return {status:result.status};
-  const view=viewFromFourPlayerRoom({game,publicView:result.publicView,
-   privateView:result.privateView,registry});
+  let result;
+  try{result=await guest.poll();ensure();}
+  catch(e){if(!disposed)suspend('reconnecting');throw e;}
+  if(result.status!=='ready'){
+   suspend(result.status==='room_closed'?'closed':'reconnecting');
+   return result.reason===undefined?{status:result.status}:
+    {status:result.status,reason:result.reason};
+  }
+  let view;
+  try{
+   view=viewFromFourPlayerRoom({game,publicView:result.publicView,
+    privateView:result.privateView,registry});
+  }catch(e){suspend('reconnecting');throw e;}
   const key=String(result.publicView.round)+'/'+String(view.revision);
   if(key!==revisionKey){
    revisionKey=key;current=view;notify();
-   // Fresh revision means a new authoritative snapshot is available.
-   if(pending)pending=false,receiptId=null;
   }
+  // A revision may change because another player joined or moved. Only the
+  // receipt for THIS command proves acceptance or rejection and unlocks input.
   if(receiptId&&typeof guest.receipt==='function'){
-   const rec=await guest.receipt(receiptId);
-   ensure();
+   let rec;
+   try{rec=await guest.receipt(receiptId);ensure();}
+   catch(e){if(!disposed)suspend('reconnecting');throw e;}
    if(rec){pending=false;receiptId=null;return {status:rec.ok?'ack':'rejected',reason:rec.reason||''};}
   }
   return {status:'ready',revision:view.revision};
