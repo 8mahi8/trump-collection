@@ -513,17 +513,21 @@ try{
    }
   },100);
  }));
- const lineup4=await spectatorHost.f.locator('body').evaluate(()=>window.TRUMP_V2_ONLINE_LAB.room.participants);
- const chosenUid=await others[1].f.locator('body').evaluate(()=>window.TRUMP_V2_ONLINE_LAB.uid);
- assert.equal(lineup4.length,2);
- assert.equal(lineup4[1],chosenUid);
- for(const page of [spectatorHost,others[1]]){
+ const lobby4=await spectatorHost.f.locator('body').evaluate(()=>window.TRUMP_V2_ONLINE_LAB.room);
+ assert.equal(lobby4.participants.length,2);
+ assert.equal(lobby4.participants[1],lobby4.members[2],'P3 is the selected opponent');
+ const guestUids=await Promise.all(others.map(p=>p.f.locator('body').evaluate(()=>
+  window.TRUMP_V2_ONLINE_LAB.uid)));
+ const chosenIndex=guestUids.indexOf(lobby4.members[2]);
+ assert.ok(chosenIndex>=0);
+ const chosen=others[chosenIndex],watchers=others.filter((p,i)=>i!==chosenIndex);
+ for(const page of [spectatorHost,chosen]){
   await page.f.locator('button[data-action="ready"]').tap();
   await page.f.locator('button[data-action="ready"]').filter({hasText:'準備を解除'}).waitFor({timeout:18000});
  }
  await spectatorHost.f.locator('button[data-action="start"]:not([disabled])').tap({timeout:18000});
- await Promise.all([spectatorHost,others[1]].map(p=>p.f.locator('.v2-memory').waitFor({timeout:18000})));
- await Promise.all([others[0],others[2]].map(p=>p.f.locator('body').evaluate(()=>new Promise((resolve,reject)=>{
+ await Promise.all([spectatorHost,chosen].map(p=>p.f.locator('.v2-memory').waitFor({timeout:18000})));
+ await Promise.all(watchers.map(p=>p.f.locator('body').evaluate(()=>new Promise((resolve,reject)=>{
   const begun=Date.now(),id=setInterval(()=>{
    if(window.TRUMP_V2_ONLINE_LAB.mode==='spectator'){clearInterval(id);resolve();}
    else if(Date.now()-begun>18000){clearInterval(id);reject(Error('MEMORY_SPECTATOR_NOT_WAITING'))}
