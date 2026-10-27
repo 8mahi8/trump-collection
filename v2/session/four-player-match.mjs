@@ -3,7 +3,7 @@
 // Only the host should hold this object. Never serialize the engine state to
 // public Firebase paths or expose all players' hands to guests.
 import {createFourSeatAuthority,makeFourSeatCommand,FOUR_GAMES} from '../../online/four-seat-authority.mjs';
-import {matchSeatForAction} from '../core/shared-room.mjs';
+import {matchSeatForAction,isCpuSeat,cpuSeatId} from '../core/shared-room.mjs';
 import {viewFromFourPlayerRoom} from '../core/unified-view.mjs';
 
 const actionTypes=new Set(['draw','play','pass']);
@@ -14,10 +14,12 @@ export function createFourPlayerMatch({room,seedSource,gameConfig=null}={}){
   !FOUR_GAMES.includes(room.match?.gameId)||room.match.participants?.length!==4)
   throw Error('MATCH_NOT_SUPPORTED');
  const {matchId,gameId,participants}=room.match;
- if(new Set(participants).size!==4||participants.some(id=>!room.members.includes(id)))
+ if(new Set(participants).size!==4||participants.some((id,seat)=>
+  !room.members.includes(id)&&(!isCpuSeat(room,id)||id!==cpuSeatId(room.roomCode,seat))))
   throw Error('INVALID_MATCH_PARTICIPANTS');
  const authority=createFourSeatAuthority({roomCode:room.roomCode,hostId:participants[0],
-  game:gameId,seedSource,config:gameConfig});
+  game:gameId,seedSource,config:gameConfig,
+  cpuIds:participants.filter(id=>isCpuSeat(room,id))});
  const init=(actor,type,id,extra={})=>{
   const command=makeFourSeatCommand(authority.publicView(),actor,type,'init'+id,extra);
   const result=authority.apply(command);
@@ -52,6 +54,19 @@ export function createFourPlayerMatch({room,seedSource,gameConfig=null}={}){
   return viewFromFourPlayerRoom({game:gameId,publicView:authority.publicView(),
    privateView:authority.privateView(actor)});
  }
+ let botCounter=0;
+ function takeCpuTurn(){
+  if(currentRoom.phase!=='playing'||authority.phase!=='playing')return null;
+  const state=authority.publicView(),actor=participants[state.turn];
+  if(!isCpuSeat(currentRoom,actor))return null;
+  const decision=authority.botDecision(actor);
+  if(!decision)throw Error('CPU_DECISION_UNAVAILABLE');
+  const cmd=makeFourSeatCommand(state,actor,decision.type,
+   'cpu'+matchId.replace(/[^a-zA-Z0-9]/g,'')+String(++botCounter),decision);
+  const result=authority.apply(cmd);
+  if(!result.ok)throw Error('CPU_MOVE_FAILED_'+result.reason);
+  return {...result,actor,action:decision,finished:authority.phase==='finished',matchId};
+ }
  function apply({actor,matchId:requestedMatchId,actionId,expectedRevision,
   round,type,index,id,ids}={}){
   if(requestedMatchId!==matchId)return {ok:false,reason:'STALE_MATCH'};
@@ -66,6 +81,6 @@ export function createFourPlayerMatch({room,seedSource,gameConfig=null}={}){
   return {...result,finished:authority.phase==='finished',matchId};
  }
  return Object.freeze({matchId,gameId,participants:[...participants],seatOf,
-  syncRoom,publicSnapshot,privateSnapshot,viewFor,apply,
+  syncRoom,publicSnapshot,privateSnapshot,viewFor,apply,takeCpuTurn,
   get phase(){return authority.phase},get revision(){return authority.revision}});
 }
