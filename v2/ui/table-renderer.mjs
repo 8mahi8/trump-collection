@@ -34,7 +34,7 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
   for(const c of view.hand||[]){
    const key=cardKey(c);handIds.add(key);
    const b=elem('button','v2-card v2-handcard'+(c.suit===1||c.suit===2?' v2-red':'')+(selected.has(key)?' v2-selected':''),glyph(c));
-   b.type='button';b.dataset.action='select';b.dataset.card=key;b.disabled=!view.isMyTurn||view.phase!=='playing'||view.game==='babanuki';
+   b.type='button';b.dataset.action='select';b.dataset.card=key;b.disabled=!view.isMyTurn||view.phase!=='playing'||!['pick-one','pick-multi'].includes(spec.interaction);
    b.setAttribute('aria-pressed',String(selected.has(key)));
    hand.append(b);
   }
@@ -43,15 +43,15 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
   const action=(text,type,disabled=false)=>{const b=elem('button','v2-action',text);b.type='button';b.dataset.action=type;b.disabled=disabled;actions.append(b);};
   if(view.phase==='finished')actions.append(elem('span','v2-help','おつかれさま！'));
   else if(!view.isMyTurn)actions.append(elem('span','v2-help','相手の操作を待っています…'));
-  else if(view.game==='shichinarabe'){
+  else if(spec.interaction==='pick-one'){
    action('選択した札を出す','submit',selected.size!==1||!view.legal.playIds.includes([...selected][0]));
    action('パス','pass',!view.legal.canPass);
-  }else if(view.game==='daifugo'){
+  }else if(spec.interaction==='pick-multi'){
    const chosen=[...selected].sort().join(',');
    const canPlay=view.legal.playMoves.some(move=>[...move].sort().join(',')===chosen);
    action('カードを出す','submit',!selected.size||!canPlay);
    action('パス','pass',!view.legal.canPass);
-  }else actions.append(elem('span','v2-help',view.game==='babanuki'?'上の伏せ札を選択':'カードを選択'));
+  }else actions.append(elem('span','v2-help',spec.interaction==='draw'?'上の伏せ札を選択':'カードを選択'));
   $('v2-actions').replaceChildren(actions);
   return true;
  }
@@ -63,7 +63,7 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
    const key=b.dataset.card;
    if(!current.isMyTurn||!current.hand.some(c=>cardKey(c)===key))return;
    if(selected.has(key))selected.delete(key);else{
-    if(current.game==='shichinarabe')selected.clear();
+    if(registry.get(current.game).interaction==='pick-one')selected.clear();
     selected.add(key);
    }
    render(current);return;
@@ -75,10 +75,10 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
    onAction({type:'flip',index:Number(b.dataset.index)});
   if(type==='pass'&&current.legal.canPass)onAction({type:'pass'});
   if(type==='submit'){
-   if(current.game==='shichinarabe'&&selected.size===1){
+   if(registry.get(current.game).interaction==='pick-one'&&selected.size===1){
     const id=[...selected][0];
     if(current.legal.playIds.includes(id))onAction({type:'play',id});
-   }else if(current.game==='daifugo'){
+   }else if(registry.get(current.game).interaction==='pick-multi'){
     const ids=[...selected],signature=[...ids].sort().join(',');
     if(current.legal.playMoves.some(move=>[...move].sort().join(',')===signature))
      onAction({type:'play',ids});
