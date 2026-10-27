@@ -10,6 +10,8 @@ import {chromium,webkit} from 'playwright';
 const engine=process.env.TC_BROWSER_ENGINE||'chromium';
 if(!['chromium','webkit'].includes(engine))throw Error('INVALID_ENGINE');
 const configuredSchoolDraft=process.env.TC_SITES_CONFIGURED==='1';
+const testRoomCollision=process.env.TC_TEST_ROOM_COLLISION==='1';
+let collisionInjected=false;
 const html=readFileSync(resolve(configuredSchoolDraft?
  'dist/v2-room-first-sites-school-trial.html':'dist/v2-room-first-online-lab.html'),'utf8');
 if(configuredSchoolDraft)
@@ -57,6 +59,13 @@ await context.route('**/*',async route=>{
  }else if(u.hostname==='127.0.0.1'&&u.port==='8944'){await route.continue();return}
  else {errors.push('Blocked outgoing request '+u.href);await route.abort();return}
  if(req.method()==='OPTIONS'){await route.fulfill({status:204,headers:cors,body:''});return}
+ if(testRoomCollision&&!collisionInjected&&req.method()==='PUT'&&
+  /\/trumpRoomsV2\/[0-9]{5}\/lobby\.json$/.test(u.pathname)&&
+  req.headers()['if-match']==='null_etag'){
+  collisionInjected=true;
+  await route.fulfill({status:412,headers:cors,body:'null'});
+  return;
+ }
  if(req.method()==='GET')traffic.reads++;
  else traffic.writes++;
  try{
@@ -98,6 +107,7 @@ try{
  await host.f.locator('#shared-code').waitFor({timeout:18000});
  const room=(await host.f.locator('#shared-code').textContent()).match(/[0-9]{5}/)?.[0];
  assert.match(room,/^[0-9]{5}$/);
+ if(testRoomCollision)assert.equal(collisionInjected,true,'first occupied code must be retried');
  await host.f.locator('button[data-action="game-shinkei"]').tap();
  await host.f.locator('.v2-roster .v2-player').filter({hasText:'CPU'}).first()
   .waitFor({timeout:16000});
@@ -203,7 +213,8 @@ try{
  console.log('V2 MEMORY ONE HUMAN PLUS CPU FULL UI PASS '+engine+
   ' humanFlips='+flips+' cpuRevisionSteps='+cpuRevisions+
   ' durationMs='+(Date.now()-began)+' sameRoom='+room+
-  ' configuredDraft='+configuredSchoolDraft+' traffic='+JSON.stringify(traffic));
+  ' configuredDraft='+configuredSchoolDraft+' collisionRetry='+collisionInjected+
+  ' traffic='+JSON.stringify(traffic));
 }finally{
  for(const page of pages)await page.close();
  await context.close();await browser.close();
