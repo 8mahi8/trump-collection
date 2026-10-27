@@ -1,6 +1,6 @@
 // Four independent touch-only browser pages, Google Sites-style srcdoc sandbox.
-// Firebase Auth+RTDB requests are intercepted and forwarded ONLY to a local
-// isolated demo emulator; no production project is ever contacted.
+// Firebase RTDB requests go ONLY to local no-auth friend-only emulator.
+// Any Firebase Authentication API request is a test FAILURE.
 import assert from 'node:assert/strict';
 import {readFileSync,mkdirSync} from 'node:fs';
 import {createServer} from 'node:http';
@@ -29,24 +29,23 @@ const cors={'access-control-allow-origin':'*',
  'access-control-expose-headers':'etag,ETag',
  'access-control-max-age':'600'};
 await context.addInitScript(()=>{
- window.TRUMP_V2_FIREBASE_CONFIG={
-  apiKey:'firebase-emulator-api-key',
-  databaseURL:'https://trump-ci-default-rtdb.firebasedatabase.app'
- };
+ window.TRUMP_V2_FIREBASE_CONFIG={databaseURL:'https://trump-ci-default-rtdb.firebasedatabase.app'};
 });
 await context.route('**/*',async route=>{
  const req=route.request(),u=new URL(req.url());
  let target;
- if(u.hostname==='identitytoolkit.googleapis.com'||u.hostname==='securetoken.googleapis.com')
-  target='http://127.0.0.1:9099/'+u.hostname+u.pathname+u.search;
- else if(u.hostname.endsWith('.firebasedatabase.app')||u.hostname.endsWith('.firebaseio.com')){
+ if(u.hostname==='identitytoolkit.googleapis.com'||u.hostname==='securetoken.googleapis.com'){
+  traffic.auth++;
+  errors.push('FORBIDDEN_FIREBASE_AUTH_CALL '+u.href);
+  await route.abort();return;
+ }else if(u.hostname.endsWith('.firebasedatabase.app')||u.hostname.endsWith('.firebaseio.com')){
+  if(u.searchParams.has('auth'))errors.push('FORBIDDEN_AUTH_QUERY_TOKEN');
   u.searchParams.set('ns','demo-trumpcards-default-rtdb');
   target='http://127.0.0.1:9000'+u.pathname+u.search;
  }else if(u.hostname==='127.0.0.1'&&u.port==='8944'){await route.continue();return}
  else {errors.push('Blocked outgoing request '+u.href);await route.abort();return}
  if(req.method()==='OPTIONS'){await route.fulfill({status:204,headers:cors,body:''});return}
- if(target.includes('9099'))traffic.auth++;
- else if(req.method()==='GET')traffic.reads++;
+ if(req.method()==='GET')traffic.reads++;
  else traffic.writes++;
  try{
   const incoming=req.headers(),headers={};
@@ -151,8 +150,9 @@ try{
   await owner.page.screenshot({path:resolve('dist/v2-screens',
    'online-'+engine+'-'+size.width+'x'+size.height+'.png')});
  }
+ assert.equal(traffic.auth,0,'V2 friends must not use anonymous Firebase Auth');
  assert.deepEqual(errors,[]);
- console.log('V2 ROOM-FIRST UI PASS '+engine+' four real Firebase UIDs + Google Sites sandbox + card touch + synchronized renderer');
+ console.log('V2 ROOM-FIRST NO-AUTH UI PASS '+engine+' four local player IDs + Google Sites sandbox + card touch + synchronized renderer');
 }finally{
  for(const p of pages)await p.close();
  await context.close();await browser.close();
