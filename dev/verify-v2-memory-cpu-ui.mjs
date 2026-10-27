@@ -9,7 +9,12 @@ import {chromium,webkit} from 'playwright';
 
 const engine=process.env.TC_BROWSER_ENGINE||'chromium';
 if(!['chromium','webkit'].includes(engine))throw Error('INVALID_ENGINE');
-const html=readFileSync(resolve('dist/v2-room-first-online-lab.html'),'utf8');
+const configuredSchoolDraft=process.env.TC_SITES_CONFIGURED==='1';
+const html=readFileSync(resolve(configuredSchoolDraft?
+ 'dist/v2-room-first-sites-school-trial.html':'dist/v2-room-first-online-lab.html'),'utf8');
+if(configuredSchoolDraft)
+ assert.ok(html.includes('window.TRUMP_V2_FIREBASE_CONFIG={"databaseURL":"https://mygame-df915-default-rtdb.firebaseio.com"}'),
+  'school candidate must embed intended public RTDB URL');
 assert.ok(!/<iframe\b|<script\b[^>]+src=|<link\b[^>]+stylesheet/i.test(html));
 const esc=s=>s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
 const wrapper='<!doctype html><html lang="ja"><head><meta name="viewport" content="width=device-width,initial-scale=1"></head>'+
@@ -28,11 +33,16 @@ const cors={'access-control-allow-origin':'*',
  'access-control-allow-headers':'Content-Type,Accept,If-Match,Authorization,X-Firebase-ETag',
  'access-control-expose-headers':'etag,ETag',
  'access-control-max-age':'600'};
-await context.addInitScript(()=>{
- window.TRUMP_V2_FIREBASE_CONFIG={databaseURL:'https://trump-ci-default-rtdb.firebasedatabase.app'};
- // Fixed game shuffle in CI. Real friend games still use crypto randomness.
- window.TRUMP_V2_TEST_SEED=98765;
-});
+if(configuredSchoolDraft){
+ // Do NOT override the injected Firebase URL: exercise the exact offline
+ // school trial HTML while routing every external request to LOCAL emulator.
+ await context.addInitScript(()=>{window.TRUMP_V2_TEST_SEED=98765;});
+}else{
+ await context.addInitScript(()=>{
+  window.TRUMP_V2_FIREBASE_CONFIG={databaseURL:'https://trump-ci-default-rtdb.firebasedatabase.app'};
+  window.TRUMP_V2_TEST_SEED=98765;
+ });
+}
 await context.route('**/*',async route=>{
  const req=route.request(),u=new URL(req.url());
  let target;
@@ -193,7 +203,7 @@ try{
  console.log('V2 MEMORY ONE HUMAN PLUS CPU FULL UI PASS '+engine+
   ' humanFlips='+flips+' cpuRevisionSteps='+cpuRevisions+
   ' durationMs='+(Date.now()-began)+' sameRoom='+room+
-  ' traffic='+JSON.stringify(traffic));
+  ' configuredDraft='+configuredSchoolDraft+' traffic='+JSON.stringify(traffic));
 }finally{
  for(const page of pages)await page.close();
  await context.close();await browser.close();
