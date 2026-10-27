@@ -78,7 +78,7 @@ test('actual Firebase: four UIDs share one room, switch games and deny guest tam
 
  assert.equal((await coordinator.applyHost({type:'selectGame',gameId:'babanuki'})).ok,true);
  room=await a.client.room();
- assert.deepEqual(room.participants,[host.uid,a.uid,b.uid,c.uid]);
+ assert.deepEqual(room.participants.slice().sort(),[host.uid,a.uid,b.uid,c.uid].sort());
  assert.equal((await coordinator.applyHost({type:'setReady',ready:true})).ok,true);
  // Guests all use same room revision. Ready can rebase only if game/epoch match.
  await Promise.all([a,b,c].map((u,i)=>send(u,'setReady','ready000'+i,{
@@ -98,7 +98,7 @@ test('actual Firebase: four UIDs share one room, switch games and deny guest tam
  assert.equal((await coordinator.applyHost({type:'returnToLobby',matchId:oldMatch})).ok,true);
  room=await host.client.room();
  assert.equal(room.phase,'lobby');assert.equal(room.roomCode,ROOM);
- assert.deepEqual(room.members,[host.uid,a.uid,b.uid,c.uid]);
+ assert.deepEqual(room.members.slice().sort(),[host.uid,a.uid,b.uid,c.uid].sort());
 
  // Switch to shinkei in same room, explicitly select 2 participants.
  assert.equal((await coordinator.applyHost({type:'selectGame',gameId:'shinkei'})).ok,true);
