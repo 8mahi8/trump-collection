@@ -8,7 +8,7 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
  wrapper.innerHTML='<header class="v2-status" aria-live="polite"></header><div class="v2-players"></div><div class="v2-board"></div><div class="v2-foot"><div class="v2-hand" aria-label="自分の手札"></div><div class="v2-actions"></div></div>';
  root.replaceChildren(wrapper);
  const $=cls=>wrapper.querySelector('.'+cls);
- let current=null,last='',selected=new Set(),lastRevision=null;
+ let current=null,last='',selected=new Set(),lastRevision=null,paints=0;
  const cardKey=c=>c?.joker?'JK':c.suit+'-'+c.rank;
  const elem=(tag,cls,text)=>{const e=document.createElement(tag);e.className=cls;e.textContent=text;return e;};
  function render(view){
@@ -53,6 +53,7 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
    action('パス','pass',!view.legal.canPass);
   }else actions.append(elem('span','v2-help',spec.interaction==='draw'?'上の伏せ札を選択':'カードを選択'));
   $('v2-actions').replaceChildren(actions);
+  wrapper.dataset.renderVersion=String(++paints);
   return true;
  }
  const click=e=>{
