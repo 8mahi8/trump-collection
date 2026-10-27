@@ -35,8 +35,8 @@ export function viewFromCpu({game,state,seat=0,registry=GAME_REGISTRY}){
 
 export function viewFromFourPlayerRoom({game,publicView,privateView,registry=GAME_REGISTRY}){
  const spec=registry.get(game);
- if(spec.seats!==4||!spec.remoteBoard||!spec.remoteLegal)
-  throw Error('REMOTE_FOUR_SEAT_ONLY');
+ if(![2,4].includes(spec.seats)||!spec.remoteBoard||!spec.remoteLegal)
+  throw Error('REMOTE_GAME_UNSUPPORTED');
  if(!publicView||!privateView||publicView.game!==game||privateView.game!==game)
   throw Error('INVALID_REMOTE_VIEW');
  if(publicView.revision!==privateView.revision||
@@ -48,13 +48,13 @@ export function viewFromFourPlayerRoom({game,publicView,privateView,registry=GAM
  const players=Array.from({length:spec.seats},(_,i)=>({
   seat:i,isYou:i===seat,isCpu:!!publicView.seats?.[i]?.cpu,
   cardCount:publicView.counts?.[i]??null,
-  score:null,rank:publicView.ranks?.[i]??null
+  score:publicView.scores?.[i]??null,rank:publicView.ranks?.[i]??null
  }));
  return {game,phase,seat,turn,isMyTurn:phase==='playing'&&turn===seat,
   players,hand:cloneCards(privateView.hand||[]),
   board:spec.remoteBoard(publicView),legal,
   result:phase==='finished'?{
-   ranks:normalizeRanks(publicView.ranks),scores:null
+   ranks:normalizeRanks(publicView.ranks),scores:publicView.scores?[...publicView.scores]:null
   }:null,
   connection:{state:'connected'},revision:publicView.revision};
 }
