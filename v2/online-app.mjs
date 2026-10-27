@@ -224,7 +224,7 @@ function renderSpectator(snapshot){
  if(screen==='spectator'&&activeMatchId===snapshot.match.matchId)return;
  clearSession();activeMatchId=snapshot.match.matchId;screen='spectator';
  const area=create('section','v2-menu');
- area.append(create('h2','','対戦を観戦・待機中'));
+ area.append(create('h2','','対戦終了まで待機中'));
  area.append(create('p','','ルーム '+snapshot.roomCode+' はそのままです。'));
  area.append(create('p','v2-help','2人の対戦が終わるとロビーに戻れます。'));
  main.replaceChildren(area);
