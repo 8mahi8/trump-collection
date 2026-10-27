@@ -41,9 +41,9 @@ button:focus-visible{outline:3px solid #ffdc6b;outline-offset:2px}
 .v2-foot{flex:none;min-height:0;display:flex;flex-direction:column;gap:3px}
 .v2-hand-label{font-size:11px;line-height:1.1;color:#e1eadb;text-align:center}
 .v2-hand-label:empty,.v2-hand:empty{display:none}
-.v2-hand{min-height:calc(var(--tc-card-w) * 1.47 + 10px);display:flex;
+.v2-hand{min-height:calc(var(--tc-card-w) * 1.47 + 16px);display:flex;
  justify-content:center;align-items:flex-end;overflow-x:auto;overflow-y:hidden;
- max-width:100%;padding:5px 4px 4px;-webkit-overflow-scrolling:touch}
+ max-width:100%;padding:11px 4px 4px;-webkit-overflow-scrolling:touch}
 .v2-hand .v2-card{margin-left:-23px;transition:transform .16s ease,filter .16s ease}
 .v2-hand .v2-card:first-child{margin-left:0}
 .v2-hand .v2-card:hover:not(:disabled){transform:translateY(-5px)}
@@ -132,7 +132,7 @@ button.v2-card{cursor:pointer}
  .v2-avatar{font-size:14px}
  .v2-actions{min-height:34px}
  .v2-action{min-height:34px;padding:5px 12px}
- .v2-hand{min-height:calc(var(--tc-card-w) * 1.44 + 9px)}
+ .v2-hand{min-height:calc(var(--tc-card-w) * 1.44 + 15px)}
  .v2-hand .v2-card{margin-left:-19px}
  .v2-backrow{min-height:60px;padding:5px}
  .v2-backrow .v2-card{margin-left:-12px}
