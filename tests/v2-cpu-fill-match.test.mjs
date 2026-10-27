@@ -57,3 +57,31 @@ test('real players replace empty CPU seats as they join before a match',()=>{
   assert.equal(match.publicSnapshot().publicView.seats.filter(s=>s.cpu).length,4-humans);
  }
 });
+
+test('two human players plus two CPUs finish each four-seat game without a human timeout',()=>{
+ for(const game of ['babanuki','shichinarabe','daifugo']){
+  const room=roomFor(game,2);
+  const match=createFourPlayerMatch({room,seedSource:()=>98765});
+  let humans=0,bots=0,steps=0;
+  while(match.phase==='playing'&&steps<1800){
+   const pub=match.publicSnapshot().publicView;
+   const actor=room.match.participants[pub.turn];
+   if(isCpuSeat(room,actor)){
+    const move=match.takeCpuTurn();
+    assert.equal(move?.ok,true,game+' bot '+steps);
+    bots++;
+   }else{
+    const priv=match.privateSnapshot(actor).privateView;
+    const move=match.apply({...humanMove(game,priv),actor,matchId:match.matchId,
+     actionId:'duo'+String(steps).padStart(5,'0'),
+     expectedRevision:pub.revision,round:pub.round});
+    assert.equal(move.ok,true,game+' human '+steps+' '+JSON.stringify(move));
+    humans++;
+   }
+   steps++;
+  }
+  assert.equal(match.phase,'finished',game+' stalled after '+steps+' steps');
+  assert.ok(humans>0&&bots>0,game+' must have active human and CPU turns');
+  console.log('MIXED_MATCH_FINISHED '+game+' humans='+humans+' bots='+bots+' turns='+steps);
+ }
+});
