@@ -156,7 +156,7 @@ try{
  const duoOwner=await launch();
  await duoOwner.f.locator('button[data-action="create-room"]').tap();
  await duoOwner.f.locator('#shared-code').waitFor({timeout:18000});
- const duoRoom=(await duoOwner.f.locator('#shared-code').textContent()).match(/\\d{5}/)?.[0];
+ const duoRoom=(await duoOwner.f.locator('#shared-code').textContent()).match(/[0-9]{5}/)?.[0];
  assert.match(duoRoom,/^[0-9]{5}$/);
  const duoFriend=await launch();
  await duoFriend.f.locator('#room-code').fill(duoRoom);
