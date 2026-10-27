@@ -6,6 +6,11 @@ on:
     paths:
       - 'v2/core/shared-room.mjs'
       - 'v2/session/room-coordinator.mjs'
+      - 'v2/session/four-player-match.mjs'
+      - 'v2/session/room-match-host.mjs'
+      - 'v2/session/room-match-guest.mjs'
+      - 'tests/v2-four-player-match.test.mjs'
+      - 'tests/v2-room-match-emulator.e2e.mjs'
       - 'v2/net/firebase-room-lobby-rest.mjs'
       - 'firebase/trump-rooms-v2.rules.json'
       - 'firebase.room-v2-emulator.json'
@@ -33,4 +38,4 @@ jobs:
       - name: Unit tests for room transitions and REST adapter
         run: node --test tests/v2-shared-room.test.mjs tests/v2-firebase-lobby-rest.test.mjs
       - name: Four-UID room-first flow and RTDB Rules in isolated emulator
-        run: npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.room-v2-emulator.json --only auth,database "node --test tests/v2-room-emulator.e2e.mjs"
+        run: npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.room-v2-emulator.json --only auth,database "node --test tests/v2-room-emulator.e2e.mjs tests/v2-room-match-emulator.e2e.mjs"
