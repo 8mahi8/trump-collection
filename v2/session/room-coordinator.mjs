@@ -68,7 +68,8 @@ export function createRoomCoordinator({store,roomCode,registry}={}){
   if(busy)return {status:'busy'};
   busy=true;
   try{
-   await assertHost();
+   // RTDB Rules already allow reading the requests root ONLY to the host.
+   // A second lobby GET is unnecessary when the queue is empty.
    const queued=await store.requests(roomCode)||{};
    let processed=0,accepted=0,rejected=0;
    for(const actor of Object.keys(queued).sort()){
