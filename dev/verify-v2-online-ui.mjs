@@ -2,7 +2,7 @@
 // Firebase Auth+RTDB requests are intercepted and forwarded ONLY to a local
 // isolated demo emulator; no production project is ever contacted.
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync,mkdirSync} from 'node:fs';
 import {createServer} from 'node:http';
 import {resolve} from 'node:path';
 import {chromium,webkit} from 'playwright';
@@ -21,6 +21,8 @@ await new Promise((resolve,reject)=>server.listen(8944,'127.0.0.1',e=>e?reject(e
 const browser=await (engine==='webkit'?webkit:chromium).launch({headless:true});
 const context=await browser.newContext({viewport:{width:800,height:450},hasTouch:true});
 const errors=[],pages=[];
+const traffic={auth:0,reads:0,writes:0};
+mkdirSync(resolve('dist/v2-screens'),{recursive:true});
 const cors={'access-control-allow-origin':'*',
  'access-control-allow-methods':'GET,POST,PUT,PATCH,DELETE,OPTIONS',
  'access-control-allow-headers':'Content-Type,Accept,If-Match,Authorization,X-Firebase-ETag',
@@ -43,6 +45,9 @@ await context.route('**/*',async route=>{
  }else if(u.hostname==='127.0.0.1'&&u.port==='8944'){await route.continue();return}
  else {errors.push('Blocked outgoing request '+u.href);await route.abort();return}
  if(req.method()==='OPTIONS'){await route.fulfill({status:204,headers:cors,body:''});return}
+ if(target.includes('9099'))traffic.auth++;
+ else if(req.method()==='GET')traffic.reads++;
+ else traffic.writes++;
  try{
   const incoming=req.headers(),headers={};
   for(const k of ['content-type','accept','if-match','x-firebase-etag'])
@@ -109,6 +114,7 @@ try{
  const index=actorData.indexOf(actingUid);
  assert.ok(index>=0,'active UID exists in four clients');
  const acting=group[index];
+ const beforeAction=Date.now();
  await acting.f.locator('.v2-backrow button:not([disabled])').first().tap({timeout:22000});
  const oldRev=pub.revision;
  await Promise.all(group.map(async p=>{
@@ -122,6 +128,8 @@ try{
    },120)
   }),oldRev);
  }));
+ const syncMs=Date.now()-beforeAction;
+ console.log('V2 EMULATOR SYNC '+engine+' '+syncMs+'ms '+JSON.stringify(traffic));
  for(const p of group){
   const view=await p.f.locator('body').evaluate(()=>window.TRUMP_V2_ONLINE_LAB.view);
   assert.ok(view.hand.length>=0);
@@ -140,6 +148,8 @@ try{
    assert.ok(layout.board.bottom<=layout.hand.top+3,'overlap '+JSON.stringify(layout));
    assert.ok(layout.actions.bottom<=layout.screenH+4,'bottom '+JSON.stringify(layout));
   }
+  await owner.page.screenshot({path:resolve('dist/v2-screens',
+   'online-'+engine+'-'+size.width+'x'+size.height+'.png')});
  }
  assert.deepEqual(errors,[]);
  console.log('V2 ROOM-FIRST UI PASS '+engine+' four real Firebase UIDs + Google Sites sandbox + card touch + synchronized renderer');
