@@ -1,6 +1,7 @@
 // Protocol 3 shared-room metadata and per-UID room commands.
-// Host-only lobby commits use ETag CAS. Clients NEVER PUT the lobby directly.
-// This adapter requires authenticated Firebase REST tokens (not open-root trial).
+// Host coordinator commits use ETag CAS; guests send their own commands.
+// friendOnlyNoAuth is explicitly weaker: 5-digit rooms are NOT protected by
+// Firebase Auth or private RTDB rules. Use scoped Rules and no personal data.
 const DB=/^https:\/\/[A-Za-z0-9._-]+(?:\.firebaseio\.com|\.firebasedatabase\.app)\/?$/;
 const CODE=/^[0-9]{5}$/;
 const UID=/^[A-Za-z0-9_-]{8,100}$/;
@@ -10,9 +11,11 @@ export class LobbyStoreError extends Error {
  constructor(code,status=0){super(code);this.code=code;this.status=status;this.name='LobbyStoreError';}
 }
 const fail=(code,status=0)=>{throw new LobbyStoreError(code,status)};
-export function createFirebaseRoomLobbyRest({databaseURL,auth,fetchImpl=globalThis.fetch}={}){
+export function createFirebaseRoomLobbyRest({databaseURL,auth,identity,friendOnlyNoAuth=false,fetchImpl=globalThis.fetch}={}){
  if(typeof databaseURL!=='string'||!DB.test(databaseURL))fail('INVALID_DATABASE_URL');
- if(!auth||typeof auth.token!=='function'||!UID.test(auth.uid))fail('AUTH_REQUIRED');
+ const peer=friendOnlyNoAuth?identity:auth;
+ if(!peer||typeof peer.uid!=='string'||!UID.test(peer.uid))fail('IDENTITY_REQUIRED');
+ if(!friendOnlyNoAuth&&typeof auth.token!=='function')fail('AUTH_REQUIRED');
  if(typeof fetchImpl!=='function')fail('FETCH_REQUIRED');
  const base=databaseURL.replace(/\/$/,'');
  function urlFor(roomCode,sections=[]){
@@ -33,9 +36,12 @@ export function createFirebaseRoomLobbyRest({databaseURL,auth,fetchImpl=globalTh
    selectedGame:value.selectedGame??null,match:value.match??null};
  }
  async function request(method,code,sections=[],body,etag=null,etagRead=false){
-  const token=await auth.token();
-  if(typeof token!=='string'||!token)fail('AUTH_REQUIRED');
-  const url=new URL(urlFor(code,sections));url.searchParams.set('auth',token);
+  const url=new URL(urlFor(code,sections));
+  if(!friendOnlyNoAuth){
+   const token=await auth.token();
+   if(typeof token!=='string'||!token)fail('AUTH_REQUIRED');
+   url.searchParams.set('auth',token);
+  }
   const headers={'Accept':'application/json'};
   if(etagRead)headers['X-Firebase-ETag']='true';
   if(method==='PUT'){
@@ -76,7 +82,7 @@ export function createFirebaseRoomLobbyRest({databaseURL,auth,fetchImpl=globalTh
   return ['matches',id];
  };
  return Object.freeze({
-  uid:auth.uid,
+  uid:peer.uid,
   read:code=>request('GET',code,['lobby'],null,null,true),
   async reserve(room){validate(room);return request('PUT',room.roomCode,['lobby'],room,'null_etag');},
   async commit(room,etag){validate(room);return request('PUT',room.roomCode,['lobby'],room,etag);},
@@ -84,7 +90,7 @@ export function createFirebaseRoomLobbyRest({databaseURL,auth,fetchImpl=globalTh
   submit:(code,id,command)=>{
    requestId(id);
    if(!command||command.protocol!==3||command.requestId!==id)fail('INVALID_REQUEST');
-   return request('PUT',code,['requests',auth.uid,id],command,'null_etag');
+   return request('PUT',code,['requests',peer.uid,id],command,'null_etag');
   },
   removeRequest:(code,uid,id)=>request('DELETE',code,['requests',member(uid),requestId(id)]),
   receipt:(code,uid,id)=>request('GET',code,['receipts',member(uid),requestId(id)]).then(r=>r.state),
@@ -110,7 +116,7 @@ export function createFirebaseRoomLobbyRest({databaseURL,auth,fetchImpl=globalTh
    requestId(id);
    if(value?.protocol!==3||value?.requestId!==id||value?.matchId!==matchId)
     fail('INVALID_MATCH_COMMAND');
-   return request('PUT',code,[...matchPath(code,matchId),'commands',auth.uid,id],value,'null_etag');
+   return request('PUT',code,[...matchPath(code,matchId),'commands',peer.uid,id],value,'null_etag');
   },
   removeMatchCommand:(code,matchId,uid,id)=>request('DELETE',code,
    [...matchPath(code,matchId),'commands',member(uid),requestId(id)]),
