@@ -5,6 +5,7 @@
 import {createFourSeatAuthority,makeFourSeatCommand,FOUR_GAMES} from '../../online/four-seat-authority.mjs';
 import {matchSeatForAction,isCpuSeat,cpuSeatId} from '../core/shared-room.mjs';
 import {viewFromFourPlayerRoom} from '../core/unified-view.mjs';
+import {chooseRoomCpuMove} from './room-cpu-choice.mjs';
 
 const actionTypes=new Set(['draw','play','pass']);
 const validId=s=>typeof s==='string'&&/^[A-Za-z0-9_-]{6,60}$/.test(s);
@@ -18,8 +19,7 @@ export function createFourPlayerMatch({room,seedSource,gameConfig=null}={}){
   !room.members.includes(id)&&(!isCpuSeat(room,id)||id!==cpuSeatId(room.roomCode,seat))))
   throw Error('INVALID_MATCH_PARTICIPANTS');
  const authority=createFourSeatAuthority({roomCode:room.roomCode,hostId:participants[0],
-  game:gameId,seedSource,config:gameConfig,
-  cpuIds:participants.filter(id=>isCpuSeat(room,id))});
+  game:gameId,seedSource,config:gameConfig});
  const init=(actor,type,id,extra={})=>{
   const command=makeFourSeatCommand(authority.publicView(),actor,type,'init'+id,extra);
   const result=authority.apply(command);
@@ -43,7 +43,9 @@ export function createFourPlayerMatch({room,seedSource,gameConfig=null}={}){
   currentRoom=nextRoom;
  }
  function publicSnapshot(){
-  return {matchId,gameId,publicView:authority.publicView()};
+  const view=authority.publicView();
+  return {matchId,gameId,publicView:{...view,
+   seats:view.seats.map((seat,index)=>({...seat,cpu:isCpuSeat(room,participants[index])}))}};
  }
  function privateSnapshot(actor){
   if(seatOf(actor)<0)throw Error('NOT_A_MATCH_PLAYER');
@@ -51,7 +53,7 @@ export function createFourPlayerMatch({room,seedSource,gameConfig=null}={}){
  }
  function viewFor(actor){
   if(seatOf(actor)<0)throw Error('NOT_A_MATCH_PLAYER');
-  return viewFromFourPlayerRoom({game:gameId,publicView:authority.publicView(),
+  return viewFromFourPlayerRoom({game:gameId,publicView:publicSnapshot().publicView,
    privateView:authority.privateView(actor)});
  }
  let botCounter=0;
@@ -59,7 +61,8 @@ export function createFourPlayerMatch({room,seedSource,gameConfig=null}={}){
   if(currentRoom.phase!=='playing'||authority.phase!=='playing')return null;
   const state=authority.publicView(),actor=participants[state.turn];
   if(!isCpuSeat(currentRoom,actor))return null;
-  const decision=authority.botDecision(actor);
+  const decision=chooseRoomCpuMove({game:gameId,publicView:state,
+   privateView:authority.privateView(actor)});
   if(!decision)throw Error('CPU_DECISION_UNAVAILABLE');
   const cmd=makeFourSeatCommand(state,actor,decision.type,
    'cpu'+matchId.replace(/[^a-zA-Z0-9]/g,'')+String(++botCounter),decision);
