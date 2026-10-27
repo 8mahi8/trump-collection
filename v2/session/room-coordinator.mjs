@@ -38,7 +38,8 @@ export function createRoomCoordinator({store,roomCode,registry}={}){
    // commutative actions, never start/complete/select or mismatched games.
    if(['join','leave'].includes(action.type))expectedRevision=state.revision;
    if(action.type==='setReady'&&state.phase==='lobby'&&
-    action.gameId===state.selectedGame&&action.matchSequence===state.matchSequence)
+    action.gameId===state.selectedGame&&action.matchSequence===state.matchSequence&&
+    action.selectionEpoch===state.selectionEpoch)
     expectedRevision=state.revision;
    let next;
    try{
@@ -80,7 +81,8 @@ export function createRoomCoordinator({store,roomCode,registry}={}){
      const action=source&&typeof source==='object'?
       {type:source.type,expectedRevision:source.expectedRevision,
        gameId:source.gameId,memberIds:source.memberIds,ready:source.ready,
-       matchId:source.matchId,matchSequence:source.matchSequence,actor}:null;
+       matchId:source.matchId,matchSequence:source.matchSequence,
+       selectionEpoch:source.selectionEpoch,actor}:null;
      const result=validRequest(id)&&source?.protocol===3&&source?.requestId===id?
       await apply(action,{requestKey:key}):
       {ok:false,reason:'INVALID_REQUEST'};
@@ -113,7 +115,7 @@ export function createRoomLobbyClient({store,roomCode}={}){
     throw Error('INVALID_EXPECTED_REVISION');
    const payload={protocol:3,requestId,type:action.type,
     expectedRevision:action.expectedRevision};
-   for(const field of ['gameId','memberIds','ready','matchId','matchSequence'])
+   for(const field of ['gameId','memberIds','ready','matchId','matchSequence','selectionEpoch'])
     if(Object.hasOwn(action,field))payload[field]=action[field];
    await store.submit(roomCode,requestId,payload);
    return requestId;
