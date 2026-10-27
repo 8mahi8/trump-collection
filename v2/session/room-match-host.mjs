@@ -1,6 +1,6 @@
 // Host-controlled 4-seat Match runner inside a persistent shared Room.
-// Match authority remains in host memory in this initial integration phase.
-// Future: persist/recover authority before enabling school deployment.
+// Match authority lives in host memory by design. Reloading the host ends
+// this friend-only game; no reload recovery or anonymous login is required.
 import {createFourPlayerMatch} from './four-player-match.mjs';
 import {isCpuSeat} from '../core/shared-room.mjs';
 
