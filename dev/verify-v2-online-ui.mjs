@@ -282,6 +282,11 @@ try{
 
  // Continue in the SAME two-human room after Daifugo, switching games
  // without rejoining. Play two more full games by real UI taps.
+ let drawState=20261028;
+ const drawIndex=count=>{
+  drawState^=drawState<<13;drawState^=drawState>>>17;drawState^=drawState<<5;
+  return (drawState>>>0)%count;
+ };
  async function completeNextMixedGame(game){
   await duoOwner.f.locator('button[data-action="game-'+game+'"]').tap();
   for(const p of duel){
@@ -333,7 +338,8 @@ try{
    }));
    if(actual.mode==='results')break;
    if(game==='babanuki'){
-    const index=actual.view.legal.drawIndices[0];
+    const choices=actual.view.legal.drawIndices;
+    const index=choices[drawIndex(choices.length)];
     assert.ok(Number.isInteger(index), 'Babanuki human must have a legal draw index');
     await player.f.locator('.v2-backrow button[data-action="draw"]:not([disabled])')
      .nth(index).tap({timeout:9000});
