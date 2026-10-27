@@ -33,7 +33,18 @@ let store=null,roomCode=null,isHost=false,coordinator=null,client=null;
 let room=null,matchHost=null,activeMatchId=null,session=null,renderer=null,unsubscribe=null;
 let timer=null,pumping=false,screen='home',lastRoomKey='',botTimer=null,disposed=false;
 let needJoin=false,joinId=null;
-function showError(e){msg('操作エラー：'+(e?.code||e?.message||String(e)));}
+function showError(e){
+ const code=e?.code||e?.message||String(e);
+ const useful={
+  ONLINE_CONFIG_NOT_SET:'オンラインの接続先が未設定です。CPU戦はそのまま遊べます。',
+  ROOM_PERMISSION_DENIED:'通信先でアクセスが拒否されました。Firebase接続設定を確認してください。',
+  ROOM_CONFLICT:'その部屋番号は使用中です。もう一度ルームを作成してください。',
+  NETWORK_ERROR:'通信できませんでした。Wi-Fi接続を確認してください。',
+  ROOM_NOT_FOUND:'その番号のルームは見つかりませんでした。',
+  MATCH_INTERRUPTED:'ホストの試合が中断しました。新しい部屋で始めてください。'
+ };
+ msg(useful[code]||'操作エラー：'+code);
+}
 function clearSession(){
  unsubscribe?.();unsubscribe=null;
  session?.dispose();session=null;
