@@ -126,6 +126,12 @@ try{
    if(lobby.scrollHeight>lobby.clientHeight&&
     getComputedStyle(lobby).overflowY!=='auto')
     throw Error('LOBBY_VERTICAL_SCROLL_UNAVAILABLE');
+   const picker=lobby.querySelector('.v2-game-picker');
+   if(!picker||picker.querySelectorAll('button').length!==4)
+    throw Error('LOBBY_FOUR_GAME_PICKER_MISSING');
+   const exit=lobby.querySelector('button[data-action="leave-room"]')?.getBoundingClientRect();
+   if(!exit||exit.bottom>r.bottom-2||exit.top<r.top)
+    throw Error('LOBBY_EXIT_BUTTON_OFF_SCREEN');
   });
   await owner.page.screenshot({path:resolve('dist/v2-screens',
    'online-lobby-'+engine+'-'+width+'.png')});
