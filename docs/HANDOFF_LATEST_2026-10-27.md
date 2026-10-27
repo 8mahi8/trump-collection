@@ -57,3 +57,10 @@
 - **これが今後の最優先前提**。旧Firebaseはゲーム別roomCode/game固定のため、そのまま移植せずRoom/Match契約と状態遷移の再設計を先行させる。
 - COMモードはルーム不要。4人ルームから2人用神経衰弱を選択する場合の残りの人の扱いは未決定。
 - まだ設計文書を追加した段階。Room-first UI/通信が完成したわけではない。main・学校公開版・本番サービスは変更しない。
+## 2026-10-27｜Room-first Phase 1bの実装と成功したCI
+- **共通ルームの純粋な状態管理を実装済**：`v2/core/shared-room.mjs`。部屋はゲームを固定せず、参加・選択・Ready・マッチ開始/終了・同じ部屋に戻る・旧Matchコマンド拒否に対応。
+- **2人/4人ゲームを分離**：4人部屋から2人用神経衰弱の参加者を指定し、他の人は操作できない。4人ゲームは全員が揃うと自動選択する。
+- **Firebase用の新パス/条件付き更新アダプター**：`v2/net/firebase-room-lobby-rest.mjs`。既存のV1データは使わず、認証必須・ETag/if-matchの競合拒否をモック検証。
+- **詳細報告**：[V2_ROOM_FIRST_PHASE1B_2026-10-27.md](V2_ROOM_FIRST_PHASE1B_2026-10-27.md)。`tests/v2-shared-room.test.mjs` と `tests/v2-firebase-lobby-rest.test.mjs` を追加。
+- **[Actions #40508290755](https://github.com/8mahi8/trump-collection/actions/runs/40508290755) success**：旧ゲームの回帰テストを含むNodeテスト、学校版ソース不変チェック、Chromium/WebKitタップとビルドの全工程成功。
+- **まだ本物のルームオンライン4人対戦は未接続**。Firebase本番Rules/DBの新パスも適用していない。次はRoomCoordinator+ゲスト操作キューをホスト権限・エミュレーターで検証し、ババ抜きMatchの共通UIに接続する。
