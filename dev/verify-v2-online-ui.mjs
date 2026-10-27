@@ -298,7 +298,7 @@ try{
   }),game)));
   let attempts=0,botTurns=0,humanMoves=0,lastRevision=-1;
   const start=Date.now();
-  while(Date.now()-start<240000&&attempts<420){
+  while(Date.now()-start<68000&&attempts<180){
    const current=await duoOwner.f.locator('body').evaluate(()=>{
     const lab=window.TRUMP_V2_ONLINE_LAB;
     return {mode:lab.mode,room:lab.room,view:lab.view};
@@ -358,6 +358,15 @@ try{
     },100);
    }),actual.view.revision);
   }
+  const diagnose=await Promise.all(duel.map(p=>p.f.locator('body').evaluate(()=>{
+   const lab=window.TRUMP_V2_ONLINE_LAB;
+   return {mode:lab.mode,game:lab.view?.game,revision:lab.view?.revision,
+    turn:lab.view?.turn,phase:lab.view?.phase,pending:lab.pending,
+    roomPhase:lab.room?.phase,roomMatch:lab.room?.match?.matchId,
+    notice:document.getElementById('notice')?.textContent};
+  })));
+  console.log('V2 MIXED DIAGNOSTICS '+game+' '+engine+' '+JSON.stringify({
+   humanMoves,botTurns,attempts,lastRevision,elapsed:Date.now()-start,views:diagnose}));
   assert.ok(humanMoves>0&&botTurns>0,game+' needs active human and CPU turns');
   await duoOwner.f.locator('button[data-action="back-lobby"]').waitFor({timeout:14000});
   await duoFriend.f.locator('body').evaluate(()=>new Promise((resolve,reject)=>{
