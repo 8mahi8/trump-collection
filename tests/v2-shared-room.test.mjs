@@ -144,9 +144,12 @@ test('duplicate readiness/restart and stale match transitions cannot bypass stat
 test('choosing a four-seat game before friends arrive auto-fills lineup on fourth join',()=>{
  let room=createSharedRoom({roomCode:'33333',hostId:A});
  room=chosen(room,'babanuki');
- assert.deepEqual(room.participants,[]);
+ assert.equal(room.participants.length,4);
+ assert.deepEqual(room.participants.slice(0,1),[A]);
+ assert.ok(room.participants.slice(1).every(id=>id.startsWith('cpu-')));
  room=add(room,B,C);
- assert.deepEqual(room.participants,[]);
+ assert.deepEqual(room.participants.slice(0,3),[A,B,C]);
+ assert.ok(room.participants[3].startsWith('cpu-'));
  room=step(room,'join',D);
  assert.deepEqual(room.participants,[A,B,C,D]);
  assert.deepEqual(room.ready,[]);
@@ -175,4 +178,58 @@ test('default built-in registry supports every current game without special room
   assert.equal(room.match.gameId,plugin.id);
   assert.equal(room.match.participants.length,plugin.seats);
  }
+});
+
+
+test('four-seat games fill missing 1, 2 or 3 friends with CPU; only humans Ready',()=>{
+ for(const gameId of ['babanuki','shichinarabe','daifugo']){
+  for(const friends of [1,2,3,4]){
+   let room=createSharedRoom({roomCode:'55555',hostId:A});
+   room=add(room,...[B,C,D].slice(0,friends-1));
+   room=chosen(room,gameId);
+   assert.equal(room.participants.length,4);
+   assert.deepEqual(room.participants.slice(0,friends),room.members);
+   assert.equal(room.participants.filter(id=>id.startsWith('cpu-')).length,4-friends);
+   assert.ok(room.participants.filter(id=>id.startsWith('cpu-'))
+    .every(id=>!room.members.includes(id)));
+   err(()=>start(room),'PLAYERS_NOT_READY');
+   room=ready(room,...room.members);
+   const match=start(room);
+   assert.equal(match.match.participants.length,4);
+   assert.deepEqual(match.members,room.members);
+   assert.deepEqual(match.match.participants,room.participants);
+   for(const id of match.match.participants.slice(friends))
+    err(()=>matchSeatForAction(match,{actor:id,matchId:match.match.matchId}),'NOT_A_MEMBER');
+  }
+ }
+});
+test('one person starts a 2-seat Memory match with one CPU',()=>{
+ let room=chosen(createSharedRoom({roomCode:'55556',hostId:A}),'shinkei');
+ assert.equal(room.participants.length,2);
+ assert.ok(room.participants[1].startsWith('cpu-'));
+ room=ready(room,A);
+ room=start(room);
+ assert.equal(room.match.participants.length,2);
+});
+test('new friend replaces CPU before match, resets Ready, preserves room',()=>{
+ let room=chosen(createSharedRoom({roomCode:'55557',hostId:A}),'daifugo');
+ room=ready(room,A);
+ room=step(room,'join',B);
+ assert.equal(room.roomCode,'55557');
+ assert.deepEqual(room.participants.slice(0,2),[A,B]);
+ assert.equal(room.participants.filter(id=>id.startsWith('cpu-')).length,2);
+ assert.deepEqual(room.ready,[]);
+ room=ready(room,A,B);
+ room=start(room);
+ assert.equal(room.match.participants[1],B);
+});
+test('guest leaving before match replaces them with a bot and invalidates Ready',()=>{
+ let room=chosen(add(createSharedRoom({roomCode:'55558',hostId:A}),B),'babanuki');
+ room=ready(room,A,B);
+ room=step(room,'leave',B);
+ assert.equal(room.members.length,1);
+ assert.equal(room.participants.filter(id=>id.startsWith('cpu-')).length,3);
+ assert.deepEqual(room.ready,[]);
+ room=start(ready(room,A));
+ assert.equal(room.phase,'playing');
 });
