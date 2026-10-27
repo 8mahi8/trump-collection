@@ -32,7 +32,7 @@ const cfg=globalThis.TRUMP_V2_FIREBASE_CONFIG||null;
 let store=null,roomCode=null,isHost=false,coordinator=null,client=null;
 let room=null,matchHost=null,activeMatchId=null,session=null,renderer=null,unsubscribe=null;
 let timer=null,pumping=false,screen='home',lastRoomKey='',botTimer=null,disposed=false;
-let needJoin=false,joinId=null;
+let needJoin=false,joinId=null,entering=false;
 function showError(e){
  const code=e?.code||e?.message||String(e);
  const useful={
@@ -61,7 +61,7 @@ function clearView(){
  botTimer=null;clearSession();main.replaceChildren();
 }
 function home(){
- stopRoom();clearView();screen='home';msg('開発用プレビュー。学校公開版には未反映。');
+ stopRoom();clearView();screen='home';msg(cfg?.databaseURL?'トランプコレクション｜友達との対戦はこちらから':'開発用プレビュー。オンライン接続先は未設定です。');
  const view=create('section','v2-menu');
  view.append(create('h2','','トランプコレクション'));
  view.append(button('🃏 CPUとババ抜き','cpu',()=>openCpu()));
@@ -104,7 +104,7 @@ function openConnect(){
  line.append(input,button('参加','join-room',()=>enterRoom(false,input.value.trim())));
  form.append(line);
  main.replaceChildren(form);
- msg('Firebase接続先は検証環境でのみ設定。学校版には未反映。');
+ msg(cfg?.databaseURL?'部屋を作るか、友達の5桁の番号を入力してください。':'オンラインの接続先が未設定です。');
 }
 async function connect(){
  if(store)return;
@@ -116,24 +116,49 @@ async function connect(){
   fetchImpl:globalThis.TRUMP_V2_TEST_FETCH||globalThis.fetch.bind(globalThis)});
 }
 async function enterRoom(host,code){
- if(screen!=='connect')return;
+ if(screen!=='connect'||entering)return;
  if(!host&&!/^[0-9]{5}$/.test(code))throw Error('INVALID_ROOM_CODE');
- await connect();
- const selectedCode=host?randomCode():code;
- roomCode=selectedCode;isHost=host;
- client=createRoomLobbyClient({store,roomCode});
- if(host){
-  coordinator=createRoomCoordinator({store,roomCode});
-  await coordinator.bootstrap();
- }else{
-  const current=await client.room();
-  if(!current||current.phase==='closed')throw Error('ROOM_NOT_FOUND');
-  needJoin=true;joinId=requestId();
-  await client.submit({type:'join',expectedRevision:current.revision},joinId);
- }
- screen='room';lastRoomKey='';
- await pump();
- timer=setInterval(()=>{pump().catch(showError)},700);
+ entering=true;
+ msg(host?'ルームを作成しています…':'ルームに参加しています…');
+ try{
+  await connect();
+  if(screen!=='connect')return;
+  if(host){
+   // Room numbers can collide with earlier friends' rooms. Retry a few
+   // fresh random codes; never overwrite an existing lobby or join it.
+   let reserved=false;
+   for(let attempt=0;attempt<6;attempt++){
+    const candidate=randomCode();
+    const next=createRoomCoordinator({store,roomCode:candidate});
+    try{
+     await next.bootstrap();
+     roomCode=candidate;coordinator=next;reserved=true;
+     break;
+    }catch(e){if(e?.code!=='ROOM_CONFLICT')throw e;}
+   }
+   if(!reserved)throw Error('ROOM_CONFLICT');
+   isHost=true;
+   client=createRoomLobbyClient({store,roomCode});
+  }else{
+   const pendingClient=createRoomLobbyClient({store,roomCode:code});
+   const current=await pendingClient.room();
+   if(!current||current.phase==='closed')throw Error('ROOM_NOT_FOUND');
+   roomCode=code;isHost=false;client=pendingClient;
+   needJoin=true;joinId=requestId();
+   await client.submit({type:'join',expectedRevision:current.revision},joinId);
+  }
+  if(screen!=='connect')return;
+  screen='room';lastRoomKey='';
+  await pump();
+  timer=setInterval(()=>{pump().catch(showError)},700);
+ }catch(e){
+  // A failed attempt should not poison a second tap with stale room code or
+  // a half-initialized coordinator. This is NOT reload/match recovery.
+  clearInterval(timer);timer=null;
+  coordinator=null;client=null;roomCode=null;room=null;
+  isHost=false;needJoin=false;joinId=null;lastRoomKey='';
+  throw e;
+ }finally{entering=false;}
 }
 async function leave(){
  if(!client){home();return}
