@@ -13,6 +13,11 @@
 - `dev/verify-v2-memory-cpu-ui.mjs`にローカルで**最初の部屋予約だけ意図的に412を返す**再現を追加。衝突後、新しい部屋を作り直し、神経衰弱1人+CPU1人の試合を実タップで最後まで進行させて、同じルームへ復帰する。
 - `dev/verify-v2-online-ui.mjs`に「存在しない00000部屋への参加失敗→同じ画面で正しい部屋に再参加」の4画面実ブラウザ試験を追加。800×450・667×375のロビーの画面証拠・ボタン幅と縦スクロールチェックを追加。
 
+## 視覚レビューで追加発見したロビーの問題と修正
+- Google Sites風WebKit 667×375の実スクリーンショットを直接確認した結果、旧ロビーでは4ゲーム選択が縦一列のため、最下部の『ルームを退出』ボタンが画面下に一部はみ出していた。従来のテストはスクロールできるかだけを見ていたため検出できなかった。
+- `v2/online-app.mjs`でゲーム選択を `.v2-game-picker` にまとめ、`v2/ui/online-shell.css`で2列×2行に配置。ボタンのクリック動作・IDは維持。
+- `dev/verify-v2-online-ui.mjs`で667×375と800×450のロビーの『退出』ボタンがスクロールせず全体表示されること、4ゲームボタンが揃うことを検証するゲートを追加。スクリーンショットは `online-lobby-*.png` としてGitHub CI Artifactに保存。
+- この表示変更の最新版UI CIは[Actionsワークフロー](https://github.com/8mahi8/trump-collection/actions/workflows/room-v2-ui-emulator.yml)で確認すること。学校iPad本体の視認性については現地の実測が必要。
 ## 実証
 - **[Actions #40596710093 SUCCESS](https://github.com/8mahi8/trump-collection/actions/runs/40596710093)**：Chromiumで予約競合の412を人工的に起こして自動的に部屋番号を変更、そのまま神経衰弱1人+CPU1人を最後まで完走。WebKit（Safari相当）でも神経衰弱1人＋CPUの試合を完走。Firebase Auth 0。
 - [最新版 Room-first UI E2E](https://github.com/8mahi8/trump-collection/actions/workflows/room-v2-ui-emulator.yml)：存在しない部屋番号を入力してから正常参加する試験と、ロビー画面の写真を含む。実行が成功したか最新runで確認すること。
