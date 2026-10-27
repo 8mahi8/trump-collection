@@ -248,7 +248,7 @@ async function pump(){
    renderLobby(room);
   }else if(room.phase==='playing'){
    beginMatch(room);
-   const reply=await session.refresh();
+   const reply=await session.refresh({roomSnapshot:room});
    if(reply.status==='ready'||reply.status==='ack'){
     msg('オンライン対戦｜部屋 '+roomCode);
    }else if(reply.status==='rejected')msg('入力が拒否されました：'+reply.reason);
