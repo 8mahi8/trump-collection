@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createSharedRoom,applySharedRoomAction,isCpuSeat} from '../v2/core/shared-room.mjs';
 import {createTwoPlayerMemoryMatch} from '../v2/session/two-player-memory-match.mjs';
+import {mulberry32} from '../games.mjs';
 
 const H='hostMemoryUID88',A='friendMemoryA88',B='friendMemoryB88',C='friendMemoryC88';
 function step(room,type,actor=H,extra={}){
@@ -83,9 +84,11 @@ test('four-member room selects two humans; other two cannot issue Memory moves',
 test('two human Memory players can finish a full match with no CPU',()=>{
  const {room,match}=start({people:[H,A],seed:491});
  let actions=0;
- while(match.phase==='playing'&&actions<500){
+ const rng=mulberry32(7511);
+ while(match.phase==='playing'&&actions<2000){
   const pub=match.publicSnapshot().publicView,actor=room.match.participants[pub.turn];
-  const index=match.viewFor(actor).legal.flipIndices[0];
+  const options=match.viewFor(actor).legal.flipIndices;
+  const index=options[Math.floor(rng()*options.length)];
   const result=match.apply({actor,type:'flip',index,matchId:match.matchId,
    actionId:'humanFlip'+String(actions).padStart(5,'0'),
    expectedRevision:pub.revision,round:0});
