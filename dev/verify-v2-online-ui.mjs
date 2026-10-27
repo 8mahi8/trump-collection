@@ -502,6 +502,17 @@ try{
  await spectatorHost.f.locator('.v2-roster .v2-player').nth(3).waitFor({timeout:25000});
  await spectatorHost.f.locator('button[data-action="game-shinkei"]').tap();
  await spectatorHost.f.locator('button[data-action="memory-opponent-3"]').tap();
+ await spectatorHost.f.locator('button[data-action="memory-opponent-3"].v2-active')
+  .waitFor({timeout:18000});
+ await spectatorHost.f.locator('body').evaluate(()=>new Promise((resolve,reject)=>{
+  const started=Date.now(),id=setInterval(()=>{
+   if(window.TRUMP_V2_ONLINE_LAB.room?.participants?.length===2){
+    clearInterval(id);resolve();
+   }else if(Date.now()-started>18000){
+    clearInterval(id);reject(Error('MEMORY_LINEUP_NOT_APPLIED'));
+   }
+  },100);
+ }));
  const lineup4=await spectatorHost.f.locator('body').evaluate(()=>window.TRUMP_V2_ONLINE_LAB.room.participants);
  const chosenUid=await others[1].f.locator('body').evaluate(()=>window.TRUMP_V2_ONLINE_LAB.uid);
  assert.equal(lineup4.length,2);
