@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createSharedRoom,applySharedRoomAction,matchSeatForAction,ROOM_CAPACITY} from '../v2/core/shared-room.mjs';
 
 const A='playerAAA1',B='playerBBB2',C='playerCCC3',D='playerDDD4',E='playerEEE5';
-const games={babanuki:{id:'babanuki',seats:4},shichinarabe:{id:'shichinarabe',seats:4},shinkei:{id:'shinkei',seats:2}};
+const games={babanuki:{id:'babanuki',seats:4},shichinarabe:{id:'shichinarabe',seats:4},daifugo:{id:'daifugo',seats:4},shinkei:{id:'shinkei',seats:2}};
 const registry={has:id=>Object.hasOwn(games,id),get:id=>games[id]};
 const step=(room,type,actor=A,args={})=>applySharedRoomAction(room,{type,actor,expectedRevision:room.revision,...args},{registry});
 const add=(room,...ids)=>ids.reduce((s,id)=>step(s,'join',id),room);
