@@ -12,7 +12,7 @@
 - WebKit：人間カード/パス操作41手、CPU手番観測19回。混合大富豪1試合43,111ms（同上）。
 - **匿名認証/API呼び出し0件**。Authエミュレーター起動なし。JavaScript/CSS同梱の1HTMLをビルドし、Google Sites風sandbox埋め込みで検証。
 - ネットワーク読取：同等の4人初手回帰シナリオで、以前の #40525838166 はChromium 126・WebKit 131 GET、今回 #40527541963 はChromium 111・WebKit 116 GET（どちらも41書込み、各15 GET削減）。約12%削減は**CI上の模擬ネットワークの観測**であり、学校の速度保証ではない。
-- **[Foundation V2 #40527379822: success](https://github.com/8mahi8/trump-collection/actions/runs/40527379822)**。ホスト通信削減後の既存ゲームテストも成功。新しい2人＋CPU2人追加テストはCIログの最新結果を別途確認すること。
+- **[Foundation V2 #40527425180: success](https://github.com/8mahi8/trump-collection/actions/runs/40527425180)**。ホスト通信削減後の既存ゲーム回帰テストと追加した人間2＋CPU2人の3ゲーム完走Nodeテストも成功。
 
 ## 守った条件
 - **学校用V2では匿名認証も再読み込み復帰も導入しない**。CPUはホストで実行し追加接続不要。
