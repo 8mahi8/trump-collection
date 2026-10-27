@@ -109,6 +109,28 @@ try{
  await Promise.all(group.map(p=>p.f.locator('.v2-roster .v2-player').nth(3).waitFor({timeout:28000})));
  await owner.f.locator('button[data-action="game-babanuki"]').tap();
  await owner.f.locator('button[data-action="ready"]').waitFor();
+ // Keep a real visual proof of the lobby on the narrower school-style iPad.
+ // No screenshot-only pass: assert both room controls and their scroll
+ // container remain reachable for touch.
+ for(const width of [800,667]){
+  await owner.page.setViewportSize({width,height:width===800?450:375});
+  await owner.f.locator('.v2-room-lobby').evaluate(lobby=>{
+   const r=lobby.getBoundingClientRect(),buttons=[...lobby.querySelectorAll('button')];
+   if(buttons.length<6||r.width>innerWidth+2||r.bottom>innerHeight+2)
+    throw Error('LOBBY_VIEWPORT_INVALID');
+   for(const button of buttons){
+    const b=button.getBoundingClientRect();
+    if(b.left<r.left-2||b.right>r.right+2)
+     throw Error('LOBBY_BUTTON_HORIZONTALLY_CLIPPED');
+   }
+   if(lobby.scrollHeight>lobby.clientHeight&&
+    getComputedStyle(lobby).overflowY!=='auto')
+    throw Error('LOBBY_VERTICAL_SCROLL_UNAVAILABLE');
+  });
+  await owner.page.screenshot({path:resolve('dist/v2-screens',
+   'online-lobby-'+engine+'-'+width+'.png')});
+ }
+ await owner.page.setViewportSize({width:800,height:450});
  for(const p of group){
   await p.f.locator('button[data-action="ready"]').tap();
   await p.f.locator('button[data-action="ready"]').filter({hasText:'準備を解除'}).waitFor({timeout:28000});
