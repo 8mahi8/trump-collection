@@ -2,6 +2,7 @@
 // Friend-only / no-auth REST transport: no sign-in and no reload restoration.
 // School iPad / real Google Sites compatibility still needs hands-on testing.
 import {GAME_REGISTRY} from './games/definitions.mjs';
+import {isCpuSeat} from './core/shared-room.mjs';
 import {createCpuSession} from './session/cpu-session.mjs';
 import {createTableRenderer} from './ui/table-renderer.mjs';
 import {createFirebaseRoomLobbyRest} from './net/firebase-room-lobby-rest.mjs';
@@ -162,6 +163,9 @@ function renderLobby(snapshot){
    (snapshot.ready.includes(id)?' ✓準備完了':'');
   roster.append(create('span','v2-player',label));
  });
+ snapshot.participants.forEach((id,seat)=>{
+  if(isCpuSeat(snapshot,id))roster.append(create('span','v2-player','CPU'+(seat+1)));
+ });
  area.append(roster);
  if(!snapshot.members.includes(store.uid)){
   area.append(create('p','v2-help','ホストが参加を確認しています…'));
@@ -179,13 +183,14 @@ function renderLobby(snapshot){
  if(snapshot.selectedGame){
   const meInMatch=snapshot.participants.includes(store.uid);
   area.append(create('p','v2-help',
-   '対局人数：'+snapshot.participants.length+'/'+GAME_REGISTRY.get(snapshot.selectedGame).seats));
+   '人間：'+snapshot.participants.filter(id=>snapshot.members.includes(id)).length+'人 ／ CPU：'+
+   snapshot.participants.filter(id=>isCpuSeat(snapshot,id)).length+'人');
   if(meInMatch)area.append(button(snapshot.ready.includes(store.uid)?'準備を解除':'準備完了',
    'ready',()=>isHost?
     hostAction('setReady',{ready:!snapshot.ready.includes(store.uid)}):guestReady()));
   if(isHost){
    const enough=snapshot.participants.length===GAME_REGISTRY.get(snapshot.selectedGame).seats &&
-    snapshot.participants.every(id=>snapshot.ready.includes(id));
+    snapshot.participants.every(id=>isCpuSeat(snapshot,id)||snapshot.ready.includes(id));
    area.append(button('対局開始','start',()=>hostAction('startMatch'),!enough));
   }
  }
@@ -259,4 +264,4 @@ $('home').addEventListener('click',()=>{if(roomCode&&client)leave().catch(showEr
 home();
 globalThis.TRUMP_V2_ONLINE_LAB={get mode(){return screen},get room(){return room},
  get view(){return session?.getView()||null},get uid(){return store?.uid||null},
- get matchId(){return activeMatchId},get version(){return 'phase2b-lab-1'}};
+ get matchId(){return activeMatchId},get version(){return 'phase2c-cpu-fill-1'}};
