@@ -214,13 +214,15 @@ function renderLobby(snapshot){
   main.replaceChildren(area);return;
  }
  if(!snapshot.selectedGame)area.append(create('p','v2-help','ゲームを選択してください'));
+ const picker=create('div','v2-game-picker');
  for(const spec of GAME_REGISTRY.list()){
   const b=button(spec.label+(labGames.has(spec.id)?'':'（準備中）'),
    'game-'+spec.id,()=>hostAction('selectGame',{gameId:spec.id}),
    !isHost||!labGames.has(spec.id));
   if(spec.id===snapshot.selectedGame)b.classList.add('v2-active');
-  area.append(b);
+  picker.append(b);
  }
+ area.append(picker);
  if(snapshot.selectedGame==='shinkei'&&isHost&&snapshot.members.length>2){
   area.append(create('p','v2-help','対戦する2人を選択（ほかの友達は待機）'));
   for(const other of snapshot.members.filter(id=>id!==snapshot.hostId)){
