@@ -1,3 +1,5 @@
+> **【2026-10-28｜神経衰弱オンライン2席の統合】**：既存の神経衰弱ルール/CPUを共通Room Matchへ接続。友達1人ならCPU1人、4人部屋ならホストが2人目を選んで、ほかの2人は待機。カードの未公開面はpublicSnapshotに含めない。**匿名認証・リロード復帰なし**。詳細 [V2_MEMORY_ONLINE_2026-10-28.md](V2_MEMORY_ONLINE_2026-10-28.md)。
+> [Foundation V2 #40537665007 SUCCESS](https://github.com/8mahi8/trump-collection/actions/runs/40537665007)：Memory含む161テスト成功。学校Google Sites版、本番Firebase Rules、mainは無変更。ブラウザ四ゲーム連続と二人選択のCIは最新Actionsで別途確認。
 > **【2026-10-28 最新：共通ルーム3ゲーム実画面連続完走】** [詳細・証拠](V2_MIXED_THREE_GAMES_GUI_2026-10-28.md)。友達2人＋CPU2人で大富豪→ババ抜き→七並べを **同じ部屋から選択して各試合完走・結果・ロビー復帰**。Chromium/WebKitで実際のボタンタップとFirebaseエミュレーター同期を通過：[Actions #40531186111 成功](https://github.com/8mahi8/trump-collection/actions/runs/40531186111)。
 > [Foundation V2 #40532710527 成功](https://github.com/8mahi8/trump-collection/actions/runs/40532710527)：157項目合格。ババ抜きの試験で同じカード位置だけを選び続けると長期化するケースがあり、テストの手札選択を変動式に改善。匿名認証も試合リロード復帰も作らない。学校公開版・本番Firebase・main無変更。
 > **【2026-10-28｜CPU混合大富豪ブラウザ完全完走・通信軽量化成功】**
