@@ -2,6 +2,7 @@
 // Match authority remains in host memory in this initial integration phase.
 // Future: persist/recover authority before enabling school deployment.
 import {createFourPlayerMatch} from './four-player-match.mjs';
+import {isCpuSeat} from '../core/shared-room.mjs';
 
 const KEY=/^[A-Za-z0-9_-]{6,60}/;
 export function createRoomMatchHost({store,coordinator,roomCode,seedSource,gameConfig}={}){
@@ -20,8 +21,12 @@ export function createRoomMatchHost({store,coordinator,roomCode,seedSource,gameC
   const matchId=engine.matchId;
   // Private first; publish the matching public revision LAST. A guest only
   // renders when public and its own private revision/round both match.
-  for(const uid of engine.participants)
+  const liveRoom=await readCurrent();
+  for(const uid of engine.participants){
+   // CPUs are host-side agents. Never upload CPU hands to Firebase.
+   if(isCpuSeat(liveRoom,uid))continue;
    await store.publishMatchPrivate(roomCode,matchId,uid,engine.privateSnapshot(uid));
+  }
   await store.publishMatchPublic(roomCode,matchId,engine.publicSnapshot());
  }
  async function start(){
@@ -50,6 +55,7 @@ export function createRoomMatchHost({store,coordinator,roomCode,seedSource,gameC
    }
    job.stage='receipt';
   }
+  if(job.stage==='receipt'&&job.cpu){pending=null;return}
   if(job.stage==='receipt'){
    await store.writeMatchReceipt(roomCode,matchId,job.actor,job.id,{
     matchId,ok:!!job.result.ok,reason:job.result.reason||'',revision:engine.revision});
@@ -69,8 +75,6 @@ export function createRoomMatchHost({store,coordinator,roomCode,seedSource,gameC
    // Finish an interrupted publish / ACK before reading the command queue.
    await flushPending();
    const commands=await store.matchCommands(roomCode,matchId)||{};
-   if(!Object.keys(commands).length)
-    return {status:'ready',processed:0,accepted:0,rejected:0,phase:engine.phase};
    const room=await readCurrent();
    engine.syncRoom(room);
    let processed=0,accepted=0,rejected=0;
@@ -92,7 +96,17 @@ export function createRoomMatchHost({store,coordinator,roomCode,seedSource,gameC
      if(result.ok)accepted++;else rejected++;
     }
    }
-   return {status:'ready',processed,accepted,rejected,phase:engine.phase};
+   // One bot move per tick: visible pacing, and host never blocks the UI
+   // with an unbounded CPU loop. No Firebase request or receipt for a CPU.
+   let bots=0;
+   if(engine.phase==='playing'&&room.phase==='playing'){
+    const outcome=engine.takeCpuTurn();
+    if(outcome){
+     pending={cpu:true,result:outcome,stage:'publish'};
+     await flushPending();bots=1;
+    }
+   }
+   return {status:'ready',processed,accepted,rejected,bots,phase:engine.phase};
   }finally{busy=false;}
  }
  return Object.freeze({start,tick,publish,
