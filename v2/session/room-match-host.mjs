@@ -65,12 +65,14 @@ export function createRoomMatchHost({store,coordinator,roomCode,seedSource,gameC
   if(!engine)throw Error('MATCH_NOT_STARTED');
   busy=true;
   try{
-   const room=await readCurrent();
-   engine.syncRoom(room);
    const matchId=engine.matchId;
    // Finish an interrupted publish / ACK before reading the command queue.
    await flushPending();
    const commands=await store.matchCommands(roomCode,matchId)||{};
+   if(!Object.keys(commands).length)
+    return {status:'ready',processed:0,accepted:0,rejected:0,phase:engine.phase};
+   const room=await readCurrent();
+   engine.syncRoom(room);
    let processed=0,accepted=0,rejected=0;
    for(const actor of Object.keys(commands).sort()){
     const queued=commands[actor];
