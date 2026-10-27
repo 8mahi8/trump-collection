@@ -123,26 +123,3 @@ export function createFirebaseRoomLobbyRest({databaseURL,auth,fetchImpl=globalTh
   }
  });
 }
-).test(id))
-   fail('INVALID_MATCH_ID');
-  return ['matches',id];
- };
- return Object.freeze({
-  uid:auth.uid,
-  read:code=>request('GET',code,['lobby'],null,null,true),
-  async reserve(room){validate(room);return request('PUT',room.roomCode,['lobby'],room,'null_etag');},
-  async commit(room,etag){validate(room);return request('PUT',room.roomCode,['lobby'],room,etag);},
-  requests:code=>request('GET',code,['requests']).then(r=>r.state),
-  submit:(code,id,command)=>{
-   requestId(id);
-   if(!command||command.protocol!==3||command.requestId!==id)fail('INVALID_REQUEST');
-   return request('PUT',code,['requests',auth.uid,id],command,'null_etag');
-  },
-  removeRequest:(code,uid,id)=>request('DELETE',code,['requests',member(uid),requestId(id)]),
-  receipt:(code,uid,id)=>request('GET',code,['receipts',member(uid),requestId(id)]).then(r=>r.state),
-  writeReceipt:(code,uid,id,value)=>{
-   if(typeof value?.ok!=='boolean'||!Number.isInteger(value.revision))fail('INVALID_RECEIPT');
-   return request('PUT',code,['receipts',member(uid),requestId(id)],value);
-  }
- });
-}
