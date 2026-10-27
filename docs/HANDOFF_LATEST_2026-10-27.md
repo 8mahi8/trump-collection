@@ -41,3 +41,12 @@
 - 現行Firebase RTDBは `mygame-df915`。旧公開rootルールはユーザー申告では**2026-11-08 00:00 JST**に失効予定。既存サービスへ影響するため、ルールを勝手に変更・延長しない。
 - 旧公開root環境では手札とチャットが外部から読み書き可能になりうる。開発用と安全な本番運用を混同しない。
 - V2は今は**独立した開発試作**。Google Driveの旧貼り付けファイルを上書きしない。完成候補になったら新ファイルを別名で保存。
+
+
+## 2026-10-27 夜｜新担当の引き継ぎ直後の修正
+- **V2共通Room Sessionの接続安全性修正済み**。いったんreadyの後、host_unavailable/syncing/ネットワーク例外で古い盤面が有効なまま残り、未接続中に操作送信できたリスクを修正。再接続時は同じrevisionでもRendererへ通知する。
+- **ACK前の二重送信防止**。部屋のrevisionが増えただけでは送信済み操作のpendingを解除しない。**その操作のreceiptが承認／拒否された時だけ解除**する。ルーム復帰・送信の単体テストを追加。
+- Commit: [room session fix](https://github.com/8mahi8/trump-collection/commit/300ca98f9f63b1cd892f2f740e6eac3a589f56d9), [new tests](https://github.com/8mahi8/trump-collection/commit/7f6a96e709ff45d9f182a31300b7c5792fc98d9c)。
+- **[CI #40505322043](https://github.com/8mahi8/trump-collection/actions/runs/40505322043) 成功**：旧ルール＋V2 Nodeテスト、Google Sites版不変確認、ブラウザ試作ビルド、Chromium/WebKit実タップの全工程成功。
+- これは**通信アダプターの安全性修正**であり、**V2のオンライン部屋作成・参加・4人完走・学校iPad高速化・神経衰弱の接続不良解消が終わったという意味ではない**。次は旧online/firebase-room-controller.mjsのホストauthorityをV2共通GameShell/room-sessionへつなぎ、Firebase Emulatorで4画面完走すること。
+- main、学校Google Sites版、本番Firebase/Supabase、既存Google Drive原本には一切触れていない。
