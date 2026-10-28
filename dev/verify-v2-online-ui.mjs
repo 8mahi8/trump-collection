@@ -265,6 +265,7 @@ try{
   window.TRUMP_V2_ONLINE_LAB.uid)));
  const wallStart=Date.now(),humanClicks=0;
  let humanTurns=0,observedCpuTurns=0,turns=0,lastSeenRev=-1;
+ let selectionFastPathVerified=false;
  while(Date.now()-wallStart<270000&&turns<240){
   const current=await duoOwner.f.locator('body').evaluate(()=>{
    const lab=window.TRUMP_V2_ONLINE_LAB;
@@ -301,9 +302,42 @@ try{
   if(actual.mode==='results')break;
   const move=actual.view.legal.playMoves[0];
   if(move&&move.length){
+   if(!selectionFastPathVerified){
+    await page.f.locator('body').evaluate(()=>{
+     const board=document.querySelector('.v2-board');
+     const hand=document.querySelector('.v2-hand');
+     const table=document.querySelector('.v2-table');
+     window.__v2SelectReference={board:board.firstElementChild,
+      hand:hand.firstElementChild,boardHTML:board.innerHTML,
+      renderVersion:table.dataset.renderVersion,scrollLeft:hand.scrollLeft,
+      selectVersion:table.dataset.selectionVersion};
+    });
+   }
    for(const id of move){
     const card=page.f.locator('.v2-handcard[data-card="'+id+'"]');
     await card.tap({timeout:9000});
+    if(!selectionFastPathVerified){
+     const proof=await page.f.locator('body').evaluate(()=>{
+      const ref=window.__v2SelectReference,
+       board=document.querySelector('.v2-board'),
+       hand=document.querySelector('.v2-hand'),
+       table=document.querySelector('.v2-table');
+      return {boardSame:board.firstElementChild===ref.board,
+       handSame:hand.firstElementChild===ref.hand,
+       boardHTMLSame:board.innerHTML===ref.boardHTML,
+       fullRendersSame:table.dataset.renderVersion===ref.renderVersion,
+       selectionAdvanced:Number(table.dataset.selectionVersion)>Number(ref.selectVersion),
+       scrollSame:hand.scrollLeft===ref.scrollLeft,
+       oneSelected:hand.querySelectorAll('.v2-selected').length===1};
+     });
+     assert.deepEqual(proof,{boardSame:true,handSame:true,
+      boardHTMLSame:true,fullRendersSame:true,
+      selectionAdvanced:true,scrollSame:true,oneSelected:true},
+     'touching one Daifugo card must NOT rebuild the board/hand');
+     selectionFastPathVerified=true;
+     console.log('V2 CARD SELECTION FAST PATH PASS '+engine+
+      ' stableBoard=true stableHand=true noFullRepaint=true');
+    }
    }
    await page.f.locator('.v2-action[data-action="submit"]:not([disabled])').tap({timeout:9000});
   }else{
@@ -323,6 +357,7 @@ try{
    },120);
   }),earlier);
  }
+ assert.equal(selectionFastPathVerified,true,'Daifugo must verify fast selection on a real touch browser');
  assert.ok(humanTurns>0,'mixed Daifugo needs real tapped human turns');
  assert.ok(observedCpuTurns>0,'mixed Daifugo needs observed CPU turns');
  await duoOwner.f.locator('button[data-action="back-lobby"]').waitFor({timeout:15000});
