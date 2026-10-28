@@ -177,8 +177,9 @@ try{
  // Keep a real visual proof of the lobby on the narrower school-style iPad.
  // No screenshot-only pass: assert both room controls and their scroll
  // container remain reachable for touch.
- for(const width of [800,667]){
-  await owner.page.setViewportSize({width,height:width===800?450:375});
+ for(const size of [{width:800,height:450},{width:667,height:375},
+  {width:667,height:300}]){
+  await owner.page.setViewportSize(size);
   await owner.f.locator('.v2-room-lobby').evaluate(lobby=>{
    const r=lobby.getBoundingClientRect(),buttons=[...lobby.querySelectorAll('button')];
    if(buttons.length<6||r.width>innerWidth+2||r.bottom>innerHeight+2)
@@ -197,6 +198,11 @@ try{
    if(picker.querySelectorAll('.v2-game-name').length!==4||
       picker.querySelectorAll('.v2-game-tagline').length!==4)
     throw Error('LOBBY_GAME_PRESENTATION_MISSING');
+   if(innerHeight<=330&&
+      ([...lobby.querySelectorAll('.v2-lobby-instruction,.v2-lobby-count')]
+       .some(el=>getComputedStyle(el).display!=='none')))
+    throw Error('LOBBY_REDUNDANT_HELP_OCCUPIES_300PX');
+
    const pressed=[...picker.querySelectorAll('button[aria-pressed="true"]')];
    if(pressed.length!==1||pressed[0].dataset.action!=='game-babanuki')
     throw Error('LOBBY_SELECTED_GAME_NOT_ANNOUNCED');
@@ -220,7 +226,7 @@ try{
     throw Error('LOBBY_EXIT_BUTTON_OFF_SCREEN');
   });
   await owner.page.screenshot({path:resolve('dist/v2-screens',
-   'online-lobby-'+engine+'-'+width+'.png')});
+   'online-lobby-'+engine+'-'+size.width+(size.height===300?'x300':'')+'.png')});
  }
  await owner.page.setViewportSize({width:800,height:450});
  for(const p of group){
