@@ -95,3 +95,20 @@
  .v2-chat-toggle{min-height:32px}
  .v2-chat-input,.v2-chat-send{min-height:37px}
 }
+
+/* Reusable results: rank is visible as text/emoji rather than color alone. */
+.v2-results-list{width:min(390px,96%);max-height:55%;overflow:auto;gap:7px}
+.v2-result-player{display:flex;align-items:center;gap:10px;min-height:42px;
+ padding:7px 12px;border:1px solid #9dcaaa;background:#145137;
+ box-shadow:0 2px 6px #051b155c}
+.v2-result-rank{width:29px;flex:none;text-align:center;font-weight:900;font-size:19px}
+.v2-result-name{font-size:14px;flex:1;min-width:0}
+.v2-result-score{font-size:12px;font-weight:800;color:#ffebae;white-space:nowrap}
+.v2-result-winner{border-color:#ffdf79;background:#5a562a}
+.v2-result-you{box-shadow:inset 0 0 0 1px #ffe999c2,0 2px 6px #051b155c}
+@media(max-height:430px){
+ .v2-results-list{gap:4px;max-height:48%}
+ .v2-result-player{min-height:34px;padding:4px 9px}
+ .v2-result-rank{font-size:15px}
+ .v2-result-name{font-size:12px}
+}
