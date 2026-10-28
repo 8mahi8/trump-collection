@@ -194,3 +194,52 @@ button.v2-card{cursor:pointer}
 @media(prefers-reduced-motion:reduce){
  .v2-card,.v2-player{transition:none!important;animation:none!important}
 }
+
+/* Shared finishing layer (card/table/lobby). Designed around Apple iPad touch
+   guidance: recognizable primary action, non-color-only turn state and
+   reasonably exposed card edges. Horizontal scrolling beats tiny tap targets. */
+.v2-app{padding-left:max(6px,env(safe-area-inset-left));
+ padding-right:max(6px,env(safe-area-inset-right))}
+.v2-table{background:radial-gradient(ellipse at 50% 45%,#207349 0%,#115638 65%,#0d422f 100%);
+ border:1px solid #a1c2a48c}
+.v2-board{background:radial-gradient(ellipse at center,#267f50,#11533a 72%,#0b3b2b);
+ border:1px solid #c9eadb17}
+.v2-status{border-color:#d0e1bf55;color:#ffe9a0;font-size:clamp(12px,2vw,16px);
+ text-shadow:0 1px 2px #071c12}
+.v2-player{font-size:12px;min-height:30px}
+.v2-turn{border-color:#ffe083;background:#b6923838}
+.v2-player-info{font-weight:650}
+.v2-actions{gap:10px}
+.v2-action{min-height:44px;min-width:98px;padding:9px 18px}
+.v2-action:not(:disabled):active{transform:translateY(2px);box-shadow:0 1px 0 #b18b2a}
+.v2-hand,.v2-backrow{justify-content:flex-start;overscroll-behavior-x:contain;
+ -webkit-overflow-scrolling:touch;scroll-padding-inline:8px}
+.v2-hand{padding:12px 8px 7px}
+.v2-hand .v2-card{margin-left:-8px}
+.v2-hand .v2-card:first-child{margin-left:auto}
+.v2-hand .v2-card:last-child{margin-right:auto}
+.v2-backrow .v2-card{margin-left:-3px}
+.v2-backrow .v2-card:first-child{margin-left:auto}
+.v2-backrow .v2-card:last-child{margin-right:auto}
+.v2-card.v2-small{--tc-w:clamp(44px,5.6vw,49px)}
+.v2-hand .v2-card.v2-legal:not(.v2-selected){
+ outline:2px solid #9ceacf;outline-offset:-2px}
+.v2-hand .v2-card.v2-extension:not(.v2-selected){outline:3px solid #e0e89c;
+ outline-offset:-3px}
+.v2-hand .v2-card.v2-selected{outline:3px solid #ffd35e}
+.v2-sort-button:focus-visible,.v2-clear-button:focus-visible{
+ outline:3px solid #ffe18d;outline-offset:1px}
+@media(max-height:430px){
+ :root{--tc-card-w:48px}
+ .v2-explain{display:block;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;font-size:11px;min-height:13px}
+ .v2-app{gap:2px;padding-top:2px;padding-bottom:2px}
+ .v2-player{font-size:11px;min-height:24px}
+ .v2-action{min-height:40px;padding:7px 12px}
+ .v2-actions{min-height:40px}
+ .v2-hand .v2-card{margin-left:-4px}
+ .v2-backrow .v2-card{margin-left:-2px}
+ .v2-hand{padding:9px 6px 5px}
+ .v2-hand .v2-card:first-child{margin-left:auto}
+ .v2-backrow .v2-card:first-child{margin-left:auto}
+}
