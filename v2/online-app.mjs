@@ -13,6 +13,7 @@ import {createRoomSession} from './session/room-session.mjs';
 import {createRoomChat} from './ui/room-chat.mjs';
 import {gamePresentation} from './ui/game-presentation.mjs';
 import {projectMatchResults} from './ui/results-view.mjs';
+import {roomNotice,matchNotice} from './ui/room-notice.mjs';
 
 const $=id=>document.getElementById(id);
 const main=$('main'),notice=$('notice');
@@ -202,6 +203,7 @@ function renderLobby(snapshot){
   snapshot.members,snapshot.ready,snapshot.participants]);
  if(screen==='lobby'&&key===lastRoomKey)return;
  lastRoomKey=key;screen='lobby';clearSession();
+ msg(roomNotice(snapshot,{selfId:store?.uid,isHost,registry:GAME_REGISTRY}));
  const area=create('section','v2-room-lobby');
  const heading=create('h2','','ルーム '+snapshot.roomCode);
  heading.dataset.roomCode=snapshot.roomCode;heading.id='shared-code';area.append(heading);
@@ -302,6 +304,7 @@ async function showMatchSummary(snapshot,area){
 function renderResults(snapshot){
  if(screen==='results'&&snapshot.match?.matchId===activeMatchId)return;
  screen='results';clearSession();activeMatchId=snapshot.match?.matchId||'';
+ msg(matchNotice(roomCode,{phase:'results'}));
  const area=create('section','v2-menu');
  const game=snapshot.match?.gameId&&GAME_REGISTRY.has(snapshot.match.gameId)?
   GAME_REGISTRY.get(snapshot.match.gameId):null;
@@ -316,6 +319,7 @@ function renderResults(snapshot){
 function renderSpectator(snapshot){
  if(screen==='spectator'&&activeMatchId===snapshot.match.matchId)return;
  clearSession();activeMatchId=snapshot.match.matchId;screen='spectator';
+ msg(matchNotice(roomCode,{phase:'spectator'}));
  const area=create('section','v2-menu');
  area.append(create('h2','','対戦終了まで待機中'));
  area.append(create('p','','ルーム '+snapshot.roomCode+' はそのままです。'));
@@ -327,6 +331,7 @@ function beginMatch(snapshot){
  if(activeMatchId===id&&session)return;
  clearSession();
  activeMatchId=id;screen='match';
+ msg(matchNotice(roomCode,{gameLabel:GAME_REGISTRY.get(snapshot.match.gameId).label}));
  const guest=createRoomMatchGuest({store,roomCode,matchId:id});
  session=createRoomSession({game:snapshot.match.gameId,guest});
  renderer=createTableRenderer(main,{onAction:action=>{
