@@ -929,6 +929,51 @@ try{
  await spectatorHost.f.locator('button[data-action="memory-opponent-3"]').tap();
  await spectatorHost.f.locator('button[data-action="memory-opponent-3"].v2-active')
   .waitFor({timeout:18000});
+ await spectatorHost.f.locator('.v2-seat-matchup').filter({hasText:'P1 VS P3'})
+  .waitFor({timeout:18000});
+ // This is a real four-person Firebase room, not a mock DOM specimen. Check
+ // the host picker in short embedded iPad landscapes and keep all controls
+ // finger-sized and scroll-reachable.
+ for(const size of [{width:800,height:450},{width:667,height:375},
+  {width:667,height:300}]){
+  await spectatorHost.page.setViewportSize(size);
+  const layout=await spectatorHost.f.locator('body').evaluate(()=>{
+   const lobby=document.querySelector('.v2-room-lobby');
+   lobby.scrollTop=lobby.scrollHeight;
+   const area=lobby.getBoundingClientRect();
+   const optionButtons=[...lobby.querySelectorAll('.v2-seat-picker button')];
+   const pressed=optionButtons.filter(b=>b.getAttribute('aria-pressed')==='true');
+   const rects=optionButtons.map(b=>b.getBoundingClientRect());
+   const footer=lobby.querySelector('.v2-room-actions').getBoundingClientRect();
+   return {options:optionButtons.length,active:pressed.map(x=>x.dataset.action),
+    labels:optionButtons.map(x=>x.textContent),
+    role:lobby.querySelector('.v2-seat-role')?.textContent,
+    matchup:lobby.querySelector('.v2-seat-matchup')?.textContent,
+    spectators:lobby.querySelector('.v2-seat-spectators')?.textContent,
+    minHeight:Math.min(...rects.map(x=>x.height)),
+    left:Math.min(...rects.map(x=>x.left)),right:Math.max(...rects.map(x=>x.right)),
+    footerTop:footer.top,footerBottom:footer.bottom,
+    lobbyTop:area.top,lobbyRight:area.right,lobbyBottom:area.bottom,
+    scrollable:lobby.scrollHeight>lobby.clientHeight,
+    overflowY:getComputedStyle(lobby).overflowY};
+  });
+  await spectatorHost.page.screenshot({path:resolve('dist/v2-screens',
+   'online-two-seat-picker-'+engine+'-'+size.width+'x'+size.height+'.png')});
+  assert.equal(layout.options,3,'Every guest must be an opponent option');
+  assert.deepEqual(layout.active,['memory-opponent-3']);
+  assert.match(layout.matchup,/P1 VS P3/);
+  assert.match(layout.spectators,/P2・P4/);
+  assert.match(layout.role,/対戦メンバー/);
+  assert.ok(layout.minHeight>=43.5&&layout.left>=-2&&
+   layout.right<=layout.lobbyRight+2,
+   'TWO_SEAT_PICKER_TOO_SMALL_OR_CLIPPED '+JSON.stringify(layout));
+  assert.ok(layout.footerTop>=layout.lobbyTop-2&&
+   layout.footerBottom<=layout.lobbyBottom+2,
+   'TWO_SEAT_LOBBY_CONTROLS_NOT_REACHABLE '+JSON.stringify(layout));
+  assert.ok(!layout.scrollable||layout.overflowY==='auto',
+   'TWO_SEAT_PICKER_MUST_BE_SCROLLABLE '+JSON.stringify(layout));
+ }
+ await spectatorHost.page.setViewportSize({width:800,height:450});
  await spectatorHost.f.locator('body').evaluate(()=>new Promise((resolve,reject)=>{
   const started=Date.now(),id=setInterval(()=>{
    if(window.TRUMP_V2_ONLINE_LAB.room?.participants?.length===2){
@@ -946,6 +991,16 @@ try{
  const chosenIndex=guestUids.indexOf(lobby4.members[2]);
  assert.ok(chosenIndex>=0);
  const chosen=others[chosenIndex],watchers=others.filter((p,i)=>i!==chosenIndex);
+ await chosen.f.locator('.v2-seat-role').filter({hasText:'対戦メンバー'})
+  .waitFor({timeout:18000});
+ for(const p of watchers){
+  await p.f.locator('.v2-seat-role').filter({hasText:'観戦'})
+   .waitFor({timeout:18000});
+  assert.equal(await p.f.locator('button[data-action="ready"]').count(),0,
+   'A spectator must not be asked to ready for someone else\'s match');
+  assert.match(await p.f.locator('#notice').textContent(),/観戦/,
+   'A spectator must know their role before the game starts');
+ }
  for(const page of [spectatorHost,chosen]){
   await page.f.locator('button[data-action="ready"]').tap();
   await page.f.locator('button[data-action="ready"]').filter({hasText:'準備を解除'}).waitFor({timeout:18000});
