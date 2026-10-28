@@ -23,6 +23,9 @@ test('Every built-in game declares identity and hand order without shell game-ID
  }
  assert.equal(gamePresentation(GAME_REGISTRY.get('daifugo')).handOrder,'strength');
  assert.equal(gamePresentation(GAME_REGISTRY.get('shichinarabe')).handOrder,'suit');
+ assert.ok(specs.every(spec=>spec.onlineReady===true),
+  'existing four fully integrated online games remain selectable');
+ assert.deepEqual(specs.filter(spec=>spec.onlineReady).map(spec=>spec.id),ids);
 });
 test('New games can omit presentation metadata without changing common UI code',()=>{
  const base={id:'sample-game',label:'追加ゲーム',seats:2,boardKind:'sample',
@@ -31,6 +34,9 @@ test('New games can omit presentation metadata without changing common UI code',
  const registry=createGameRegistry([base]);
  assert.deepEqual(gamePresentation(registry.get('sample-game')),
   {icon:'🃏',tagline:'',handOrder:'suit'});
+ assert.equal(registry.get('sample-game').onlineReady,undefined,
+  'new games are not offered online before integration');
+ assert.throws(()=>createGameRegistry([{...base,onlineReady:'yes'}]),/INVALID_GAME_ONLINE_READY/);
  const withUi=createGameRegistry([{...base,ui:{icon:'⭐',tagline:'サンプル',handOrder:'strength'}}]);
  assert.equal(gamePresentation(withUi.get('sample-game')).handOrder,'strength');
  assert.equal(Object.isFrozen(withUi.get('sample-game').ui),true);
