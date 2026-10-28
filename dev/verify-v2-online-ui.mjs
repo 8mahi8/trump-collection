@@ -290,7 +290,13 @@ try{
    throw Error('DAIFUGO_SUIT_TOGGLE_NOT_SORTED');
  });
  await duoOwner.f.locator('.v2-sort-button').tap();
- console.log('V2 DAIFUGO HAND SORT ORDER PASS '+engine+' strength+suitToggle');
+ // Field context must be present without changing authority state.
+ for(const p of [duoOwner,duoFriend]){
+  assert.equal(await p.f.locator('.v2-field-title').textContent(),'場のカード');
+  assert.equal(await p.f.locator('.v2-field-meta').count(),1);
+  assert.equal(await p.f.locator('.v2-selection-help').count(),1);
+ }
+ console.log('V2 DAIFUGO HAND SORT ORDER PASS '+engine+' strength+suitToggle + fieldContext');
  // Capture the restored physical playing cards in Daifugo, at iPad sizes.
  for(const size of [{width:800,height:450},{width:667,height:375}]){
   await duoOwner.page.setViewportSize(size);
@@ -382,6 +388,18 @@ try{
       selectionAdvanced:true,scrollSame:true,oneSelected:true},
      'touching one Daifugo card must NOT rebuild the board/hand');
      selectionFastPathVerified=true;
+     const hint=await page.f.locator('.v2-selection-help').textContent();
+     assert.match(hint,/出せます|あと[0-9]+枚/, 'selection must explain valid or partial move');
+     await page.f.locator('[data-action="clear"]').tap();
+     const reset=await page.f.locator('body').evaluate(()=>({
+      selected:document.querySelectorAll('.v2-hand .v2-selected').length,
+      renderVersion:document.querySelector('.v2-table').dataset.renderVersion,
+      hint:document.querySelector('.v2-selection-help').textContent
+     }));
+     assert.equal(reset.selected,0);
+     assert.equal(reset.renderVersion,window.__v2SelectReference?.renderVersion);
+     await card.tap({timeout:9000}); // Restore the first card before completing this legal move.
+     assert.equal(await page.f.locator('.v2-hand .v2-selected').count(),1);
      console.log('V2 CARD SELECTION FAST PATH PASS '+engine+
       ' stableBoard=true stableHand=true noFullRepaint=true');
     }
@@ -565,6 +583,22 @@ try{
  }
  await duoOwner.f.locator('button[data-action="start"]:not([disabled])').tap({timeout:18000});
  await Promise.all(duel.map(p=>p.f.locator('.v2-memory').waitFor({timeout:18000})));
+ await duoOwner.page.setViewportSize({width:667,height:375});
+ const compactMemory=await duoOwner.f.locator('body').evaluate(()=>{
+  const grid=document.querySelector('.v2-memory');
+  const board=document.querySelector('.v2-board').getBoundingClientRect();
+  const hand=document.querySelector('.v2-hand').getBoundingClientRect();
+  const actions=document.querySelector('.v2-actions').getBoundingClientRect();
+  return {cols:getComputedStyle(grid).gridTemplateColumns.split(' ').length,
+   tileCount:grid.children.length,boardBottom:board.bottom,handTop:hand.top,
+   actionsBottom:actions.bottom,height:innerHeight};
+ });
+ assert.equal(compactMemory.cols,8,'small landscape Memory should be 8x3, not clipped 6x4');
+ assert.equal(compactMemory.tileCount,24);
+ assert.ok(compactMemory.boardBottom<=compactMemory.handTop+3,JSON.stringify(compactMemory));
+ assert.ok(compactMemory.actionsBottom<=compactMemory.height+4,JSON.stringify(compactMemory));
+ await duoOwner.page.screenshot({path:resolve('dist/v2-screens','online-memory-'+engine+'-667x375.png')});
+ await duoOwner.page.setViewportSize({width:800,height:450});
  const remembered=new Map(),memoryStarted=Date.now();
  let memoryHumanFlips=0;
  for(let steps=0;steps<220;steps++){
