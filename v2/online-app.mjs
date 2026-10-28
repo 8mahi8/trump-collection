@@ -234,6 +234,7 @@ function renderLobby(snapshot){
   const detail=create('span','v2-game-tagline',
    labGames.has(spec.id)?visual.tagline:'準備中');
   b.append(name,detail);
+  b.setAttribute('aria-pressed',String(spec.id===snapshot.selectedGame));
   if(spec.id===snapshot.selectedGame)b.classList.add('v2-active');
   picker.append(b);
  }
@@ -253,21 +254,29 @@ function renderLobby(snapshot){
    area.append(pick);
   }
  }
+ const controls=create('div','v2-room-actions');
  if(snapshot.selectedGame){
   const meInMatch=snapshot.participants.includes(store.uid);
   area.append(create('p','v2-help',
    '人間：'+snapshot.participants.filter(id=>snapshot.members.includes(id)).length+'人 ／ CPU：'+
    snapshot.participants.filter(id=>isCpuSeat(snapshot,id)).length+'人'));
-  if(meInMatch)area.append(button(snapshot.ready.includes(store.uid)?'準備を解除':'準備完了',
-   'ready',()=>isHost?
-    hostAction('setReady',{ready:!snapshot.ready.includes(store.uid)}):guestReady()));
+  if(meInMatch){
+   const ready=button(snapshot.ready.includes(store.uid)?'準備を解除':'準備完了',
+    'ready',()=>isHost?
+     hostAction('setReady',{ready:!snapshot.ready.includes(store.uid)}):guestReady());
+   ready.setAttribute('aria-pressed',String(snapshot.ready.includes(store.uid)));
+   controls.append(ready);
+  }
   if(isHost){
    const enough=snapshot.participants.length===GAME_REGISTRY.get(snapshot.selectedGame).seats &&
     snapshot.participants.every(id=>isCpuSeat(snapshot,id)||snapshot.ready.includes(id));
-   area.append(button('対局開始','start',()=>hostAction('startMatch'),!enough));
+   controls.append(button('対局開始','start',()=>hostAction('startMatch'),!enough));
   }
  }
- area.append(button('ルームを退出','leave-room',leave));
+ const exit=button('ルームを退出','leave-room',leave);
+ exit.classList.add('v2-leave-button');
+ controls.append(exit);
+ area.append(controls);
  main.replaceChildren(area);
 }
 async function showMatchSummary(snapshot,area){
