@@ -64,6 +64,15 @@
         "$other": {
           ".read": false,
           ".write": false
+        },
+        "chat": {
+          ".read": "root.child('trumpRoomsV2/' + $room + '/lobby').exists()",
+          "$uid": {
+            "$slot": {
+              ".write": "root.child('trumpRoomsV2/' + $room + '/lobby').exists() && newData.exists() && $slot.matches(/^[0-9]$/)",
+              ".validate": "newData.hasChildren(['actor','id','text','time']) && newData.child('actor').val() === $uid && newData.child('id').isString() && newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 120 && newData.child('time').isNumber()"
+            }
+          }
         }
       }
     }
