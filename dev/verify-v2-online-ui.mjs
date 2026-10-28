@@ -543,10 +543,23 @@ try{
        const row=document.querySelector('.v2-backrow');
        const cards=[...row.querySelectorAll('button.v2-card')];
        const rects=cards.map(c=>c.getBoundingClientRect());
+       // Layout fixture only: pair feedback is RNG-dependent in a match, so
+       // temporarily render the same feedback element and immediately remove
+       // it. This never changes rules or Firebase state.
+       const draw=document.querySelector('.v2-draw');
+       const existing=draw.querySelector('.v2-result-note');
+       const note=existing||document.createElement('p');
+       if(!existing){
+        note.className='v2-result-note';note.textContent='ペア成立！';
+        draw.append(note);
+       }
+       const noteRect=note.getBoundingClientRect();
+       if(!existing)note.remove();
        return {count:cards.length,boardTop:board.top,boardBottom:board.bottom,
         minTop:Math.min(...rects.map(r=>r.top)),
         maxBottom:Math.max(...rects.map(r=>r.bottom)),
-        minWidth:Math.min(...rects.map(r=>r.width))};
+        minWidth:Math.min(...rects.map(r=>r.width)),
+        noteTop:noteRect.top,noteBottom:noteRect.bottom};
       });
       await player.page.screenshot({path:resolve('dist/v2-screens',
        'classic-babanuki-'+engine+'-'+size.width+'x'+size.height+'.png')});
@@ -555,6 +568,9 @@ try{
       assert.ok(drawLayout.minTop>=drawLayout.boardTop-2&&
        drawLayout.maxBottom<=drawLayout.boardBottom+2,
        'Babanuki opponent cards are clipped '+JSON.stringify(drawLayout));
+      assert.ok(drawLayout.noteTop>=drawLayout.boardTop-2&&
+       drawLayout.noteBottom<=drawLayout.boardBottom+2,
+       'Babanuki pair feedback is clipped '+JSON.stringify(drawLayout));
      }
      babanukiLayoutChecked=true;
     }
