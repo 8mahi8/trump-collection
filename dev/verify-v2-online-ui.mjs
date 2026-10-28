@@ -159,6 +159,11 @@ try{
    const picker=lobby.querySelector('.v2-game-picker');
    if(!picker||picker.querySelectorAll('button').length!==4)
     throw Error('LOBBY_FOUR_GAME_PICKER_MISSING');
+   if(picker.querySelectorAll('.v2-game-name').length!==4||
+      picker.querySelectorAll('.v2-game-tagline').length!==4)
+    throw Error('LOBBY_GAME_PRESENTATION_MISSING');
+   if(getComputedStyle(document.querySelector('.v2-explain')).display==='none')
+    throw Error('NETWORK_STATUS_HIDDEN_ON_SMALL_IPAD');
    const exit=lobby.querySelector('button[data-action="leave-room"]')?.getBoundingClientRect();
    if(!exit||exit.bottom>r.bottom-2||exit.top<r.top)
     throw Error('LOBBY_EXIT_BUTTON_OFF_SCREEN');
@@ -297,6 +302,18 @@ try{
   assert.equal(await p.f.locator('.v2-selection-help').count(),1);
  }
  console.log('V2 DAIFUGO HAND SORT ORDER PASS '+engine+' strength+suitToggle + fieldContext');
+ // Touch usability: a card edge must remain wide enough to hit without
+ // perfect finger accuracy; long hands can use horizontal scrolling.
+ await duoOwner.page.setViewportSize({width:667,height:375});
+ const cardTargets=await duoOwner.f.locator('body').evaluate(()=>{
+  const cards=[...document.querySelectorAll('.v2-handcard')],hand=document.querySelector('.v2-hand');
+  return {cards:cards.length,step:cards.length>1?
+   cards[1].getBoundingClientRect().left-cards[0].getBoundingClientRect().left:null,
+   width:hand.clientWidth,scrollWidth:hand.scrollWidth};
+ });
+ assert.ok(cardTargets.cards>1);
+ assert.ok(cardTargets.step>=40,'TOUCH_CARD_EDGE_TOO_NARROW '+JSON.stringify(cardTargets));
+ await duoOwner.page.setViewportSize({width:800,height:450});
  // Capture the restored physical playing cards in Daifugo, at iPad sizes.
  for(const size of [{width:800,height:450},{width:667,height:375}]){
   await duoOwner.page.setViewportSize(size);
@@ -481,6 +498,7 @@ try{
    await duoOwner.page.setViewportSize({width:800,height:450});
   }
   let attempts=0,botTurns=0,humanMoves=0,lastRevision=-1;
+  let sevensLegalInputChecked=false;
   const start=Date.now();
   while(Date.now()-start<68000&&attempts<180){
    const current=await duoOwner.f.locator('body').evaluate(()=>{
@@ -522,6 +540,20 @@ try{
      .nth(index).tap({timeout:9000});
    }else if(game==='shichinarabe'){
     const id=actual.view.legal.playIds[0];
+    if(id&&!sevensLegalInputChecked){
+     const proof=await player.f.locator('body').evaluate(()=>{
+      const legal=new Set(window.TRUMP_V2_ONLINE_LAB.view.legal.playIds);
+      const hand=[...document.querySelectorAll('.v2-handcard')];
+      return {legal:hand.filter(el=>legal.has(el.dataset.card)).length,
+       illegal:hand.filter(el=>!legal.has(el.dataset.card)).length,
+       invalidEnabled:hand.filter(el=>!legal.has(el.dataset.card)&&!el.disabled).length,
+       status:document.querySelector('.v2-status')?.textContent};
+     });
+     assert.ok(proof.legal>0,'no legal card found for seven input test');
+     assert.equal(proof.invalidEnabled,0,'Sevens illegal cards must not be selectable');
+     assert.match(proof.status,/七並べ/, 'game identity remains visible');
+     sevensLegalInputChecked=true;
+    }
     if(id){
      await player.f.locator('.v2-handcard[data-card="'+id+'"]:not([disabled])').tap({timeout:9000});
      await player.f.locator('.v2-action[data-action="submit"]:not([disabled])').tap({timeout:9000});
