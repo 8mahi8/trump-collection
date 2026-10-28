@@ -1,17 +1,15 @@
-// Sort cards for actual player decisions, not plain numeric 1..13 order.
-// Daifugo: 3 < 4 < ... < K < A < 2 < Joker (matches games.mjs rankValue).
-// Alternate suit order intentionally groups the suits for small iPad hands.
-export const daifugoStrength = c => c.joker?13:
- c.rank===1?11:c.rank===2?12:c.rank-3;
+// Card ordering is owned by the registered game plugin. The same generic
+// sorter powers all card games; a fifth game can provide its own rank hook.
+import {GAME_REGISTRY} from '../games/definitions.mjs';
+export {daifugoStrength} from '../games/card-ranks.mjs';
+
 export const cardSuitOrder = c => c.joker?4:c.suit;
-export function sortHandForGame(hand,game,{bySuit=false}={}){
+export function sortHandForGame(hand,game,{bySuit=false,registry=GAME_REGISTRY}={}){
  if(!Array.isArray(hand))throw Error('INVALID_HAND');
- const strength=game==='daifugo';
- const rank=c=>c.joker?99:strength?daifugoStrength(c):c.rank;
+ const spec=registry.get(game);
+ const rank=c=>c.joker?99:spec.sortRank?spec.sortRank(c):c.rank;
  return [...hand].sort((a,b)=>{
-  if(bySuit){
-   return cardSuitOrder(a)-cardSuitOrder(b)||rank(a)-rank(b);
-  }
+  if(bySuit)return cardSuitOrder(a)-cardSuitOrder(b)||rank(a)-rank(b);
   return rank(a)-rank(b)||cardSuitOrder(a)-cardSuitOrder(b);
  });
 }
