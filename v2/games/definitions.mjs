@@ -3,6 +3,7 @@
 // instead of copying the CPU and online applications.
 import * as G from '../../games.mjs';
 import {createGameRegistry} from '../core/game-registry.mjs';
+import {babanukiRemoteCpu,shichinarabeRemoteCpu,daifugoRemoteCpu} from './remote-cpu.mjs';
 
 const cards=hand=>(hand||[]).map(c=>c?.joker?{joker:true}:{suit:c.suit,rank:c.rank});
 const legal=()=>({drawIndices:[],playIds:[],playMoves:[],flipIndices:[],canPass:false});
@@ -17,6 +18,7 @@ const fieldBoard=s=>({
 
 const babanuki={
  id:'babanuki',label:'ババ抜き',seats:4,boardKind:'draw',interaction:'draw',actions:['draw','rematch'],
+ remoteCpuChoose:babanukiRemoteCpu,
  onlineReady:true,
  ui:{icon:'🃏',tagline:'ジョーカーを最後に残さない',handOrder:'suit'},
  createLocal:(seed)=>G.createBabanuki(seed,4),
@@ -46,6 +48,7 @@ const babanuki={
 };
 const shichinarabe={
  id:'shichinarabe',label:'七並べ',seats:4,boardKind:'seven',interaction:'pick-one',actions:['play','pass','rematch'],
+ remoteCpuChoose:shichinarabeRemoteCpu,
  onlineReady:true,
  ui:{icon:'♠',tagline:'7から札をつなげていこう',handOrder:'suit'},
  createLocal:(seed)=>G.createShichinarabe(seed,4),
@@ -78,6 +81,7 @@ const shinkei={
 };
 const daifugo={
  id:'daifugo',label:'大富豪',seats:4,boardKind:'field',interaction:'pick-multi',actions:['play','pass','rematch'],
+ remoteCpuChoose:daifugoRemoteCpu,
  onlineReady:true,
  ui:{icon:'👑',tagline:'強い組み合わせで場を制そう',handOrder:'strength'},
  createLocal:(seed,options={})=>G.createDaifugo(seed,options.rules||G.DAIFUGO_DEFAULTS),
