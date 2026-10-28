@@ -1,5 +1,16 @@
 # トランプコレクション V2｜ロビー状況表示の品質改善（2026-10-29）
 
+## 最終検証結果（PASS）
+- **Foundation:** [GitHub Actions #40720234664](https://github.com/8mahi8/trump-collection/actions/runs/40720234664) **188/188 PASS**。ロビー状態案内とゲスト全員準備の期待値を含む。
+- **RTDB Emulator + Chromium/WebKit 4ゲーム連戦:** [#40720160562](https://github.com/8mahi8/trump-collection/actions/runs/40720160562) **SUCCESS**。大富豪→ババ抜き→七並べ→神経衰弱の連戦、4席にCPU補充、ルーム無認証チャット双方向、スワイプ可能なカードUI、再描画無しカード選択、七並べ4行の表示も両エンジンでPASS。
+- **Memory CPU Browser:** [#40720160777](https://github.com/8mahi8/trump-collection/actions/runs/40720160777) **SUCCESS**。
+- **実スクリーンショット取得・目視:** Actions artifact `12829454322` の `online-lobby-webkit-667.png` に「部屋 86909 · ババ抜き · 準備完了を押そう」が表示され、旧「ルームを作成しています…」誤表示は解消。`online-chat-webkit-667x375.png` の入力欄・送信・閉じる操作は表示領域内。`online-results-webkit-667x375.png` の順位4名と「ロビーに戻る」操作は見切れなし。Chromium側もブラウザE2E座標テストPASS。
+- **残課題:** 学校のiPad Safariで本物のGoogle Sites埋め込みHTMLを貼った場合の最終体感と、複数友人端末の接続品質は未確認。ブラウザE2EはGoogle Sites型の隔離iframeとFirebase Emulatorであり、本番データベースへの書き込み・Rules変更を行っていない。
+
+---
+
+
+
 ## 現物から見つかった問題
 [オンラインUI総合成功 #40715035198](https://github.com/8mahi8/trump-collection/actions/runs/40715035198) のWebKit・Chromiumスクリーンショットを取得して再確認。ロビーの4ゲームタイル、ルーム番号、準備完了、チャット、退出操作のレイアウトは成立していたが、**部屋の作成が終わっているのに、上部ステータスに「ルームを作成しています…」が残り続ける**誤報を確認した。ネットワークが遅いように誤解させる。
 
