@@ -490,11 +490,27 @@ try{
   if(game==='shichinarabe'){
    const count=await duoOwner.f.locator('.v2-seven-cell').count();
    assert.equal(count,52,'Sevens must keep 4 rows x 13 card slots');
-   for(const size of [{width:800,height:450},{width:667,height:375}]){
+   for(const size of [{width:800,height:450},{width:667,height:375},
+    {width:667,height:300}]){
     await duoOwner.page.setViewportSize(size);
+    const grid=await duoOwner.f.locator('body').evaluate(()=>{
+     const board=document.querySelector('.v2-board').getBoundingClientRect();
+     const rows=[...document.querySelectorAll('.v2-seven-row')];
+     const first=rows[0]?.getBoundingClientRect();
+     const last=rows[3]?.getBoundingClientRect();
+     return {rowCount:rows.length,boardTop:board.top,boardBottom:board.bottom,
+      firstTop:first?.top,lastBottom:last?.bottom,
+      boardHeight:board.height,viewportHeight:innerHeight};
+    });
     await duoOwner.page.screenshot({path:resolve('dist/v2-screens',
-     'classic-seven-'+engine+'-'+size.width+'.png')});
+     'classic-seven-'+engine+'-'+size.width+'x'+size.height+'.png')});
+    assert.equal(grid.rowCount,4,'Sevens must have four suit rows');
+    assert.ok(grid.firstTop>=grid.boardTop-2&&
+     grid.lastBottom<=grid.boardBottom+2,
+     'SEVENS_FOURTH_SUIT_CLIPPED '+JSON.stringify(grid));
    }
+   console.log('V2 SEVENS ALL FOUR SUITS VISIBLE PASS '+engine+
+    ' sizes=800x450,667x375,667x300');
    await duoOwner.page.setViewportSize({width:800,height:450});
   }
   let attempts=0,botTurns=0,humanMoves=0,lastRevision=-1;
