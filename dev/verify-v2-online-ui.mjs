@@ -107,6 +107,24 @@ try{
   await guest.f.locator('button[data-action="join-room"]').tap();
  }
  await Promise.all(group.map(p=>p.f.locator('.v2-roster .v2-player').nth(3).waitFor({timeout:28000})));
+ // V1 chat must survive the V2 room rewrite, without any authentication.
+ await owner.f.locator('button[data-action="chat-toggle"]').tap();
+ await group[1].f.locator('button[data-action="chat-toggle"]').tap();
+ const lineText='<img src=x onerror=alert(1)>';
+ await owner.f.locator('.v2-chat-input').fill(lineText);
+ await owner.f.locator('.v2-chat-send').tap();
+ await group[1].f.locator('.v2-chat-line').filter({hasText:lineText}).waitFor({timeout:18000});
+ assert.equal(await group[1].f.locator('.v2-chat-history img').count(),0,
+  'message text MUST NOT become executable DOM');
+ const chatDOM=await group[1].f.locator('.v2-chat-history').textContent();
+ assert.ok(chatDOM.includes(lineText));
+ await group[1].f.locator('.v2-chat-input').fill('学校で遊ぼう');
+ await group[1].f.locator('.v2-chat-send').tap();
+ await owner.f.locator('.v2-chat-line').filter({hasText:'学校で遊ぼう'})
+  .waitFor({timeout:18000});
+ await Promise.all([owner,group[1]].map(p=>p.f.locator('.v2-chat-close').tap()));
+ assert.equal(traffic.auth,0);
+ console.log('V2 NO-AUTH ROOM CHAT UI PASS '+engine+' two-way+escaped+bounded');
  await owner.f.locator('button[data-action="game-babanuki"]').tap();
  await owner.f.locator('button[data-action="ready"]').waitFor();
  // Keep a real visual proof of the lobby on the narrower school-style iPad.
@@ -244,6 +262,23 @@ try{
   assert.equal(players.filter(p=>p.isCpu).length,2);
   assert.equal(await page.f.locator('.v2-players .v2-player').filter({hasText:'CPU'}).count(),2);
  }
+ // Daifugo must be 3,4,...,K,A,2,Joker, not generic A,2,3.
+ await duoOwner.f.locator('body').evaluate(()=>{
+  const ranks=[...document.querySelectorAll('.v2-handcard')].map(card=>{
+   const key=card.dataset.card;return key==='JK'?13:((Number(key.split('-')[1])+10)%13);
+  });
+  if(ranks.length<2||ranks.some((x,i)=>i>0&&x<ranks[i-1]))
+   throw Error('DAIFUGO_HAND_NOT_SORTED_BY_STRENGTH '+JSON.stringify(ranks));
+ });
+ await duoOwner.f.locator('.v2-sort-button').tap();
+ await duoOwner.f.locator('body').evaluate(()=>{
+  const suits=[...document.querySelectorAll('.v2-handcard')].map(card=>
+   card.dataset.card==='JK'?4:Number(card.dataset.card.split('-')[0]));
+  if(suits.some((x,i)=>i>0&&x<suits[i-1]))
+   throw Error('DAIFUGO_SUIT_TOGGLE_NOT_SORTED');
+ });
+ await duoOwner.f.locator('.v2-sort-button').tap();
+ console.log('V2 DAIFUGO HAND SORT ORDER PASS '+engine+' strength+suitToggle');
  // Capture the restored physical playing cards in Daifugo, at iPad sizes.
  for(const size of [{width:800,height:450},{width:667,height:375}]){
   await duoOwner.page.setViewportSize(size);
