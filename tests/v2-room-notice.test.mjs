@@ -29,7 +29,7 @@ test('Spectators and future registered two-seat games do not require extra UI st
  assert.match(roomNotice(match,options),/神経衰弱 · 全員準備OK/);
  assert.match(roomNotice(match,{...options,selfId:'third',isHost:false}),/入室確認中/);
  const watched=room({selectedGame:'shinkei',participants:[host,'cpu1'],members:[host,guest],ready:[host]});
- assert.match(roomNotice(watched,{...options,selfId:guest,isHost:false}),/対戦中の友達がプレイします/);
+ assert.match(roomNotice(watched,{...options,selfId:guest,isHost:false}),/今回は観戦（準備不要）/);
 });
 test('Match, spectator and result notices reflect current phase',()=>{
  assert.match(matchNotice('12345',{gameLabel:'大富豪'}),/大富豪 · オンライン対戦中/);
