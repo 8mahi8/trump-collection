@@ -188,3 +188,54 @@
  .v2-room-lobby .v2-lobby-instruction,
  .v2-room-lobby .v2-lobby-count{display:none}
 }
+
+/* All 2-seat plugins use this lineup panel; no special Memory rules here.
+   The host chooses one guest, and everyone can see players and spectators. */
+.v2-room-lobby .v2-seat-section{
+ display:flex;flex-direction:column;align-items:center;gap:3px;
+ width:min(520px,100%);flex:none;padding:5px 7px;
+ border:1px solid #9fbea86e;border-radius:10px;
+ background:#0c372bc9
+}
+.v2-seat-heading{font-size:13px;font-weight:850;color:#ffe8a8}
+.v2-seat-matchup{margin:0!important;font-size:15px!important;
+ font-weight:900;color:#fff5cd!important;letter-spacing:.025em;
+ line-height:1.2;text-align:center}
+.v2-seat-spectators,.v2-seat-role{
+ margin:0!important;font-size:12px!important;line-height:1.2;
+ color:#d2e8d7!important;text-align:center
+}
+.v2-seat-role{color:#fff0bb!important;font-weight:750}
+.v2-seat-prompt{font-size:12px!important;font-weight:800;
+ color:#f5e7c5!important;margin:1px 0 0!important}
+.v2-room-lobby .v2-seat-picker{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:8px;width:100%
+}
+.v2-room-lobby .v2-seat-picker .v2-menu-button{
+ width:100%;min-width:0;min-height:44px;padding:6px 5px;
+ font-size:13px;line-height:1.12;background:#e2f2df;
+ color:#1c3826;border:1px solid #afd5b1;border-radius:9px
+}
+.v2-room-lobby .v2-seat-picker .v2-menu-button.v2-active{
+ background:#ffe19b;color:#342814;border:2px solid #fff5a6;
+ outline:2px solid #e9c85a;outline-offset:0
+}
+.v2-room-lobby .v2-seat-picker .v2-menu-button:focus-visible{
+ outline:3px solid #fff5b6;outline-offset:2px
+}
+@media(max-height:430px){
+ .v2-room-lobby .v2-seat-section{gap:2px;padding:4px 6px}
+ .v2-seat-heading{font-size:12px}
+ .v2-seat-matchup{font-size:14px!important}
+ .v2-seat-spectators,.v2-seat-role{font-size:11px!important}
+ .v2-room-lobby .v2-seat-picker{gap:6px}
+ .v2-room-lobby .v2-seat-picker .v2-menu-button{
+  min-height:44px;padding:5px 4px;font-size:12px
+ }
+ .v2-lobby-seats .v2-room-actions{
+  position:sticky;bottom:0;z-index:3;
+  padding:4px 2px 2px;border-radius:8px;
+  background:#124532;box-shadow:0 -5px 11px #062b216b
+ }
+}
