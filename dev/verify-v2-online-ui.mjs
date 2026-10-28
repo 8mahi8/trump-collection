@@ -620,17 +620,26 @@ try{
  const compactMemory=await duoOwner.f.locator('body').evaluate(()=>{
   const grid=document.querySelector('.v2-memory');
   const board=document.querySelector('.v2-board').getBoundingClientRect();
-  const hand=document.querySelector('.v2-hand').getBoundingClientRect();
+  const foot=document.querySelector('.v2-foot').getBoundingClientRect();
   const actions=document.querySelector('.v2-actions').getBoundingClientRect();
+  const tiles=[...grid.querySelectorAll('.v2-card')];
+  const tileRects=tiles.map(tile=>tile.getBoundingClientRect());
   return {cols:getComputedStyle(grid).gridTemplateColumns.split(' ').length,
-   tileCount:grid.children.length,boardBottom:board.bottom,handTop:hand.top,
+   tileCount:grid.children.length,boardBottom:board.bottom,footTop:foot.top,
+   tileMinTop:Math.min(...tileRects.map(r=>r.top)),
+   tileMaxBottom:Math.max(...tileRects.map(r=>r.bottom)),
    actionsBottom:actions.bottom,height:innerHeight};
  });
+ // A flip-only game intentionally has an EMPTY hand. The old assertion checked
+ // '.v2-hand'.getBoundingClientRect().top (zero when display:none), and made
+ // genuinely usable Memory layouts fail at 667x375.
+ await duoOwner.page.screenshot({path:resolve('dist/v2-screens','online-memory-'+engine+'-667x375.png')});
  assert.equal(compactMemory.cols,8,'small landscape Memory should be 8x3, not clipped 6x4');
  assert.equal(compactMemory.tileCount,24);
- assert.ok(compactMemory.boardBottom<=compactMemory.handTop+3,JSON.stringify(compactMemory));
+ assert.ok(compactMemory.boardBottom<=compactMemory.footTop+3,JSON.stringify(compactMemory));
+ assert.ok(compactMemory.tileMaxBottom<=compactMemory.boardBottom+2,JSON.stringify(compactMemory));
+ assert.ok(compactMemory.tileMinTop>=0,JSON.stringify(compactMemory));
  assert.ok(compactMemory.actionsBottom<=compactMemory.height+4,JSON.stringify(compactMemory));
- await duoOwner.page.screenshot({path:resolve('dist/v2-screens','online-memory-'+engine+'-667x375.png')});
  await duoOwner.page.setViewportSize({width:800,height:450});
  const remembered=new Map(),memoryStarted=Date.now();
  let memoryHumanFlips=0;
