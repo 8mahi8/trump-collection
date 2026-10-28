@@ -3,6 +3,7 @@ import {createBoardSurface,DEFAULT_BOARD_SURFACES} from './board-surfaces.mjs';
 import {makeCardFace} from './card-face.mjs';
 import {sortHandForGame} from './card-order.mjs';
 import {describeDaifugoSelection} from './turn-guidance.mjs';
+import {gamePresentation,turnHeading,turnPrompt} from './game-presentation.mjs';
 
 // Full render is reserved for NEW authoritative state. A local card tap must
 // not tear down the board, 52-card Sevens grid, player rows, or hand DOM.
@@ -30,7 +31,7 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
   if(!current)return;
   // No createElement / replaceChildren / JSON.stringify / Firebase requests.
   // Reuse the exact DOM nodes so taps keep their scroll and their card animation.
-  const advice=current.game==='daifugo'&&current.isMyTurn&&current.phase==='playing'?
+  const advice=spec.interaction==='pick-multi'&&current.isMyTurn&&current.phase==='playing'?
    describeDaifugoSelection(guidanceMoves,[...selected]):null;
   const followups=new Set(advice?.followups||[]);
   for(const b of $('v2-hand').children){
@@ -48,12 +49,12 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
   const clear=$('v2-hand-tools').querySelector('[data-action="clear"]');
   clear.hidden=count===0;clear.disabled=count===0;
   const hint=$('v2-selection-help');
-  hint.textContent=advice?.text||(current.isMyTurn&&current.phase==='playing'&&spec.interaction==='pick-one'?
-   (count?'✓ 選んだカードを出せます':current.legal.playIds.length?'光っているカードを選ぼう':'出せるカードはありません · パスできます'):'');
+  hint.textContent=turnPrompt(current,spec,{selected:[...selected],valid:canSubmit(),combo:advice});
   hint.classList.toggle('v2-feedback-warn',!!advice&&count>0&&!advice.possible);
   const handCount=current.hand?.length||0;
   $('v2-hand-label').textContent=handCount?
-   '自分の手札　'+handCount+'枚'+(count?'　／　選択中 '+count+'枚':''):'';
+   '手札 '+handCount+'枚'+(count?' · 選択 '+count+'枚':'')+
+   (handCount>=12?' · ↔ 横に動かせます':''):'';
   wrapper.dataset.selectionVersion=String(++selectionUpdates);
  }
  function render(view){
@@ -67,15 +68,13 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
   last=hash;
   spec=registry.get(view.game);
   wrapper.dataset.game=view.game;
-  $('v2-status').textContent=spec.label+'　'+
-   (view.phase==='finished'?'試合終了':view.isMyTurn?'あなたの番':
-    (view.players?.[view.turn]?.isCpu?'CPU'+((view.turn??0)+1):'プレイヤー'+((view.turn??0)+1))+' の番')+
-   (view.connection?.state==='connected'?'　●オンライン':view.connection?.state==='local'?'　●CPU戦':'');
+  $('v2-status').textContent=turnHeading(view,spec);
   const players=document.createDocumentFragment();
   for(const p of view.players){
    const tag=elem('span','v2-player'+(p.isYou?' v2-you':'')+(p.seat===view.turn?' v2-turn':''));
    const avatar=elem('span','v2-avatar',p.isYou?'🙂':p.isCpu?'🦊':'👤');
    const label=elem('span','v2-player-info',
+    (p.seat===view.turn&&view.phase==='playing'?'▶ ':'')+
     (p.isYou?'自分':p.isCpu?'CPU'+(p.seat+1):'P'+(p.seat+1))+
     (p.cardCount===null?'':' · '+p.cardCount+'枚')+
     (p.score===null?'':' · '+p.score+'点'));
@@ -86,9 +85,9 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
   playable=new Set();
   legalMoves=new Set();
   guidanceMoves=[];
-  if(view.game==='shichinarabe'){
+  if(spec.interaction==='pick-one'){
    for(const id of view.legal.playIds)playable.add(id);
-  }else if(view.game==='daifugo'){
+  }else if(spec.interaction==='pick-multi'){
    for(const move of view.legal.playMoves){
     legalMoves.add([...move].sort().join(','));
     guidanceMoves.push(new Set(move)); // once per authoritative render, not per tap
@@ -96,7 +95,7 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
    }
   }
   const hand=document.createDocumentFragment();
-  const defaultSuit=view.game!=='daifugo';
+  const defaultSuit=gamePresentation(spec).handOrder!=='strength';
   const bySuit=defaultSuit!==sortBySuit;
   const sorted=sortHandForGame(view.hand||[],view.game,{bySuit});
   const sortButton=$('v2-hand-tools').querySelector('[data-action="sort"]');
@@ -106,10 +105,12 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
    const key=cardKey(c),canPlay=playable.has(key)&&view.isMyTurn;
    const b=makeCardFace(c,{button:true});b.classList.add('v2-handcard');
    if(canPlay)b.classList.add('v2-legal');
-   if(view.isMyTurn&&playable.size&&!canPlay)b.classList.add('v2-dimmed');
+   if(view.isMyTurn&&['pick-one','pick-multi'].includes(spec.interaction)&&!canPlay)
+    b.classList.add('v2-dimmed');
    b.dataset.action='select';b.dataset.card=key;
    b.disabled=!view.isMyTurn||view.phase!=='playing'||
-    !['pick-one','pick-multi'].includes(spec.interaction);
+    !['pick-one','pick-multi'].includes(spec.interaction)||
+    (spec.interaction==='pick-one'&&!playable.has(key));
    hand.append(b);
   }
   $('v2-hand').replaceChildren(hand);
