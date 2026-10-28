@@ -18,8 +18,9 @@ export function roomNotice(snapshot,{selfId=null,isHost=false,registry}={}){
  if(!participants.includes(selfId))return room+' · '+spec.label+'を対戦中の友達がプレイします';
  if(!ready.includes(selfId))
   return room+' · '+spec.label+' · 準備完了を押そう';
- if(isHost&&participants.length===spec.seats&&readyHumans.length===humans.length)
-  return room+' · '+spec.label+' · 全員準備OK！対局開始';
+ if(participants.length===spec.seats&&readyHumans.length===humans.length)
+  return room+' · '+spec.label+(isHost?' · 全員準備OK！対局開始':
+   ' · 全員準備OK！ホストの開始待ち');
  return room+' · '+spec.label+' · 準備待ち '+count;
 }
 export function matchNotice(code,{gameLabel='',phase='playing'}={}){
