@@ -14,7 +14,7 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
  root.replaceChildren(wrapper);
  const $=cls=>wrapper.querySelector('.'+cls);
  let current=null,last='',selected=new Set(),lastRevision=null,paints=0,selectionUpdates=0;
- let playable=new Set(),legalMoves=new Set(),spec=null,sortBySuit=false,lastGame=null;
+ let playable=new Set(),legalMoves=new Set(),guidanceMoves=[],spec=null,sortBySuit=false,lastGame=null;
  const cardKey=c=>c?.joker?'JK':c.suit+'-'+c.rank;
  const elem=(tag,cls,text)=>{const e=document.createElement(tag);e.className=cls;e.textContent=text;return e;};
  const selectionSignature=()=>[...selected].sort().join(',');
@@ -31,7 +31,7 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
   // No createElement / replaceChildren / JSON.stringify / Firebase requests.
   // Reuse the exact DOM nodes so taps keep their scroll and their card animation.
   const advice=current.game==='daifugo'&&current.isMyTurn&&current.phase==='playing'?
-   describeDaifugoSelection(current.legal.playMoves,[...selected]):null;
+   describeDaifugoSelection(guidanceMoves,[...selected]):null;
   const followups=new Set(advice?.followups||[]);
   for(const b of $('v2-hand').children){
    const active=selected.has(b.dataset.card);
@@ -85,11 +85,13 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
   $('v2-board').replaceChildren(createBoardSurface(view,surfaces));
   playable=new Set();
   legalMoves=new Set();
+  guidanceMoves=[];
   if(view.game==='shichinarabe'){
    for(const id of view.legal.playIds)playable.add(id);
   }else if(view.game==='daifugo'){
    for(const move of view.legal.playMoves){
     legalMoves.add([...move].sort().join(','));
+    guidanceMoves.push(new Set(move)); // once per authoritative render, not per tap
     for(const id of move)playable.add(id);
    }
   }
