@@ -15,7 +15,10 @@ import {gamePresentation} from './ui/game-presentation.mjs';
 
 const $=id=>document.getElementById(id);
 const main=$('main'),notice=$('notice');
-const labGames=new Set(['babanuki','shichinarabe','daifugo','shinkei']);
+// Explicit readiness must be declared only after the game engine, online
+// authority, touch UI and Firebase paths pass their integration suite.
+const labGames=new Set(GAME_REGISTRY.list()
+ .filter(spec=>spec.onlineReady===true).map(spec=>spec.id));
 const create=(tag,cls='',label='')=>{
  const x=document.createElement(tag);if(cls)x.className=cls;
  if(label)x.textContent=label;return x;
