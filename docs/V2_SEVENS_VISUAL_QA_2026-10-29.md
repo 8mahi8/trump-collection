@@ -1,3 +1,14 @@
+## 【最終検証結果：PASS】
+**2026-10-29 更新**：最終コードコミット `3fae4965f297310d536ebba178c7bf5692426561` の [GitHub Actions #40715035198](https://github.com/8mahi8/trump-collection/actions/runs/40715035198) が **success**。実際のFirebase Realtime Database Emulator上で、ChromiumとWebKitの両方がババ抜き・七並べ・大富豪・神経衰弱の連続対戦を完走した。4人ルームからの神経衰弱2人選択、CPU補充、無認証チャット双方向、カード選択時のDOM非再構築もPASS。
+
+特に新增した `V2 SEVENS ALL FOUR SUITS VISIBLE PASS` と `V2 SEVENS ACTIVE CONTROLS + FOUR SUITS PASS` が **両エンジンでPASS**。画像もActions artifact `12827229995` から取得して実物を目視確認した。確認した画像：`classic-seven-active-webkit-667x300.png`、`classic-seven-active-webkit-667x375.png`、`classic-seven-active-webkit-800x450.png`、`online-memory-webkit-667x375.png`、`classic-babanuki-webkit-667x300.png`。4段が画面内に収まっており、神経衰弱の重複説明も解消していた。
+
+同一版の **[Foundation #40714960718](https://github.com/8mahi8/trump-collection/actions/runs/40714960718) success**、**[神経衰弱CPUブラウザ #40714960768](https://github.com/8mahi8/trump-collection/actions/runs/40714960768) success**（両者は最終ゲームコード `dacb63f7` 上。後続 `3fae4965` はE2E検証スクリプトのみの変更）。
+
+残る未検証は**学校iPad上の実Google Sites iframe**。実機体感が確認できるまで一般公開/Google Sites更新はしない。300px高は情報量が多いため文字がかなり小さくなる点も継続改善候補。
+
+---
+
 # トランプコレクション V2｜七並べの4段欠け修正とタッチ画面レビュー（2026-10-29）
 
 ## 発見の経緯
@@ -15,7 +26,7 @@
 
 ## 確認済み / 未確認を分ける
 - **確認済み**：変更前の実WebKit画像を目視し、表示欠けを具体的に発見。最初の修正版の不合格を Actions の失敗ログで確認。ローカルChromiumの静的な共通テーブル/手札/プレイ・パス付きレイアウトで幅667/800・高さ300/375/450pxを測定し、可変グリッドの4行が盤面内に収まることを確認（静的fixtureのみ）。変更したJSの構文解析、CSSの括弧整合を確認。
-- **CI最終結果**：最新のゲームコード・テストコミット `3fae4965f297310d536ebba178c7bf5692426561` に紐づく実行の合否を別途確認すること。実行時点ではまだ結果未確定。**過去の成功を最新改修の合格と扱わない。**
+- **CI最終結果**：後続の最終検証は上記PASS。前段階の実行時にはまだ結果未確定だった。最終コード・テストコミット `3fae4965f297310d536ebba178c7bf5692426561` に紐づく実行の合否を別途確認すること。実行時点ではまだ結果未確定。**過去の成功を最新改修の合格と扱わない。**
 - **学校iPad**：Google Sites iframe 実機は未確認。最終公開判定には Safari の表示/タップ/チャット/4ゲーム連戦が必要。
 
 ## 今後の品質チェック
