@@ -13,6 +13,8 @@
 3. **オンラインCPUの分岐削除**：`v2/games/remote-cpu.mjs` に既存ボットの挙動をそのまま移動。各ゲーム定義に `remoteCpuChoose` を登録。`v2/session/room-cpu-choice.mjs` は登録されたポリシーを呼ぶだけになった。CPUの見える情報は公開情報＋自分の手札のみという境界を維持。
 4. **手札並び順のゲーム名判定を削除**：`v2/games/card-ranks.mjs` に大富豪の強さ規則を移動し、各ゲームが任意の `sortRank` を登録可能に。`v2/ui/card-order.mjs` は新ゲームでも共通。
 5. **5本目の仮ゲーム試験**：`tests/v2-match-engine-catalog.test.mjs` と `tests/v2-fifth-game-extension.test.mjs`。定義だけ増やした新ゲームがオンラインで誤公開されないこと、ホストfactoryの登録で候補に入ること、ゲーム固有CPUとカード順位を共通ホスト/UIに手を入れずに追加できることを検証。
+6. **UIも含めた「誤公開防止」**：`v2/ui/online-readiness.mjs` の `onlineUiGames()` をロビー入口に設置。ゲームは「host engine登録」「remoteBoard/remoteLegal」「既存タップ操作方式」「該当盤面surface」が揃って初めて選択可能。`tests/v2-online-readiness.test.mjs` で、仮の5本目がエンジン未登録・盤面未実装・未知の操作方式ではロビーに出ないこと、全条件が揃えば一覧に出ることを検査。これは実際のゲームの完成を保証するものではなく、未完成ゲームの誤表示を防止するゲート。
+
 
 ## 外部資料との照合
 - [Robert Nystrom, Game Programming Patterns — Component](https://gameprogrammingpatterns.com/component.html)：ゲームルール・表示・通信を疎結合にしつつ、過度な抽象化は避けるという設計原則。今回、既存の動作保証された4ゲームの権威処理全体を作り直すことは避け、**登録場所と抽象契約だけ**を修正。
@@ -27,7 +29,7 @@
 3. **プラグイン**：`v2/games/definitions.mjs` に `id, label, seats, boardKind, interaction, actions, createLocal, localBoard, localLegal, localHand, localCounts, remoteBoard, remoteLegal` を持つ定義を追加。必要に応じ `ui,localMove,cpuChoose,remoteCpuChoose,sortRank` を登録。
 4. **オンライン権威エンジン**：既存ゲームの権威クラス/ファクトリーを参考に、public/privateの状態分離・command検証・CPUターンを実装。`v2/session/match-engine-catalog.mjs` にそのfactoryを**1件登録**。この作業は現状ゼロにはならない。
 5. **表示面**：既存 `boardKind` なら共有surfaceを再利用。新しい盤面なら `v2/ui/board-surfaces.mjs` へ表示関数を追加。新しいinteractionなら `table-renderer.mjs` と `room-session.mjs` の入力契約も拡張。
-6. **解禁**：新ゲームの単体＋オンラインエミュレーター＋Chromium/WebKitを合格させてから `onlineReady:true`。登録されていないfactoryなら、フラグを立ててもロビーに表示されない。
+6. **解禁**：新ゲームの単体＋オンラインエミュレーター＋Chromium/WebKitを合格させてから `onlineReady:true`。エンジンfactory・盤面surface・対応操作のどれかが不足していれば、フラグを立ててもロビーには表示されない。
 
 ## 残存する制約・次の優先順位
 - `online/four-seat-authority.mjs` の旧3ゲームadapterと `v2/session/two-player-memory-match.mjs` はまだ固有エンジン。**5本目に応じたホスト権威adapterは必要**で、「定義1つで新ゲームが完成」とは言えない。
