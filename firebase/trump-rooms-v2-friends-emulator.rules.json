@@ -61,10 +61,6 @@
             }
           }
         },
-        "$other": {
-          ".read": false,
-          ".write": false
-        },
         "chat": {
           ".read": "root.child('trumpRoomsV2/' + $room + '/lobby').exists()",
           "$uid": {
