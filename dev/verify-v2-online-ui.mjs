@@ -150,7 +150,9 @@ try{
   const close=document.querySelector('.v2-chat-close').getBoundingClientRect();
   return {left:box.left,top:box.top,right:box.right,bottom:box.bottom,
    height:innerHeight,width:innerWidth,inputBottom:input.bottom,
-   sendBottom:send.bottom,closeBottom:close.bottom};
+   inputHeight:input.height,sendBottom:send.bottom,sendHeight:send.height,
+   closeBottom:close.bottom,closeHeight:close.height,
+   messageFont:parseFloat(getComputedStyle(document.querySelector('.v2-chat-line')).fontSize)};
  });
  await owner.page.screenshot({path:resolve('dist/v2-screens',
   'online-chat-'+engine+'-667x375.png')});
@@ -160,6 +162,9 @@ try{
   chatLayout.sendBottom<=chatLayout.bottom+2&&
   chatLayout.closeBottom<=chatLayout.bottom+2,
   'CHAT_PANEL_CLIPPED '+JSON.stringify(chatLayout));
+ assert.ok(chatLayout.sendHeight>=43.5&&chatLayout.inputHeight>=43.5&&
+  chatLayout.closeHeight>=39.5&&chatLayout.messageFont>=12.5,
+  'CHAT_TOUCH_OR_TEXT_TOO_SMALL '+JSON.stringify(chatLayout));
  await owner.page.setViewportSize({width:800,height:450});
  await Promise.all([owner,group[1]].map(p=>p.f.locator('.v2-chat-close').tap()));
  assert.equal(traffic.auth,0);
