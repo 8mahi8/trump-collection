@@ -2,6 +2,7 @@ import {GAME_REGISTRY} from '../games/definitions.mjs';
 import {createBoardSurface,DEFAULT_BOARD_SURFACES} from './board-surfaces.mjs';
 import {makeCardFace} from './card-face.mjs';
 import {sortHandForGame} from './card-order.mjs';
+import {describeDaifugoSelection} from './turn-guidance.mjs';
 
 // Full render is reserved for NEW authoritative state. A local card tap must
 // not tear down the board, 52-card Sevens grid, player rows, or hand DOM.
@@ -9,7 +10,7 @@ import {sortHandForGame} from './card-order.mjs';
 export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY,surfaces=DEFAULT_BOARD_SURFACES}={}){
  if(!root||typeof root.replaceChildren!=='function')throw Error('INVALID_TABLE_ROOT');
  const wrapper=document.createElement('section');wrapper.className='v2-table';
- wrapper.innerHTML='<header class="v2-status" aria-live="polite"></header><div class="v2-players"></div><div class="v2-board"></div><div class="v2-foot"><div class="v2-hand-tools"><div class="v2-hand-label"></div><button class="v2-sort-button" type="button" data-action="sort" aria-label="手札の並べ方を切り替える">並べ替え</button></div><div class="v2-hand" aria-label="自分の手札"></div><div class="v2-actions"></div></div>';
+ wrapper.innerHTML='<header class="v2-status" aria-live="polite"></header><div class="v2-players"></div><div class="v2-board"></div><div class="v2-foot"><div class="v2-hand-tools"><div class="v2-hand-label"></div><button class="v2-sort-button" type="button" data-action="sort" aria-label="手札の並べ方を切り替える">並べ替え</button><button class="v2-clear-button" type="button" data-action="clear" aria-label="選択中のカードをすべて解除" hidden>選択解除</button></div><div class="v2-selection-help" aria-live="polite"></div><div class="v2-hand" aria-label="自分の手札"></div><div class="v2-actions"></div></div>';
  root.replaceChildren(wrapper);
  const $=cls=>wrapper.querySelector('.'+cls);
  let current=null,last='',selected=new Set(),lastRevision=null,paints=0,selectionUpdates=0;
@@ -29,14 +30,27 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
   if(!current)return;
   // No createElement / replaceChildren / JSON.stringify / Firebase requests.
   // Reuse the exact DOM nodes so taps keep their scroll and their card animation.
+  const advice=current.game==='daifugo'&&current.isMyTurn&&current.phase==='playing'?
+   describeDaifugoSelection(current.legal.playMoves,[...selected]):null;
+  const followups=new Set(advice?.followups||[]);
   for(const b of $('v2-hand').children){
    const active=selected.has(b.dataset.card);
    b.classList.toggle('v2-selected',active);
+   b.classList.toggle('v2-extension',!!advice&&selected.size>0&&!active&&followups.has(b.dataset.card));
    b.setAttribute('aria-pressed',String(active));
   }
   const submit=$('v2-actions').querySelector('[data-action="submit"]');
-  if(submit)submit.disabled=!canSubmit();
+  if(submit){
+   submit.disabled=!canSubmit();
+   if(spec.interaction==='pick-multi')submit.textContent=selected.size?selected.size+'枚を出す':'カードを出す';
+  }
   const count=selected.size;
+  const clear=$('v2-hand-tools').querySelector('[data-action="clear"]');
+  clear.hidden=count===0;clear.disabled=count===0;
+  const hint=$('v2-selection-help');
+  hint.textContent=advice?.text||(current.isMyTurn&&current.phase==='playing'&&spec.interaction==='pick-one'?
+   (count?'✓ 選んだカードを出せます':current.legal.playIds.length?'光っているカードを選ぼう':'出せるカードはありません · パスできます'):'');
+  hint.classList.toggle('v2-feedback-warn',!!advice&&count>0&&!advice.possible);
   const handCount=current.hand?.length||0;
   $('v2-hand-label').textContent=handCount?
    '自分の手札　'+handCount+'枚'+(count?'　／　選択中 '+count+'枚':''):'';
@@ -52,6 +66,7 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
   if(last===hash)return false;
   last=hash;
   spec=registry.get(view.game);
+  wrapper.dataset.game=view.game;
   $('v2-status').textContent=spec.label+'　'+
    (view.phase==='finished'?'試合終了':view.isMyTurn?'あなたの番':
     (view.players?.[view.turn]?.isCpu?'CPU'+((view.turn??0)+1):'プレイヤー'+((view.turn??0)+1))+' の番')+
@@ -83,7 +98,7 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
   const bySuit=defaultSuit!==sortBySuit;
   const sorted=sortHandForGame(view.hand||[],view.game,{bySuit});
   const sortButton=$('v2-hand-tools').querySelector('[data-action="sort"]');
-  sortButton.textContent=bySuit?'マーク順 ⇄':'強さ順 ⇄';
+  sortButton.textContent=bySuit?'並び：マーク順 ⇄':'並び：強さ順 ⇄';
   sortButton.disabled=sorted.length<2;
   for(const c of sorted){
    const key=cardKey(c),canPlay=playable.has(key)&&view.isMyTurn;
@@ -123,6 +138,10 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
   if(type==='sort'){
    sortBySuit=!sortBySuit;
    last='';render(current);return;
+  }
+  if(type==='clear'){
+   if(selected.size){selected.clear();updateSelection();}
+   return;
   }
   if(type==='select'){
    const key=b.dataset.card;
