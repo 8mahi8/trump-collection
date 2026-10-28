@@ -6,7 +6,8 @@ export function gamePresentation(spec){
  return {
   icon:typeof ui.icon==='string'&&ui.icon?ui.icon:'🃏',
   tagline:typeof ui.tagline==='string'?ui.tagline:'',
-  handOrder:ui.handOrder==='strength'?'strength':'suit'
+  handOrder:ui.handOrder==='strength'?'strength':'suit',
+  resultUnit:typeof ui.resultUnit==='string'?ui.resultUnit:'点'
  };
 }
 export function turnPrompt(view,spec,{selected=[],valid=false,combo=null}={}){
