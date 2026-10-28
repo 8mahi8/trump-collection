@@ -33,7 +33,7 @@ export function createGameRegistry(initial=[]){
     throw Error('INVALID_GAME_HAND_ORDER');
   }
   const frozen=Object.freeze({...def,actions:Object.freeze([...def.actions]),
-   ui:def.ui?Object.freeze({...def.ui}):undefined});
+   ...(def.ui?{ui:Object.freeze({...def.ui})}:{})});
   games.set(def.id,frozen);
   return frozen;
  }
