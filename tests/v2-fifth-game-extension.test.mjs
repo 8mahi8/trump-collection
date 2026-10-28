@@ -30,6 +30,11 @@ test('fifth game can define card strength without editing renderer or sorter',()
  assert.deepEqual(sortHandForGame(hand,'fifth-game',{registry}).map(c=>c.rank),[13,8,2]);
  assert.deepEqual(sortHandForGame(hand,'fifth-game',{registry,bySuit:true}).map(c=>c.rank),[13,8,2]);
  assert.deepEqual(hand.map(c=>c.rank),[2,8,13]);
+ const customJoker=createGameRegistry([{...dummy,
+  sortRank:card=>card.joker?-1:card.rank}]);
+ const withJoker=sortHandForGame([{rank:4,suit:0},{joker:true},{rank:2,suit:0}],
+  'fifth-game',{registry:customJoker});
+ assert.deepEqual(withJoker.map(c=>c.joker?'JOKER':c.rank),['JOKER',2,4]);
 });
 test('registration rejects malformed custom CPU or ranking hooks',()=>{
  for(const key of ['sortRank','remoteCpuChoose'])
