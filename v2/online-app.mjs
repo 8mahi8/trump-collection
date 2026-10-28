@@ -232,7 +232,10 @@ function renderLobby(snapshot){
   picker.append(b);
  }
  area.append(picker);
- if(snapshot.selectedGame==='shinkei'&&isHost&&snapshot.members.length>2){
+ // Participant selection depends on seat count, not on a particular game name.
+ // The existing data-action stays stable for current browser automation.
+ if(snapshot.selectedGame&&GAME_REGISTRY.get(snapshot.selectedGame).seats===2&&
+  isHost&&snapshot.members.length>2){
   area.append(create('p','v2-help','対戦する2人を選択（ほかの友達は待機）'));
   for(const other of snapshot.members.filter(id=>id!==snapshot.hostId)){
    const index=snapshot.members.indexOf(other);
