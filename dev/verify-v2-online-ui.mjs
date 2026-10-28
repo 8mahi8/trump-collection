@@ -394,10 +394,11 @@ try{
      const reset=await page.f.locator('body').evaluate(()=>({
       selected:document.querySelectorAll('.v2-hand .v2-selected').length,
       renderVersion:document.querySelector('.v2-table').dataset.renderVersion,
+      referenceVersion:window.__v2SelectReference.renderVersion,
       hint:document.querySelector('.v2-selection-help').textContent
      }));
      assert.equal(reset.selected,0);
-     assert.equal(reset.renderVersion,window.__v2SelectReference?.renderVersion);
+     assert.equal(reset.renderVersion,reset.referenceVersion);
      await card.tap({timeout:9000}); // Restore the first card before completing this legal move.
      assert.equal(await page.f.locator('.v2-hand .v2-selected').count(),1);
      console.log('V2 CARD SELECTION FAST PATH PASS '+engine+
