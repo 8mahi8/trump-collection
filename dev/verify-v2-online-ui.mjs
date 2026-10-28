@@ -534,7 +534,9 @@ try{
    if(actual.mode==='results')break;
    if(game==='babanuki'){
     if(!babanukiLayoutChecked){
-     for(const size of [{width:667,height:375},{width:800,height:450}]){
+     for(const size of [
+      {width:667,height:300},{width:667,height:375},{width:800,height:450}
+     ]){
       await player.page.setViewportSize(size);
       const drawLayout=await player.f.locator('body').evaluate(()=>{
        const board=document.querySelector('.v2-board').getBoundingClientRect();
@@ -547,7 +549,7 @@ try{
         minWidth:Math.min(...rects.map(r=>r.width))};
       });
       await player.page.screenshot({path:resolve('dist/v2-screens',
-       'classic-babanuki-'+engine+'-'+size.width+'.png')});
+       'classic-babanuki-'+engine+'-'+size.width+'x'+size.height+'.png')});
       assert.ok(drawLayout.count>0,'Babanuki should show selectable opponent cards');
       assert.ok(drawLayout.minWidth>=43,'Babanuki card tap width too small '+JSON.stringify(drawLayout));
       assert.ok(drawLayout.minTop>=drawLayout.boardTop-2&&
