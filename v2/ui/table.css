@@ -260,3 +260,14 @@ button.v2-card{cursor:pointer}
  .v2-seven-info,.v2-seven-legend{display:none}
  .v2-seven{gap:2px}
 }
+
+/* Draw-game iPad review, 667x375 / 800x450, Chromium:
+   Previously the last ~20px of selectable opponent backs was clipped because
+   the 97px draw surface sat in an 80px board. Draw games have no selectable
+   self-hand: show smaller self cards, giving the playable opponent row room. */
+.v2-table[data-game="babanuki"] .v2-hand .v2-card{--tc-w:39px}
+.v2-table[data-game="babanuki"] .v2-hand{min-height:0}
+.v2-table[data-game="babanuki"] .v2-selection-help{display:none}
+.v2-backrow{min-height:0;padding:2px 6px 1px}
+.v2-backrow .v2-card{--tc-w:44px}
+.v2-board{padding:2px}
