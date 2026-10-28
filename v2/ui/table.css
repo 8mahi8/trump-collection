@@ -271,3 +271,17 @@ button.v2-card{cursor:pointer}
 .v2-backrow{min-height:0;padding:2px 6px 1px}
 .v2-backrow .v2-card{--tc-w:44px}
 .v2-board{padding:2px}
+
+/* Google Sites iframe can be shorter than an iPad browser viewport.
+   A compact 44x44 opponent target remains tappable at 667x300 without
+   allowing the action row to cover the selectable cards. */
+@media(max-height:360px){
+ .v2-table[data-game="babanuki"] .v2-board-hint{display:none}
+ .v2-table[data-game="babanuki"] .v2-hand .v2-card{--tc-w:33px}
+ .v2-table[data-game="babanuki"] .v2-hand{padding:3px 4px;min-height:0}
+ .v2-table[data-game="babanuki"] .v2-backrow .v2-card{
+  height:44px;width:44px;min-width:44px}
+ .v2-table[data-game="babanuki"] .v2-backrow{padding:1px 2px}
+ .v2-table[data-game="babanuki"] .v2-player{min-height:20px}
+ .v2-table[data-game="babanuki"] .v2-status{padding:0 3px}
+}
