@@ -27,6 +27,8 @@ export function createGameRegistry(initial=[]){
    throw Error('INVALID_GAME_ONLINE_READY');
   if(def.remoteCpuChoose!==undefined&&typeof def.remoteCpuChoose!=='function')
    throw Error('INVALID_REMOTE_CPU_POLICY');
+  if(def.sortRank!==undefined&&typeof def.sortRank!=='function')
+   throw Error('INVALID_GAME_SORT_RANK');
   if(def.ui!==undefined){
    if(!def.ui||typeof def.ui!=='object'||Array.isArray(def.ui))
     throw Error('INVALID_GAME_PRESENTATION');
