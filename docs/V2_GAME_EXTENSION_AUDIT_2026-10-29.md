@@ -40,11 +40,14 @@
 - **学校iPad Google Sites実機**の体感は、Chromium/WebKitのCIだけでは最終的に保証できない。
 - 短期の推奨は「まず5本目は既存の4操作方式の範囲で小さなゲームを1本作り、登録〜対戦完了まで通して拡張契約を実証する」。既存4ゲームの構造を丸ごと一斉に書き換えるのは避ける。
 
+## 基盤テスト最終確認（更新）
+[Foundation #40785659022](https://github.com/8mahi8/trump-collection/actions/runs/40785659022) が **206/206 PASS**。第五ゲームのfactory登録、実ホストrunnerのprivate→public配信経路、CPU戦略差し替え、Jokerの強さ順、画面/入力未対応時の誤公開防止を含む。CIのNodeチェックに加えて、ブラウザ版CPU画面・Safari系WebKitの基本UI検査も成功した。
+
 ## 品質ゲート
-- [ ] このrefactorのFoundation Node unitテスト全合格
+- [x] このrefactorのFoundation Node unitテスト全合格（206/206）
 - [ ] Chrome/WebKit両方で4ゲームを同室で完走
 - [ ] 神経衰弱CPUの独立ブラウザテスト合格
-- [ ] 5本目の仮ゲームのオンライン登録・CPU・手札ソートのテスト合格
+- [x] 5本目の仮ゲームのオンライン登録・CPU・手札ソートのテスト合格
 - [ ] 学校実機 Google Sites で接続・操作体感を確認（公開前）
 
 **変更可能範囲：GitHub開発ブランチ/Draft PR #2のみ。main・学校Google Sites版・本番Firebase・Google Driveは変更しない。**
