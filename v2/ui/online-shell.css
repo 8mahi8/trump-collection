@@ -72,3 +72,26 @@
   min-height:30px;font-size:12px;padding:4px 7px;
  }
 }
+
+/* Consistent game identity comes from the plugin's optional UI metadata. */
+.v2-room-lobby .v2-game-picker{width:min(440px,100%);gap:8px}
+.v2-room-lobby .v2-game-picker .v2-menu-button{
+ display:flex;flex-direction:column;justify-content:center;align-items:flex-start;
+ gap:2px;white-space:normal;line-height:1.15;min-height:52px;
+ padding:7px 10px;transition:background .12s ease,box-shadow .12s ease}
+.v2-game-name{font-size:clamp(12px,2.25vw,16px);font-weight:900}
+.v2-game-tagline{font-size:11px;color:#526557;font-weight:650;line-height:1.25}
+.v2-active .v2-game-tagline{color:#674f19}
+.v2-chat-toggle{min-height:38px}
+.v2-chat-send{min-height:42px}
+.v2-chat-input{min-height:42px}
+.v2-chat-close{min-height:34px}
+@media(max-height:430px){
+ .v2-room-lobby .v2-game-picker{gap:5px}
+ .v2-room-lobby .v2-game-picker .v2-menu-button{
+  min-height:43px;padding:5px 8px;gap:2px}
+ .v2-game-name{font-size:12px}
+ .v2-game-tagline{font-size:10px}
+ .v2-chat-toggle{min-height:32px}
+ .v2-chat-input,.v2-chat-send{min-height:37px}
+}
