@@ -181,3 +181,10 @@
  .v2-result-name{font-size:14px}
  .v2-result-score{font-size:13px}
 }
+
+/* 300px iframe: duplicate instructional subtitles are expendable;
+   the actual room code, member roster, game choices and 44px actions are not. */
+@media(max-height:330px){
+ .v2-room-lobby .v2-lobby-instruction,
+ .v2-room-lobby .v2-lobby-count{display:none}
+}
