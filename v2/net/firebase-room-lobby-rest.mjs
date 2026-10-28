@@ -94,6 +94,19 @@ export function createFirebaseRoomLobbyRest({databaseURL,auth,identity,friendOnl
    return request('PUT',code,['requests',peer.uid,id],command,'null_etag');
   },
   removeRequest:(code,uid,id)=>request('DELETE',code,['requests',member(uid),requestId(id)]),
+  // Bounded, room-wide casual text chat. Independent of match and lobby
+  // revision, so sending a message never blocks a card turn.
+  chat:code=>request('GET',code,['chat']).then(r=>r.state),
+  sendChat:(code,text,slot,id)=>{
+   if(typeof text!=='string'||text.trim().length<1||
+    text.trim().length>120||/[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]/.test(text))
+    fail('INVALID_CHAT_TEXT');
+   if(!Number.isInteger(slot)||slot<0||slot>9)fail('INVALID_CHAT_SLOT');
+   requestId(id);
+   return request('PUT',code,['chat',peer.uid,String(slot)],{
+    actor:peer.uid,id,text:text.trim(),time:Date.now()
+   });
+  },
   receipt:(code,uid,id)=>request('GET',code,['receipts',member(uid),requestId(id)]).then(r=>r.state),
   writeReceipt:(code,uid,id,value)=>{
    if(typeof value?.ok!=='boolean'||!Number.isInteger(value.revision))fail('INVALID_RECEIPT');
