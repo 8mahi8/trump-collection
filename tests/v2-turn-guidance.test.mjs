@@ -29,3 +29,12 @@ test('Invalid selection can be recovered from a later valid selection',()=>{
  assert.equal(describeDaifugoSelection(moves,['1-3','3-9']).possible,false);
  assert.equal(describeDaifugoSelection(moves,['0-3','1-3']).exact,true);
 });
+
+test('Precomputed legal move Sets can be reused without mutation',()=>{
+ const moveA=new Set(['0-3','1-3']);
+ const moveB=new Set(['2-8']);
+ const out=describeDaifugoSelection([moveA,moveB],['0-3']);
+ assert.equal(out.exact,false);
+ assert.deepEqual(out.followups,['1-3']);
+ assert.equal(moveA.size,2);
+});
