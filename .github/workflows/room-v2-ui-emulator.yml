@@ -21,6 +21,9 @@ on:
       - 'firebase.room-v2-friends-emulator.json'
       - '.github/workflows/room-v2-ui-emulator.yml'
   workflow_dispatch:
+concurrency:
+  group: v2-room-ui-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -60,6 +63,6 @@ jobs:
           path: |
             dist/v2-room-first-online-lab.html
             dist/v2-room-first-sites-school-trial.html
-            dist/v2-screens/online-*.png
+            dist/v2-screens/*.png
           retention-days: 7
           if-no-files-found: ignore
