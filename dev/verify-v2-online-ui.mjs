@@ -113,6 +113,18 @@ try{
  const lineText='<img src=x onerror=alert(1)>';
  await owner.f.locator('.v2-chat-input').fill(lineText);
  await owner.f.locator('.v2-chat-send').tap();
+ await new Promise(r=>setTimeout(r,3300));
+ const chatProbe=await Promise.all([owner,group[1]].map(p=>
+  p.f.locator('body').evaluate(()=>({
+   status:document.querySelector('.v2-chat-status')?.textContent,
+   history:document.querySelector('.v2-chat-history')?.textContent,
+   open:!document.querySelector('.v2-chat-panel')?.hidden,
+   members:window.TRUMP_V2_ONLINE_LAB.room?.members?.length
+  }))));
+ const serverReply=await fetch('http://127.0.0.1:9000/trumpRoomsV2/'+room+
+  '/chat.json?ns=demo-trumpcards-default-rtdb');
+ console.log('CHAT_DIAG '+engine+' '+JSON.stringify(chatProbe)+
+  ' serverStatus='+serverReply.status+' serverBody='+(await serverReply.text()).slice(0,320));
  await group[1].f.locator('.v2-chat-line').filter({hasText:lineText}).waitFor({timeout:18000});
  assert.equal(await group[1].f.locator('.v2-chat-history img').count(),0,
   'message text MUST NOT become executable DOM');
