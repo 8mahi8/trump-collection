@@ -243,3 +243,20 @@ button.v2-card{cursor:pointer}
  .v2-hand .v2-card:first-child{margin-left:auto}
  .v2-backrow .v2-card:first-child{margin-left:auto}
 }
+
+/* Sevens: the border color means 'next open'; a filled luminous cell means
+   'your hand has a legal play'. These are deliberately distinct states. */
+.v2-seven{gap:3px}
+.v2-seven-info,.v2-seven-legend{text-align:center;font-weight:700;
+ color:#eff3df;font-size:11px;line-height:1.2}
+.v2-seven-legend{color:#fff0a4;margin:1px 0}
+.v2-seven-cell.v2-next:not(.v2-ready){background:#c6b5640d;
+ border:1px dashed #bdc19ba1;color:#c8d7c8}
+.v2-seven-cell.v2-ready{border:2px solid #ffdf69;background:#ffe08e40;
+ color:#fff8d1;font-weight:900;box-shadow:0 0 0 1px #e6c35c48}
+.v2-seven-cell.v2-ready::after{content:"";position:absolute}
+.v2-suit-label.v2-red{color:#ffb6af}
+@media(max-height:430px){
+ .v2-seven-info,.v2-seven-legend{display:none}
+ .v2-seven{gap:2px}
+}
