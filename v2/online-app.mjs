@@ -10,6 +10,7 @@ import {createRoomCoordinator,createRoomLobbyClient} from './session/room-coordi
 import {createRoomMatchHost} from './session/room-match-host.mjs';
 import {createRoomMatchGuest} from './session/room-match-guest.mjs';
 import {createRoomSession} from './session/room-session.mjs';
+import {createRoomChat} from './ui/room-chat.mjs';
 
 const $=id=>document.getElementById(id);
 const main=$('main'),notice=$('notice');
@@ -33,6 +34,8 @@ let store=null,roomCode=null,isHost=false,coordinator=null,client=null;
 let room=null,matchHost=null,activeMatchId=null,session=null,renderer=null,unsubscribe=null;
 let timer=null,pumping=false,screen='home',lastRoomKey='',botTimer=null,disposed=false;
 let needJoin=false,joinId=null,entering=false;
+const chat=createRoomChat({top:document.querySelector('.v2-top'),
+ app:document.querySelector('.v2-app'),getRoom:()=>room,getStore:()=>store});
 function showError(e){
  const code=e?.code||e?.message||String(e);
  const useful={
@@ -56,6 +59,7 @@ function clearSession(){
  activeMatchId=null;
 }
 function stopRoom(){
+ chat.reset();
  clearInterval(timer);timer=null;clearSession();
  matchHost=null;coordinator=null;client=null;room=null;roomCode=null;
  isHost=false;needJoin=false;joinId=null;lastRoomKey='';
@@ -312,6 +316,7 @@ async function pump(){
   const latest=isHost&&before&&!matchUpdated?before:await client.room();
   if(!latest||latest.phase==='closed'){home();msg('ルームが終了しました');return}
   room=latest;
+  chat.sync();
   if(needJoin&&!room.members.includes(store.uid)){
    const ack=await client.receipt(joinId);
    if(ack&&!ack.ok){home();msg('入室できませんでした：'+ack.reason);return}
