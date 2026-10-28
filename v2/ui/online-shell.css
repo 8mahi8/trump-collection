@@ -45,3 +45,8 @@
  .v2-chat-panel{top:36px;height:min(235px,75dvh);padding:6px}
  .v2-chat-toggle{font-size:11px;min-height:30px}
 }
+
+.v2-results-list{display:grid;gap:5px;width:min(300px,96%);max-height:55%;overflow-y:auto}
+.v2-result-player{font-size:13px;padding:5px 10px;
+ background:#154a33;border:1px solid #8db89d;border-radius:7px}
+.v2-result-you{border-color:#ffe179;background:#4a5a30;font-weight:800}
