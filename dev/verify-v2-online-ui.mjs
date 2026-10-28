@@ -88,6 +88,12 @@ try{
  const label=await owner.f.locator('#shared-code').textContent();
  const room=label.match(/\d{5}/)?.[0];
  assert.match(room,/^[0-9]{5}$/);
+ // The HTML previously displayed "ルームを作成しています…" forever even
+ // after all lobby controls had appeared.
+ await owner.f.locator('#notice').filter({hasText:'部屋 '+room}).waitFor();
+ const roomStatus=await owner.f.locator('#notice').textContent();
+ assert.match(roomStatus,/ゲームを選んでください/);
+ assert.doesNotMatch(roomStatus,/作成しています|参加しています/);
  for(let i=0;i<3;i++){
   const guest=await launch();group.push(guest);
   if(i===0){
@@ -139,6 +145,9 @@ try{
  console.log('V2 NO-AUTH ROOM CHAT UI PASS '+engine+' two-way+escaped+bounded');
  await owner.f.locator('button[data-action="game-babanuki"]').tap();
  await owner.f.locator('button[data-action="ready"]').waitFor();
+ const gameNotice=await owner.f.locator('#notice').textContent();
+ assert.match(gameNotice,/部屋 \d{5} · ババ抜き · 準備完了を押そう/,
+  'Lobby notice must name the selected game and live action');
  // Keep a real visual proof of the lobby on the narrower school-style iPad.
  // No screenshot-only pass: assert both room controls and their scroll
  // container remain reachable for touch.
@@ -179,6 +188,8 @@ try{
  await owner.f.locator('button[data-action="start"]:not([disabled])').tap({timeout:28000});
  await Promise.all(group.map(p=>waitForView(p,'match')));
  for(const p of group){
+  assert.match(await p.f.locator('#notice').textContent(),/オンライン対戦中/,
+   'Live match must stop showing obsolete lobby/creation messages');
   assert.equal(await p.f.locator('.v2-player').count(),4);
   assert.equal(await p.f.locator('.v2-table').count(),1);
   assert.equal(await p.f.locator('iframe').count(),0,'no nested iframe inside Google Sites embed');
@@ -444,6 +455,8 @@ try{
  assert.ok(humanTurns>0,'mixed Daifugo needs real tapped human turns');
  assert.ok(observedCpuTurns>0,'mixed Daifugo needs observed CPU turns');
  await duoOwner.f.locator('button[data-action="back-lobby"]').waitFor({timeout:15000});
+ assert.match(await duoOwner.f.locator('#notice').textContent(),/対局終了/,
+  'Results must not retain stale in-match status');
  await duoFriend.f.locator('body').evaluate(()=>new Promise((resolve,reject)=>{
   const start=Date.now(),timer=setInterval(()=>{
    if(window.TRUMP_V2_ONLINE_LAB.mode==='results'){
