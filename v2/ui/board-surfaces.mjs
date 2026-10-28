@@ -49,14 +49,25 @@ function sevenSurface(view){
 }
 function fieldSurface(view){
  const box=make('section','v2-field');
- const tags=[];
- if(view.board.revolution)tags.push('🔥 革命中');
- if(view.board.lastEvent)tags.push(view.board.lastEvent);
- box.append(make('p','v2-help v2-board-hint',tags.join('　')||'現在の場'));
+ const field=view.board.field;
+ const meta=make('div','v2-field-meta');
+ meta.append(make('span','v2-field-title','場のカード'));
+ if(field?.cards?.length){
+  meta.append(make('span','v2-field-chip',field.cards.length+'枚'));
+  const seat=field.lastPlayer;
+  if(Number.isInteger(seat)&&seat>=0&&seat<view.players.length){
+   const player=view.players[seat];
+   meta.append(make('span','v2-field-chip',
+    '直前：'+(player.isYou?'自分':player.isCpu?'CPU'+(seat+1):'P'+(seat+1))));
+  }
+ }else meta.append(make('span','v2-field-chip','場は空'));
+ if(view.board.revolution)meta.append(make('span','v2-field-chip v2-revolution','🔥 革命中'));
+ box.append(meta);
  const row=make('div','v2-field-row');
- for(const c of view.board.field?.cards||[])row.append(makeCardFace(c,{small:true}));
- if(!row.childElementCount)row.append(make('span','v2-help','場にカードはありません'));
+ for(const c of field?.cards||[])row.append(makeCardFace(c,{small:true}));
+ if(!row.childElementCount)row.append(make('span','v2-field-empty','先手は好きな組み合わせから'));
  box.append(row);
+ if(view.board.lastEvent)box.append(make('p','v2-field-event',String(view.board.lastEvent)));
  return box;
 }
 function memorySurface(view){
