@@ -79,3 +79,33 @@ test('friend-only mode uses Firebase RTDB REST without any authentication reques
   friendOnlyNoAuth:true
  }),e=>e.code==='IDENTITY_REQUIRED');
 });
+
+test('no-auth bounded chat writes only its own fixed slot, and reads room history',async()=>{
+ const uid='tc_chat_user_0123456',seen=[];
+ const store=createFirebaseRoomLobbyRest({
+  databaseURL:'https://example-default-rtdb.firebaseio.com',
+  identity:{uid},friendOnlyNoAuth:true,
+  fetchImpl:async(url,options)=>{
+   seen.push({url:new URL(url),method:options.method,
+    body:options.body?JSON.parse(options.body):null});
+   return new Response(JSON.stringify(options.method==='GET'?{[uid]:{
+    0:{actor:uid,id:'chatA0001',text:'やあ',time:42}}}:options.body?JSON.parse(options.body):null),
+    {status:200,headers:{'content-type':'application/json'}});
+  }
+ });
+ const chat=await store.chat('12345');
+ assert.equal(chat[uid][0].text,'やあ');
+ await store.sendChat('12345',' こんにちは ',0,'chatB0002');
+ assert.equal(seen.length,2);
+ assert.equal(seen[0].url.pathname,'/trumpRoomsV2/12345/chat.json');
+ assert.equal(seen[1].url.pathname,'/trumpRoomsV2/12345/chat/'+uid+'/0.json');
+ assert.equal(seen[1].method,'PUT');
+ assert.equal(seen[1].body.text,'こんにちは');
+ assert.equal(seen[1].body.actor,uid);
+ assert.equal(seen.every(x=>!x.url.searchParams.has('auth')),true);
+ await assert.rejects(store.sendChat('12345','a'.repeat(121),0,'chatC0003'),
+  e=>e.code==='INVALID_CHAT_TEXT');
+ await assert.rejects(store.sendChat('12345','hi',10,'chatD0004'),
+  e=>e.code==='INVALID_CHAT_SLOT');
+ assert.equal(seen.length,2,'invalid chat must not make any network request');
+});
