@@ -23,6 +23,8 @@ export function createGameRegistry(initial=[]){
   if(games.has(def.id))throw Error('DUPLICATE_GAME '+def.id);
   // Optional visual metadata for the shared lobby/table. Future games should
   // add data here rather than introduce new game-ID branches in GameShell.
+  if(def.onlineReady!==undefined&&typeof def.onlineReady!=='boolean')
+   throw Error('INVALID_GAME_ONLINE_READY');
   if(def.ui!==undefined){
    if(!def.ui||typeof def.ui!=='object'||Array.isArray(def.ui))
     throw Error('INVALID_GAME_PRESENTATION');
