@@ -14,14 +14,14 @@ import {createRoomChat} from './ui/room-chat.mjs';
 import {gamePresentation} from './ui/game-presentation.mjs';
 import {projectMatchResults} from './ui/results-view.mjs';
 import {roomNotice,matchNotice} from './ui/room-notice.mjs';
+import {DEFAULT_MATCH_ENGINES} from './session/match-engine-catalog.mjs';
 import {projectHeadToHead} from './ui/seat-selection.mjs';
 
 const $=id=>document.getElementById(id);
 const main=$('main'),notice=$('notice');
 // Explicit readiness must be declared only after the game engine, online
 // authority, touch UI and Firebase paths pass their integration suite.
-const labGames=new Set(GAME_REGISTRY.list()
- .filter(spec=>spec.onlineReady===true).map(spec=>spec.id));
+const labGames=new Set(DEFAULT_MATCH_ENGINES.listPlayable());
 const create=(tag,cls='',label='')=>{
  const x=document.createElement(tag);if(cls)x.className=cls;
  if(label)x.textContent=label;return x;
