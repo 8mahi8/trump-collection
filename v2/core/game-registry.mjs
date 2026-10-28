@@ -25,6 +25,8 @@ export function createGameRegistry(initial=[]){
   // add data here rather than introduce new game-ID branches in GameShell.
   if(def.onlineReady!==undefined&&typeof def.onlineReady!=='boolean')
    throw Error('INVALID_GAME_ONLINE_READY');
+  if(def.remoteCpuChoose!==undefined&&typeof def.remoteCpuChoose!=='function')
+   throw Error('INVALID_REMOTE_CPU_POLICY');
   if(def.ui!==undefined){
    if(!def.ui||typeof def.ui!=='object'||Array.isArray(def.ui))
     throw Error('INVALID_GAME_PRESENTATION');
