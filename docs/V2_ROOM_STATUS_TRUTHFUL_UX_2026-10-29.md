@@ -11,6 +11,16 @@
 - `tests/v2-room-notice.test.mjs` で作成終了、ゲスト待ち、準備人数、全員OK、観戦、結果を確認。実GitHubソースを取り出した独立JSスモーク6項目 PASS。
 - `dev/verify-v2-online-ui.mjs` にGoogle Sites相当の隔離iframeでの**表示文の実状態テスト**を追加。「入室後」「ゲーム選択後」「対戦中」「試合終了後」でステータスの誤報がないことをChromium+WebKit両方で検査する。
 
+## UIガイドラインとの照合
+- W3C [ARIA22: Using role=status to present status messages](https://www.w3.org/WAI/WCAG22/Techniques/aria/ARIA22.html) は、フォーカスを奪わずアプリの状態変化を伝える `role=status`（暗黙の polite live region）を説明。現行 `#notice` は `role=status` + `aria-live=polite` を利用している。
+- [W3C Status Messages 4.1.3](https://www.w3.org/WAI/WCAG21/Understanding/status-messages) の趣旨に合わせ、同一の進行状況を700msの定期通信ごとに無意味に再通知しないよう `msg()` がテキスト同値ならDOMを更新しない構造に変更。
+- [Apple Designing for games](https://developer.apple.com/design/human-interface-guidelines/designing-for-games/) の可読性・操作性を維持。ステータスは短い一文で、部屋/ゲーム/次の操作が判別できるようにした。
+
+## 実装追加（最終案）
+- ネットワーク `session.refresh()` の後で、旧 `オンライン対戦｜部屋 ...` を再書込していた箇所を `matchNotice(...)` に統一。実E2E `40719363368` が旧表示の上書きを発見した。
+- 全員準備済みのゲストは「準備待ち 2/2人」ではなく **「全員準備OK！ホストの開始待ち」** と表示。対応する単体テストを更新。
+- 新たに **チャット開放時の画面画像＋送信/閉じるボタンの見切れ検査**、**4人対局の結果画面画像＋ロビーに戻るボタンの見切れ検査**を `dev/verify-v2-online-ui.mjs` へ追加。実ブラウザの検査がこれらに達するまで、視覚完成の主張はしない。
+
 ## 検証基準
 Foundationの追加Nodeテスト、無認証RTDB Emulator、Chromium/WebKitの4ゲーム連戦を再実行し、変更後のルームロビー画面画像に「作成しています…」が残っていないことを確認する。学校iPad Google Sites実機は未確認。
 
