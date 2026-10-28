@@ -22,7 +22,7 @@ test('Room status uses plugin label and human ready count (not CPU ready count)'
  assert.match(roomNotice(one,options),/準備待ち 1\/2人/);
  const ready=room({selectedGame:'babanuki',ready:[host,guest]});
  assert.match(roomNotice(ready,options),/全員準備OK！対局開始/);
- assert.match(roomNotice(ready,{...options,isHost:false,selfId:guest}),/準備待ち 2\/2人/);
+ assert.match(roomNotice(ready,{...options,isHost:false,selfId:guest}),/全員準備OK！ホストの開始待ち/);
 });
 test('Spectators and future registered two-seat games do not require extra UI strings',()=>{
  const match=room({selectedGame:'shinkei',participants:[host,guest],ready:[host,guest]});
