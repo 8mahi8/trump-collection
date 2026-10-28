@@ -2,25 +2,57 @@ import {GAME_REGISTRY} from '../games/definitions.mjs';
 import {createBoardSurface,DEFAULT_BOARD_SURFACES} from './board-surfaces.mjs';
 import {makeCardFace} from './card-face.mjs';
 
-// The same DOM and click handler are used for CPU and network sessions.
+// Full render is reserved for NEW authoritative state. A local card tap must
+// not tear down the board, 52-card Sevens grid, player rows, or hand DOM.
+// This matters on iPad Safari, where rebuilding intricate faces can cause jank.
 export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY,surfaces=DEFAULT_BOARD_SURFACES}={}){
  if(!root||typeof root.replaceChildren!=='function')throw Error('INVALID_TABLE_ROOT');
  const wrapper=document.createElement('section');wrapper.className='v2-table';
  wrapper.innerHTML='<header class="v2-status" aria-live="polite"></header><div class="v2-players"></div><div class="v2-board"></div><div class="v2-foot"><div class="v2-hand-label"></div><div class="v2-hand" aria-label="自分の手札"></div><div class="v2-actions"></div></div>';
  root.replaceChildren(wrapper);
  const $=cls=>wrapper.querySelector('.'+cls);
- let current=null,last='',selected=new Set(),lastRevision=null,paints=0;
+ let current=null,last='',selected=new Set(),lastRevision=null,paints=0,selectionUpdates=0;
+ let playable=new Set(),legalMoves=new Set(),spec=null;
  const cardKey=c=>c?.joker?'JK':c.suit+'-'+c.rank;
  const elem=(tag,cls,text)=>{const e=document.createElement(tag);e.className=cls;e.textContent=text;return e;};
+ const selectionSignature=()=>[...selected].sort().join(',');
+ const canSubmit=()=>{
+  if(!current?.isMyTurn||current.phase!=='playing')return false;
+  if(spec.interaction==='pick-one')return selected.size===1&&
+   current.legal.playIds.includes([...selected][0]);
+  if(spec.interaction==='pick-multi')return selected.size>0&&
+   legalMoves.has(selectionSignature());
+  return false;
+ };
+ function updateSelection(){
+  if(!current)return;
+  // No createElement / replaceChildren / JSON.stringify / Firebase requests.
+  // Reuse the exact DOM nodes so taps keep their scroll and their card animation.
+  for(const b of $('v2-hand').children){
+   const active=selected.has(b.dataset.card);
+   b.classList.toggle('v2-selected',active);
+   b.setAttribute('aria-pressed',String(active));
+  }
+  const submit=$('v2-actions').querySelector('[data-action="submit"]');
+  if(submit)submit.disabled=!canSubmit();
+  const count=selected.size;
+  const handCount=current.hand?.length||0;
+  $('v2-hand-label').textContent=handCount?
+   '自分の手札　'+handCount+'枚'+(count?'　／　選択中 '+count+'枚':''):'';
+  wrapper.dataset.selectionVersion=String(++selectionUpdates);
+ }
  function render(view){
   if(!view||!view.game||!view.board)throw Error('INVALID_TABLE_VIEW');
-  const spec=registry.get(view.game);
   const revisionKey=[view.game,view.seat,view.turn,view.phase,view.revision].join('/');
   if(revisionKey!==lastRevision){selected.clear();lastRevision=revisionKey;}
   current=view;
-  const hash=JSON.stringify(view)+'#'+[...selected].sort().join('/');
-  if(last===hash)return false;last=hash;
-  $('v2-status').textContent=spec.label+'　'+(view.phase==='finished'?'試合終了':view.isMyTurn?'あなたの番':(view.players?.[view.turn]?.isCpu?'CPU'+((view.turn??0)+1):'プレイヤー'+((view.turn??0)+1))+' の番')+
+  const hash=JSON.stringify(view);
+  if(last===hash)return false;
+  last=hash;
+  spec=registry.get(view.game);
+  $('v2-status').textContent=spec.label+'　'+
+   (view.phase==='finished'?'試合終了':view.isMyTurn?'あなたの番':
+    (view.players?.[view.turn]?.isCpu?'CPU'+((view.turn??0)+1):'プレイヤー'+((view.turn??0)+1))+' の番')+
    (view.connection?.state==='connected'?'　●オンライン':view.connection?.state==='local'?'　●CPU戦':'');
   const players=document.createDocumentFragment();
   for(const p of view.players){
@@ -30,48 +62,54 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
     (p.isYou?'自分':p.isCpu?'CPU'+(p.seat+1):'P'+(p.seat+1))+
     (p.cardCount===null?'':' · '+p.cardCount+'枚')+
     (p.score===null?'':' · '+p.score+'点'));
-   tag.append(avatar,label);
-   players.append(tag);
+   tag.append(avatar,label);players.append(tag);
   }
   $('v2-players').replaceChildren(players);
   $('v2-board').replaceChildren(createBoardSurface(view,surfaces));
+  playable=new Set();
+  legalMoves=new Set();
+  if(view.game==='shichinarabe'){
+   for(const id of view.legal.playIds)playable.add(id);
+  }else if(view.game==='daifugo'){
+   for(const move of view.legal.playMoves){
+    legalMoves.add([...move].sort().join(','));
+    for(const id of move)playable.add(id);
+   }
+  }
   const hand=document.createDocumentFragment();
-  const playable=new Set(view.game==='shichinarabe'?view.legal.playIds:
-   view.game==='daifugo'?view.legal.playMoves.flat():[]);
   const sorted=[...(view.hand||[])].sort((a,b)=>{
    if(a.joker)return b.joker?0:1;
    if(b.joker)return -1;
    return a.rank-b.rank||a.suit-b.suit;
   });
-  $('v2-hand-label').textContent=sorted.length?'自分の手札　'+sorted.length+'枚':'';
   for(const c of sorted){
    const key=cardKey(c),canPlay=playable.has(key)&&view.isMyTurn;
-   const b=makeCardFace(c,{button:true});
-   b.classList.add('v2-handcard');
-   if(selected.has(key))b.classList.add('v2-selected');
+   const b=makeCardFace(c,{button:true});b.classList.add('v2-handcard');
    if(canPlay)b.classList.add('v2-legal');
    if(view.isMyTurn&&playable.size&&!canPlay)b.classList.add('v2-dimmed');
    b.dataset.action='select';b.dataset.card=key;
    b.disabled=!view.isMyTurn||view.phase!=='playing'||
     !['pick-one','pick-multi'].includes(spec.interaction);
-   b.setAttribute('aria-pressed',String(selected.has(key)));
    hand.append(b);
   }
   $('v2-hand').replaceChildren(hand);
   const actions=document.createDocumentFragment();
-  const action=(text,type,disabled=false)=>{const b=elem('button','v2-action',text);b.type='button';b.dataset.action=type;b.disabled=disabled;actions.append(b);};
+  const action=(text,type,disabled=false)=>{
+   const b=elem('button','v2-action',text);
+   b.type='button';b.dataset.action=type;b.disabled=disabled;actions.append(b);
+  };
   if(view.phase==='finished')actions.append(elem('span','v2-help','おつかれさま！'));
   else if(!view.isMyTurn)actions.append(elem('span','v2-help','相手の操作を待っています…'));
   else if(spec.interaction==='pick-one'){
-   action('選択した札を出す','submit',selected.size!==1||!view.legal.playIds.includes([...selected][0]));
+   action('選択した札を出す','submit',true);
    action('パス','pass',!view.legal.canPass);
   }else if(spec.interaction==='pick-multi'){
-   const chosen=[...selected].sort().join(',');
-   const canPlay=view.legal.playMoves.some(move=>[...move].sort().join(',')===chosen);
-   action('カードを出す','submit',!selected.size||!canPlay);
+   action('カードを出す','submit',true);
    action('パス','pass',!view.legal.canPass);
-  }else actions.append(elem('span','v2-help',spec.interaction==='draw'?'上の伏せ札を選択':'カードを選択'));
+  }else actions.append(elem('span','v2-help',spec.interaction==='draw'?
+   '上の伏せ札を選択':spec.interaction==='flip'?'2枚のカードをめくろう':'カードを選択'));
   $('v2-actions').replaceChildren(actions);
+  updateSelection();
   wrapper.dataset.renderVersion=String(++paints);
   return true;
  }
@@ -81,12 +119,15 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
   const type=b.dataset.action;
   if(type==='select'){
    const key=b.dataset.card;
-   if(!current.isMyTurn||!current.hand.some(c=>cardKey(c)===key))return;
-   if(selected.has(key))selected.delete(key);else{
-    if(registry.get(current.game).interaction==='pick-one')selected.clear();
+   if(!current.isMyTurn||current.phase!=='playing'||
+    !current.hand.some(c=>cardKey(c)===key))return;
+   if(selected.has(key))selected.delete(key);
+   else{
+    if(spec.interaction==='pick-one')selected.clear();
     selected.add(key);
    }
-   render(current);return;
+   // Deliberately *not* render(current) here.
+   updateSelection();return;
   }
   if(!current.isMyTurn||current.phase!=='playing')return;
   if(type==='draw'&&current.legal.drawIndices.includes(Number(b.dataset.index)))
@@ -94,18 +135,13 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
   if(type==='flip'&&current.legal.flipIndices.includes(Number(b.dataset.index)))
    onAction({type:'flip',index:Number(b.dataset.index)});
   if(type==='pass'&&current.legal.canPass)onAction({type:'pass'});
-  if(type==='submit'){
-   if(registry.get(current.game).interaction==='pick-one'&&selected.size===1){
-    const id=[...selected][0];
-    if(current.legal.playIds.includes(id))onAction({type:'play',id});
-   }else if(registry.get(current.game).interaction==='pick-multi'){
-    const ids=[...selected],signature=[...ids].sort().join(',');
-    if(current.legal.playMoves.some(move=>[...move].sort().join(',')===signature))
-     onAction({type:'play',ids});
-   }
+  if(type==='submit'&&canSubmit()){
+   if(spec.interaction==='pick-one')onAction({type:'play',id:[...selected][0]});
+   else if(spec.interaction==='pick-multi')onAction({type:'play',ids:[...selected]});
   }
  };
  wrapper.addEventListener('click',click);
- return Object.freeze({render,dispose(){wrapper.removeEventListener('click',click);wrapper.remove();},
-  get view(){return current}});
+ return Object.freeze({render,dispose(){
+  wrapper.removeEventListener('click',click);wrapper.remove();
+ },get view(){return current}});
 }
