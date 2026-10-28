@@ -1,3 +1,5 @@
+> **【2026-10-28 検証確定】** **[UI #40643315973 SUCCESS](https://github.com/8mahi8/trump-collection/actions/runs/40643315973)**：Chromium/WebKit両方で**2方向チャット送受信、HTML文字列のテキスト扱い、大富豪3→…→K→A→2→Jokerの強さ順・マーク順切り替え、4ゲーム連続完走**が全て成功。**[Foundation #40643408957 SUCCESS](https://github.com/8mahi8/trump-collection/actions/runs/40643408957)**：168/168合格。[Realtime Database Emulator #40643408930 SUCCESS](https://github.com/8mahi8/trump-collection/actions/runs/40643408930)も成功。
+> 学校iPad実機でUIの体感評価は未了。新しい試遊HTMLはCI Artifactに生成済みだが、学校公開Google Sites、本番Firebase Rules/DB、main、Google Driveは**まだ変更していない**。
 # トランプコレクション V2｜学校実機フィードバック：大富豪の手札順とチャット復元（2026-10-28）
 
 ## ユーザーの指摘
