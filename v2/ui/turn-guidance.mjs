@@ -3,7 +3,7 @@
  // hands are already reflected in the legalMoves supplied by the game engine.
 export function describeDaifugoSelection(legalMoves=[],selected=[]){
  const picked=new Set(selected);
- const sets=legalMoves.map(move=>new Set(move));
+ const sets=legalMoves.map(move=>move instanceof Set?move:new Set(move));
  const candidates=sets.filter(move=>[...picked].every(id=>move.has(id)));
  const exact=picked.size>0&&candidates.some(move=>move.size===picked.size);
  const followups=new Set();
