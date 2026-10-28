@@ -49,7 +49,10 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
   const clear=$('v2-hand-tools').querySelector('[data-action="clear"]');
   clear.hidden=count===0;clear.disabled=count===0;
   const hint=$('v2-selection-help');
-  hint.textContent=turnPrompt(current,spec,{selected:[...selected],valid:canSubmit(),combo:advice});
+  // The draw board already names the target player. Do not repeat a generic
+  // instruction underneath it, especially in short Google Sites embeds.
+  hint.textContent=spec.interaction==='draw'?'':turnPrompt(current,spec,
+   {selected:[...selected],valid:canSubmit(),combo:advice});
   hint.classList.toggle('v2-feedback-warn',!!advice&&count>0&&!advice.possible);
   const handCount=current.hand?.length||0;
   $('v2-hand-label').textContent=handCount?
@@ -127,8 +130,11 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
   }else if(spec.interaction==='pick-multi'){
    action('カードを出す','submit',true);
    action('パス','pass',!view.legal.canPass);
-  }else actions.append(elem('span','v2-help',spec.interaction==='draw'?
-   '上の伏せ札を選択':spec.interaction==='flip'?'2枚のカードをめくろう':'カードを選択'));
+  }else if(!['draw','flip'].includes(spec.interaction)){
+   actions.append(elem('span','v2-help','カードを選択'));
+  }
+  // Draw and flip have actionable board cards and their own board/turn hint.
+  // Empty actions must collapse; repeated lines waste scarce vertical space.
   $('v2-actions').replaceChildren(actions);
   updateSelection();
   wrapper.dataset.renderVersion=String(++paints);
