@@ -99,7 +99,7 @@ export function createFirebaseRoomLobbyRest({databaseURL,auth,identity,friendOnl
   chat:code=>request('GET',code,['chat']).then(r=>r.state),
   sendChat:(code,text,slot,id)=>{
    if(typeof text!=='string'||text.trim().length<1||
-    text.trim().length>120||/[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]/.test(text))
+    text.trim().length>120||/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(text))
     fail('INVALID_CHAT_TEXT');
    if(!Number.isInteger(slot)||slot<0||slot>9)fail('INVALID_CHAT_SLOT');
    requestId(id);
