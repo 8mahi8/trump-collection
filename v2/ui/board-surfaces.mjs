@@ -11,8 +11,13 @@ function drawSurface(view){
  if(seat===null||seat===undefined){
   box.append(make('p','v2-help','カードを配っています…'));return box;
  }
+ const target=view.players[seat];
+ const targetName=target?.isCpu?'CPU'+(seat+1):target?.isYou?'自分':'P'+(seat+1);
+ const actor=view.players[view.turn];
+ const actorName=actor?.isCpu?'CPU'+(view.turn+1):actor?.isYou?'自分':'P'+(view.turn+1);
  box.append(make('p','v2-help v2-board-hint',
-  view.isMyTurn?'相手の伏せ札を1枚タップして引こう':'P'+(seat+1)+'のカードを引く番'));
+  view.isMyTurn?targetName+'から1枚引こう':
+   actorName+'が'+targetName+'のカードを引いています'));
  const count=view.players[seat]?.cardCount??0;
  const row=make('div','v2-backrow');
  for(let i=0;i<count;i++){
@@ -30,6 +35,10 @@ function drawSurface(view){
 function sevenSurface(view){
  const box=make('section','v2-seven');
  const placed=view.board.placed||[];
+ const playable=new Set(view.isMyTurn?view.legal.playIds||[]:[]);
+ const info=make('div','v2-seven-info',
+  '中央の7から、同じマークの数字をつなげよう');
+ box.append(info);
  for(let suit=0;suit<4;suit++){
   const row=make('div','v2-seven-row');
   const label=make('span','v2-suit-label'+(suit===1||suit===2?' v2-red':''), ['♠','♥','♦','♣'][suit]);
@@ -38,13 +47,18 @@ function sevenSurface(view){
    const pl=placed[suit];
    const active=!!pl&&rank>=pl.low&&rank<=pl.high;
    const next=!!pl&&(rank===pl.low-1||rank===pl.high+1);
-   const cell=make('span','v2-seven-cell'+(active?' v2-placed':'')+(next?' v2-next':''));
+   const ready=next&&playable.has(suit+'-'+rank);
+   const cell=make('span','v2-seven-cell'+(active?' v2-placed':'')+
+    (next?' v2-next':'')+(ready?' v2-ready':''));
+   if(ready)cell.setAttribute('aria-label','置ける場所 '+['♠','♥','♦','♣'][suit]+
+    (rank===1?'A':rank===11?'J':rank===12?'Q':rank===13?'K':rank));
    if(active)cell.append(makeCardFace({suit,rank},{tiny:true}));
-   else cell.textContent=String(rank);
+   else cell.textContent=rank===1?'A':rank===11?'J':rank===12?'Q':rank===13?'K':String(rank);
    row.append(cell);
   }
   box.append(row);
  }
+ if(playable.size)box.append(make('p','v2-seven-legend','✦ 明るいマスに置けるカードを手札から選ぼう'));
  return box;
 }
 function fieldSurface(view){
