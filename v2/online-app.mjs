@@ -207,7 +207,7 @@ function renderLobby(snapshot){
  const area=create('section','v2-room-lobby');
  const heading=create('h2','','ルーム '+snapshot.roomCode);
  heading.dataset.roomCode=snapshot.roomCode;heading.id='shared-code';area.append(heading);
- area.append(create('p','v2-help','同じ部屋のまま別ゲームを選べます。'));
+ area.append(create('p','v2-help v2-lobby-instruction','同じ部屋のまま別ゲームを選べます。'));
  const roster=create('div','v2-roster');
  snapshot.members.forEach((id,index)=>{
   const label=(id===snapshot.hostId?'★ ':'')+'P'+(index+1)+
@@ -257,7 +257,7 @@ function renderLobby(snapshot){
  const controls=create('div','v2-room-actions');
  if(snapshot.selectedGame){
   const meInMatch=snapshot.participants.includes(store.uid);
-  area.append(create('p','v2-help',
+  area.append(create('p','v2-help v2-lobby-count',
    '人間：'+snapshot.participants.filter(id=>snapshot.members.includes(id)).length+'人 ／ CPU：'+
    snapshot.participants.filter(id=>isCpuSeat(snapshot,id)).length+'人'));
   if(meInMatch){
