@@ -299,21 +299,29 @@ button.v2-card{cursor:pointer}
  text-shadow:0 1px 2px #072518
 }
 
-/* V2 actual visual QA: 667x375 WebKit image hid the fourth suit in Sevens
-   even though 52 cells existed in the DOM. Keep all four rows within the
-   visible board, not in an undiscoverable vertical scroll. The seven grid is
-   informational; playable cards remain finger-sized in the hand below. */
+/* V2 real visual QA: 667x375 WebKit screenshot concealed ♣, despite all
+   52 cells existing. All suit rows now SHARE the actual remaining board
+   height. A user's turn needs play/pass buttons and a longer hint, so fixed
+   19/25/33px grid rows can still overflow in that state. */
 @media(max-height:500px){
+ .v2-table[data-game="shichinarabe"] .v2-seven-info,
+ .v2-table[data-game="shichinarabe"] .v2-seven-legend{display:none}
+ .v2-table[data-game="shichinarabe"] .v2-board{place-items:stretch}
  .v2-table[data-game="shichinarabe"] .v2-seven{
-  gap:2px;padding:0 2px;align-content:center
+  width:100%;height:100%;min-height:0;
+  grid-template-rows:repeat(4,minmax(0,1fr));
+  gap:1px;padding:0 2px;align-content:stretch
  }
  .v2-table[data-game="shichinarabe"] .v2-seven-row{
-  gap:1px;min-height:0
+  min-height:0;gap:1px
  }
  .v2-table[data-game="shichinarabe"] .v2-seven-cell{
-  height:clamp(19px,5vh,25px);font-size:10px;border-radius:3px
+  height:100%;min-height:0;overflow:hidden;
+  font-size:10px;border-radius:3px
  }
- .v2-table[data-game="shichinarabe"] .v2-suit-label{font-size:15px}
+ .v2-table[data-game="shichinarabe"] .v2-suit-label{
+  font-size:15px;line-height:1;overflow:hidden
+ }
  .v2-table[data-game="shichinarabe"] .v2-card.v2-tiny .v2-card-corner{
   font-size:8px;top:1px;left:2px
  }
@@ -322,8 +330,8 @@ button.v2-card{cursor:pointer}
  }
 }
 @media(max-height:360px){
- /* A 300px Google Sites iframe needs a compressed Sevens hand so its board
-    remains visible. Preserve sorting and primary play/pass controls. */
+ /* 667x300: preserve sorting, primary play/pass, and all four suits.
+    The board is information, while the hand is the actual tap surface. */
  .v2-table[data-game="shichinarabe"] .v2-hand .v2-card{
   --tc-w:40px;height:44px
  }
@@ -340,12 +348,8 @@ button.v2-card{cursor:pointer}
  }
  .v2-table[data-game="shichinarabe"] .v2-status{padding:0 3px}
  .v2-table[data-game="shichinarabe"] .v2-player{min-height:20px}
- .v2-table[data-game="shichinarabe"] .v2-seven-cell{
-  height:16px;font-size:9px
- }
- .v2-table[data-game="shichinarabe"] .v2-suit-label{
-  font-size:13px;line-height:1
- }
+ .v2-table[data-game="shichinarabe"] .v2-seven-cell{font-size:9px}
+ .v2-table[data-game="shichinarabe"] .v2-suit-label{font-size:13px}
  .v2-table[data-game="shichinarabe"] .v2-card.v2-tiny .v2-card-center-suit{
   font-size:11px
  }
