@@ -1,6 +1,7 @@
 import {GAME_REGISTRY} from '../games/definitions.mjs';
 import {createBoardSurface,DEFAULT_BOARD_SURFACES} from './board-surfaces.mjs';
 import {makeCardFace} from './card-face.mjs';
+import {sortHandForGame} from './card-order.mjs';
 
 // Full render is reserved for NEW authoritative state. A local card tap must
 // not tear down the board, 52-card Sevens grid, player rows, or hand DOM.
@@ -8,11 +9,11 @@ import {makeCardFace} from './card-face.mjs';
 export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY,surfaces=DEFAULT_BOARD_SURFACES}={}){
  if(!root||typeof root.replaceChildren!=='function')throw Error('INVALID_TABLE_ROOT');
  const wrapper=document.createElement('section');wrapper.className='v2-table';
- wrapper.innerHTML='<header class="v2-status" aria-live="polite"></header><div class="v2-players"></div><div class="v2-board"></div><div class="v2-foot"><div class="v2-hand-label"></div><div class="v2-hand" aria-label="自分の手札"></div><div class="v2-actions"></div></div>';
+ wrapper.innerHTML='<header class="v2-status" aria-live="polite"></header><div class="v2-players"></div><div class="v2-board"></div><div class="v2-foot"><div class="v2-hand-tools"><div class="v2-hand-label"></div><button class="v2-sort-button" type="button" data-action="sort" aria-label="手札の並べ方を切り替える">並べ替え</button></div><div class="v2-hand" aria-label="自分の手札"></div><div class="v2-actions"></div></div>';
  root.replaceChildren(wrapper);
  const $=cls=>wrapper.querySelector('.'+cls);
  let current=null,last='',selected=new Set(),lastRevision=null,paints=0,selectionUpdates=0;
- let playable=new Set(),legalMoves=new Set(),spec=null;
+ let playable=new Set(),legalMoves=new Set(),spec=null,sortBySuit=false,lastGame=null;
  const cardKey=c=>c?.joker?'JK':c.suit+'-'+c.rank;
  const elem=(tag,cls,text)=>{const e=document.createElement(tag);e.className=cls;e.textContent=text;return e;};
  const selectionSignature=()=>[...selected].sort().join(',');
@@ -45,6 +46,7 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
   if(!view||!view.game||!view.board)throw Error('INVALID_TABLE_VIEW');
   const revisionKey=[view.game,view.seat,view.turn,view.phase,view.revision].join('/');
   if(revisionKey!==lastRevision){selected.clear();lastRevision=revisionKey;}
+  if(view.game!==lastGame){sortBySuit=false;lastGame=view.game;}
   current=view;
   const hash=JSON.stringify(view);
   if(last===hash)return false;
@@ -77,11 +79,11 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
    }
   }
   const hand=document.createDocumentFragment();
-  const sorted=[...(view.hand||[])].sort((a,b)=>{
-   if(a.joker)return b.joker?0:1;
-   if(b.joker)return -1;
-   return a.rank-b.rank||a.suit-b.suit;
-  });
+  const sorted=sortHandForGame(view.hand||[],view.game,{bySuit:sortBySuit});
+  const sortButton=$('v2-hand-tools').querySelector('[data-action="sort"]');
+  sortButton.textContent=(sortBySuit||view.game==='shichinarabe'||view.game==='babanuki')&&!sortBySuit?
+   'マーク順 ⇄ 強さ順':sortBySuit?'マーク順 ⇄ 強さ順':'強さ順 ⇄ マーク順';
+  sortButton.disabled=sorted.length<2;
   for(const c of sorted){
    const key=cardKey(c),canPlay=playable.has(key)&&view.isMyTurn;
    const b=makeCardFace(c,{button:true});b.classList.add('v2-handcard');
@@ -117,6 +119,10 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
   const b=e.target.closest('button[data-action]');
   if(!b||!wrapper.contains(b)||b.disabled||!current)return;
   const type=b.dataset.action;
+  if(type==='sort'){
+   sortBySuit=!sortBySuit;
+   last='';render(current);return;
+  }
   if(type==='select'){
    const key=b.dataset.card;
    if(!current.isMyTurn||current.phase!=='playing'||
