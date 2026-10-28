@@ -11,6 +11,7 @@ import {createRoomMatchHost} from './session/room-match-host.mjs';
 import {createRoomMatchGuest} from './session/room-match-guest.mjs';
 import {createRoomSession} from './session/room-session.mjs';
 import {createRoomChat} from './ui/room-chat.mjs';
+import {gamePresentation} from './ui/game-presentation.mjs';
 
 const $=id=>document.getElementById(id);
 const main=$('main'),notice=$('notice');
@@ -219,11 +220,14 @@ function renderLobby(snapshot){
  }
  if(!snapshot.selectedGame)area.append(create('p','v2-help','ゲームを選択してください'));
  const picker=create('div','v2-game-picker');
- const gameIcons={babanuki:'🃏',shichinarabe:'♠️',daifugo:'👑',shinkei:'🧠'};
  for(const spec of GAME_REGISTRY.list()){
-  const b=button((gameIcons[spec.id]||'🎴')+' '+spec.label+(labGames.has(spec.id)?'':'（準備中）'),
-   'game-'+spec.id,()=>hostAction('selectGame',{gameId:spec.id}),
+  const visual=gamePresentation(spec);
+  const b=button('', 'game-'+spec.id,()=>hostAction('selectGame',{gameId:spec.id}),
    !isHost||!labGames.has(spec.id));
+  const name=create('span','v2-game-name',visual.icon+' '+spec.label);
+  const detail=create('span','v2-game-tagline',
+   labGames.has(spec.id)?visual.tagline:'準備中');
+  b.append(name,detail);
   if(spec.id===snapshot.selectedGame)b.classList.add('v2-active');
   picker.append(b);
  }
