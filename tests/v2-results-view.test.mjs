@@ -25,3 +25,11 @@ test('Missing outcomes do not fabricate winner positions',()=>{
   selfId:'a'}),[]);
  assert.deepEqual(projectMatchResults({participants:[]}),[]);
 });
+
+test('A departing participant is labeled by original seat, not P0',()=>{
+ const rows=projectMatchResults({
+  participants:['gone','present'],members:['present'],
+  ranks:{0:1,1:2},scores:null,selfId:'present'
+ });
+ assert.deepEqual(rows.map(r=>r.name),['P1','自分']);
+});
