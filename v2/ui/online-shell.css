@@ -165,3 +165,19 @@
   font-size:11px;padding:5px 3px
  }
 }
+
+/* Small iPad reading pass: chat messages carry real conversation content,
+   so never shrink them to the size of a decorative caption. Send/input
+   are primary repeated actions and keep 44px finger-sized targets. */
+.v2-chat-line{font-size:14px;line-height:1.38}
+.v2-chat-note,.v2-chat-status{font-size:11px;line-height:1.25}
+.v2-chat-input,.v2-chat-send{min-height:44px}
+.v2-chat-send{font-size:14px}
+.v2-chat-close{min-height:40px;min-width:40px}
+@media(max-height:430px){
+ .v2-chat-line{font-size:13px;line-height:1.35}
+ .v2-chat-input,.v2-chat-send{min-height:44px}
+ .v2-chat-close{min-height:40px;min-width:40px}
+ .v2-result-name{font-size:14px}
+ .v2-result-score{font-size:13px}
+}
