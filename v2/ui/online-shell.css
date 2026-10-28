@@ -50,3 +50,25 @@
 .v2-result-player{font-size:13px;padding:5px 10px;
  background:#154a33;border:1px solid #8db89d;border-radius:7px}
 .v2-result-you{border-color:#ffe179;background:#4a5a30;font-weight:800}
+
+/* Old collection-inspired game tiles, still 2x2 at 667px landscape. */
+.v2-room-lobby .v2-game-picker .v2-menu-button{
+ text-align:left;border:1px solid #d0e4ce;
+ background:linear-gradient(155deg,#fffef5,#dfeee1);
+ color:#173b28;font-size:clamp(12px,2.2vw,15px);
+ font-weight:850;letter-spacing:.02em;
+ box-shadow:0 2px 0 #08291f9c;
+}
+.v2-room-lobby .v2-game-picker .v2-menu-button.v2-active{
+ background:linear-gradient(145deg,#fff2b8,#f5d369);
+ outline:2px solid #ffecaa;outline-offset:1px;border-color:#e2b44c;
+}
+.v2-room-lobby .v2-game-picker .v2-menu-button:active:not(:disabled){
+ transform:translateY(1px);box-shadow:0 1px 0 #08291f9c;
+}
+.v2-chat-send,.v2-chat-close{touch-action:manipulation}
+@media(max-height:430px){
+ .v2-room-lobby .v2-game-picker .v2-menu-button{
+  min-height:30px;font-size:12px;padding:4px 7px;
+ }
+}
