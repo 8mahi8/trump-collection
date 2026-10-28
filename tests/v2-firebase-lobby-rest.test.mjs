@@ -102,10 +102,12 @@ test('no-auth bounded chat writes only its own fixed slot, and reads room histor
  assert.equal(seen[1].method,'PUT');
  assert.equal(seen[1].body.text,'こんにちは');
  assert.equal(seen[1].body.actor,uid);
+ await store.sendChat('12345','<img onerror=alert(1)>123',1,'chatA0005');
+ assert.equal(seen[2].body.text,'<img onerror=alert(1)>123');
  assert.equal(seen.every(x=>!x.url.searchParams.has('auth')),true);
  assert.throws(()=>store.sendChat('12345','a'.repeat(121),0,'chatC0003'),
   e=>e.code==='INVALID_CHAT_TEXT');
  assert.throws(()=>store.sendChat('12345','hi',10,'chatD0004'),
   e=>e.code==='INVALID_CHAT_SLOT');
- assert.equal(seen.length,2,'invalid chat must not make any network request');
+ assert.equal(seen.length,3,'invalid chat must not make any network request');
 });
