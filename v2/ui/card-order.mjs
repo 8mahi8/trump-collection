@@ -9,7 +9,7 @@ export function sortHandForGame(hand,game,{bySuit=false}={}){
  const strength=game==='daifugo';
  const rank=c=>c.joker?99:strength?daifugoStrength(c):c.rank;
  return [...hand].sort((a,b)=>{
-  if(bySuit||game==='shichinarabe'||game==='babanuki'){
+  if(bySuit){
    return cardSuitOrder(a)-cardSuitOrder(b)||rank(a)-rank(b);
   }
   return rank(a)-rank(b)||cardSuitOrder(a)-cardSuitOrder(b);
