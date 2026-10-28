@@ -30,3 +30,10 @@ Then fetch jobs/logs via run/job IDs. **Do not** infer that absent commit status
 - Keep architecture plugin-based; new games must remain unavailable until their `onlineReady` integration gate passes.
 - Prioritize preserving legible cards and explicit hand/turn state on the short iPad landscape; empty/non-interactive hands need separate layout expectations.
 - Test **displayed** element rectangles, not a hidden placeholder, when asserting clipping.
+
+## Short Google Sites iframe addendum (2026-10-28)
+- A real Chromium CPU game at heights 300, 320, 350, 375 and 450px (all width=667) revealed that the basic 44px fix **still clipped backs below about 360px**.
+- Added `@media(max-height:360px)` in `v2/ui/table.css`: keep opponent button **44×44px** for touch; compress the non-interactive self-hand, remove the duplicated hint above the row, compact a few labels and margins. The bottom action remains understandable.
+- Injected the exact CSS into the existing CI-built self-contained HTML in Chromium and inspected actual 667×300 screenshot, plus measured the opponent back card rectangles. **All five heights had full opponent back visibility** and action row inside viewport.
+- New online browser regression `dev/verify-v2-online-ui.mjs` tests 667×300, 667×375, 800×450 for minimum 43px card width and full visibility, saving screenshots. New commits `83ee5a5e` and `e6abaf1a`. The latest multi-browser Actions run has **not been claimed complete** until verified.
+- Separate confirmed success at `https://github.com/8mahi8/trump-collection/actions/runs/40707321552` for `e48662d5` (the 375px/450px draw CSS fix, before 300px-specific amendment). Its runner included full online Chromium/WebKit and Memory CPU. Subsequent 300px case requires the newest Actions run.
