@@ -256,6 +256,32 @@ function renderLobby(snapshot){
  area.append(button('ルームを退出','leave-room',leave));
  main.replaceChildren(area);
 }
+async function showMatchSummary(snapshot,area){
+ const matchId=snapshot.match?.matchId,code=snapshot.roomCode;
+ if(!matchId||!store)return;
+ try{
+  const report=await store.matchPublic(code,matchId);
+  if(screen!=='results'||activeMatchId!==matchId||roomCode!==code||
+   !report?.publicView)return;
+  const pub=report.publicView,score=Array.isArray(pub.scores)?pub.scores:null;
+  const standings=pub.ranks&&typeof pub.ranks==='object'?pub.ranks:null;
+  const results=create('div','v2-results-list');
+  for(let seat=0;seat<snapshot.match.participants.length;seat++){
+   const id=snapshot.match.participants[seat];
+   const name=id===store.uid?'自分':isCpuSeat(snapshot,id)?'CPU'+(seat+1):
+    'P'+(snapshot.members.indexOf(id)+1);
+   const rank=standings?.[seat],points=score?.[seat];
+   if(!Number.isFinite(rank)&&!Number.isFinite(points))continue;
+   const line=create('div','v2-result-player');
+   if(id===store.uid)line.classList.add('v2-result-you');
+   const text=(Number.isFinite(rank)?rank+'位 · ':'')+
+    name+(Number.isFinite(points)?' · '+points+'ペア':'');
+   line.textContent=text;
+   results.append(line);
+  }
+  if(results.childElementCount)area.insertBefore(results,area.querySelector('[data-action="back-lobby"]'));
+ }catch{/* Room results stay usable even if optional score GET fails. */}
+}
 function renderResults(snapshot){
  if(screen==='results'&&snapshot.match?.matchId===activeMatchId)return;
  screen='results';clearSession();activeMatchId=snapshot.match?.matchId||'';
@@ -266,6 +292,7 @@ function renderResults(snapshot){
   ()=>hostAction('returnToLobby',{matchId:snapshot.match.matchId})));
  else area.append(create('p','v2-help','ホストがロビーに戻るのを待っています…'));
  main.replaceChildren(area);
+ showMatchSummary(snapshot,area);
 }
 function renderSpectator(snapshot){
  if(screen==='spectator'&&activeMatchId===snapshot.match.matchId)return;
