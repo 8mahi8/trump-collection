@@ -108,7 +108,7 @@ export function createRoomChat({top,app,getRoom,getStore}={}){
   try{
    await e.store.sendChat(e.room.roomCode,text,next%10,id);
    input.value='';await refresh();
-  }catch(err){status.textContent='送信できませんでした。もう一度試してください。';}
+  }catch(err){status.textContent='送信できませんでした（'+(err?.code||'通信エラー')+'）';}
   finally{sending=false;send.disabled=false;}
  }
  toggle.addEventListener('click',()=>{
