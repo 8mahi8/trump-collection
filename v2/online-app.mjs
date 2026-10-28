@@ -276,18 +276,30 @@ async function showMatchSummary(snapshot,area){
    !report?.publicView)return;
   const pub=report.publicView,score=Array.isArray(pub.scores)?pub.scores:null;
   const standings=pub.ranks&&typeof pub.ranks==='object'?pub.ranks:null;
+  const spec=GAME_REGISTRY.get(snapshot.match.gameId);
+  const unit=gamePresentation(spec).resultUnit;
   const results=create('div','v2-results-list');
-  for(let seat=0;seat<snapshot.match.participants.length;seat++){
-   const id=snapshot.match.participants[seat];
+  const entries=snapshot.match.participants.map((id,seat)=>({
+   id,seat,rank:standings?.[seat],points:score?.[seat]
+  })).filter(entry=>Number.isFinite(entry.rank)||Number.isFinite(entry.points));
+  entries.sort((a,b)=>{
+   const rankedA=Number.isFinite(a.rank),rankedB=Number.isFinite(b.rank);
+   if(rankedA&&rankedB)return a.rank-b.rank||a.seat-b.seat;
+   if(rankedA!==rankedB)return rankedA?-1:1;
+   return (b.points??0)-(a.points??0)||a.seat-b.seat;
+  });
+  for(const item of entries){
+   const {id,seat,rank,points}=item;
    const name=id===store.uid?'自分':isCpuSeat(snapshot,id)?'CPU'+(seat+1):
     'P'+(snapshot.members.indexOf(id)+1);
-   const rank=standings?.[seat],points=score?.[seat];
-   if(!Number.isFinite(rank)&&!Number.isFinite(points))continue;
    const line=create('div','v2-result-player');
    if(id===store.uid)line.classList.add('v2-result-you');
-   const text=(Number.isFinite(rank)?rank+'位 · ':'')+
-    name+(Number.isFinite(points)?' · '+points+'ペア':'');
-   line.textContent=text;
+   if(rank===1)line.classList.add('v2-result-winner');
+   const place=create('span','v2-result-rank',
+    Number.isFinite(rank)?(rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank+'位'):'●');
+   const player=create('strong','v2-result-name',name);
+   line.append(place,player);
+   if(Number.isFinite(points))line.append(create('span','v2-result-score',points+unit));
    results.append(line);
   }
   if(results.childElementCount)area.insertBefore(results,area.querySelector('[data-action="back-lobby"]'));
@@ -297,7 +309,9 @@ function renderResults(snapshot){
  if(screen==='results'&&snapshot.match?.matchId===activeMatchId)return;
  screen='results';clearSession();activeMatchId=snapshot.match?.matchId||'';
  const area=create('section','v2-menu');
- area.append(create('h2','','試合終了'));
+ const game=snapshot.match?.gameId&&GAME_REGISTRY.has(snapshot.match.gameId)?
+  GAME_REGISTRY.get(snapshot.match.gameId):null;
+ area.append(create('h2','','🏆 '+(game?game.label+' · ':'')+'試合終了'));
  area.append(create('p','','ルーム '+roomCode+' はそのまま。'));
  if(isHost)area.append(button('ロビーに戻る','back-lobby',
   ()=>hostAction('returnToLobby',{matchId:snapshot.match.matchId})));
