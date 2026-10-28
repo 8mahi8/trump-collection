@@ -514,7 +514,7 @@ try{
    await duoOwner.page.setViewportSize({width:800,height:450});
   }
   let attempts=0,botTurns=0,humanMoves=0,lastRevision=-1;
-  let sevensLegalInputChecked=false,babanukiLayoutChecked=false;
+  let sevensLegalInputChecked=false,sevensActiveLayoutChecked=false,babanukiLayoutChecked=false;
   const start=Date.now();
   while(Date.now()-start<68000&&attempts<180){
    const current=await duoOwner.f.locator('body').evaluate(()=>{
@@ -606,6 +606,32 @@ try{
     await player.f.locator('.v2-backrow button[data-action="draw"]:not([disabled])')
      .nth(index).tap({timeout:9000});
    }else if(game==='shichinarabe'){
+    // The active player's play/pass buttons can take another 20px or more.
+    // Check all four suits a second time while those controls are visible.
+    if(!sevensActiveLayoutChecked){
+     for(const size of [
+      {width:667,height:300},{width:667,height:375},{width:800,height:450}
+     ]){
+      await player.page.setViewportSize(size);
+      const proof=await player.f.locator('body').evaluate(()=>{
+       const board=document.querySelector('.v2-board').getBoundingClientRect();
+       const rows=[...document.querySelectorAll('.v2-seven-row')];
+       const first=rows[0].getBoundingClientRect(),last=rows[3].getBoundingClientRect();
+       return {rowCount:rows.length,firstTop:first.top,lastBottom:last.bottom,
+        boardTop:board.top,boardBottom:board.bottom,
+        actionButtons:document.querySelectorAll('.v2-actions button').length};
+      });
+      await player.page.screenshot({path:resolve('dist/v2-screens',
+       'classic-seven-active-'+engine+'-'+size.width+'x'+size.height+'.png')});
+      assert.equal(proof.rowCount,4);
+      assert.ok(proof.actionButtons>=2,'Sevens must preserve play/pass controls');
+      assert.ok(proof.firstTop>=proof.boardTop-2&&proof.lastBottom<=proof.boardBottom+2,
+       'SEVENS_ACTIVE_TURN_FOURTH_SUIT_CLIPPED '+JSON.stringify(proof));
+     }
+     await player.page.setViewportSize({width:800,height:450});
+     sevensActiveLayoutChecked=true;
+     console.log('V2 SEVENS ACTIVE CONTROLS + FOUR SUITS PASS '+engine);
+    }
     const id=actual.view.legal.playIds[0];
     if(id&&!sevensLegalInputChecked){
      const proof=await player.f.locator('body').evaluate(()=>{
