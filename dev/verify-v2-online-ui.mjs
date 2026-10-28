@@ -140,6 +140,27 @@ try{
  await group[1].f.locator('.v2-chat-send').tap();
  await owner.f.locator('.v2-chat-line').filter({hasText:'学校で遊ぼう'})
   .waitFor({timeout:18000});
+ // Visual QA: a 667x375 Google Sites iframe must keep the message input,
+ // send button and close control fully accessible while chat is open.
+ await owner.page.setViewportSize({width:667,height:375});
+ const chatLayout=await owner.f.locator('body').evaluate(()=>{
+  const box=document.querySelector('.v2-chat-panel').getBoundingClientRect();
+  const input=document.querySelector('.v2-chat-input').getBoundingClientRect();
+  const send=document.querySelector('.v2-chat-send').getBoundingClientRect();
+  const close=document.querySelector('.v2-chat-close').getBoundingClientRect();
+  return {left:box.left,top:box.top,right:box.right,bottom:box.bottom,
+   height:innerHeight,width:innerWidth,inputBottom:input.bottom,
+   sendBottom:send.bottom,closeBottom:close.bottom};
+ });
+ await owner.page.screenshot({path:resolve('dist/v2-screens',
+  'online-chat-'+engine+'-667x375.png')});
+ assert.ok(chatLayout.left>=-2&&chatLayout.top>=0&&
+  chatLayout.right<=chatLayout.width+2&&chatLayout.bottom<=chatLayout.height+2&&
+  chatLayout.inputBottom<=chatLayout.bottom+2&&
+  chatLayout.sendBottom<=chatLayout.bottom+2&&
+  chatLayout.closeBottom<=chatLayout.bottom+2,
+  'CHAT_PANEL_CLIPPED '+JSON.stringify(chatLayout));
+ await owner.page.setViewportSize({width:800,height:450});
  await Promise.all([owner,group[1]].map(p=>p.f.locator('.v2-chat-close').tap()));
  assert.equal(traffic.auth,0);
  console.log('V2 NO-AUTH ROOM CHAT UI PASS '+engine+' two-way+escaped+bounded');
@@ -455,8 +476,31 @@ try{
  assert.ok(humanTurns>0,'mixed Daifugo needs real tapped human turns');
  assert.ok(observedCpuTurns>0,'mixed Daifugo needs observed CPU turns');
  await duoOwner.f.locator('button[data-action="back-lobby"]').waitFor({timeout:15000});
+ await duoOwner.f.locator('.v2-results-list .v2-result-player').first()
+  .waitFor({timeout:15000});
  assert.match(await duoOwner.f.locator('#notice').textContent(),/対局終了/,
   'Results must not retain stale in-match status');
+ for(const size of [{width:667,height:375},{width:800,height:450}]){
+  await duoOwner.page.setViewportSize(size);
+  const resultLayout=await duoOwner.f.locator('body').evaluate(()=>{
+   const main=document.querySelector('#main').getBoundingClientRect();
+   const title=document.querySelector('.v2-menu h2').getBoundingClientRect();
+   const rows=[...document.querySelectorAll('.v2-result-player')];
+   const list=document.querySelector('.v2-results-list').getBoundingClientRect();
+   const back=document.querySelector('button[data-action="back-lobby"]').getBoundingClientRect();
+   return {rows:rows.length,titleTop:title.top,titleBottom:title.bottom,
+    mainTop:main.top,mainBottom:main.bottom,listTop:list.top,listBottom:list.bottom,
+    backTop:back.top,backBottom:back.bottom,viewportHeight:innerHeight};
+  });
+  await duoOwner.page.screenshot({path:resolve('dist/v2-screens',
+   'online-results-'+engine+'-'+size.width+'x'+size.height+'.png')});
+  assert.ok(resultLayout.rows>0,'Results must actually show the player order');
+  assert.ok(resultLayout.titleTop>=resultLayout.mainTop-2&&
+   resultLayout.backBottom<=resultLayout.mainBottom+3&&
+   resultLayout.listBottom<=resultLayout.mainBottom+3,
+   'RESULTS_CONTROLS_CLIPPED '+JSON.stringify(resultLayout));
+ }
+ await duoOwner.page.setViewportSize({width:800,height:450});
  await duoFriend.f.locator('body').evaluate(()=>new Promise((resolve,reject)=>{
   const start=Date.now(),timer=setInterval(()=>{
    if(window.TRUMP_V2_ONLINE_LAB.mode==='results'){
