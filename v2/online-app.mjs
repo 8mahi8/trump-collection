@@ -30,7 +30,7 @@ const button=(label,key,onClick,disabled=false)=>{
  b.disabled=disabled;b.addEventListener('click',()=>Promise.resolve().then(onClick).catch(showError));
  return b;
 };
-const msg=content=>{notice.textContent=content;};
+const msg=content=>{if(notice.textContent!==content)notice.textContent=content;};
 const secureId=()=>Array.from(crypto.getRandomValues(new Uint8Array(10)),n=>n.toString(16).padStart(2,'0')).join('');
 const requestId=()=> 'r'+secureId();
 const randomCode=()=>String(10000+crypto.getRandomValues(new Uint32Array(1))[0]%90000);
@@ -381,7 +381,7 @@ async function pump(){
     beginMatch(room);
     const reply=await session.refresh({roomSnapshot:room});
     if(reply.status==='ready'||reply.status==='ack'){
-     msg('オンライン対戦｜部屋 '+roomCode);
+     msg(matchNotice(roomCode,{gameLabel:GAME_REGISTRY.get(room.match.gameId).label}));
     }else if(reply.status==='rejected')msg('入力が拒否されました：'+reply.reason);
     else msg('対戦データの同期中…');
    }
