@@ -23,11 +23,13 @@ export function createRoomMatchHost({store,coordinator,roomCode,seedSource,gameC
   // Private first; publish the matching public revision LAST. A guest only
   // renders when public and its own private revision/round both match.
   const liveRoom=await readCurrent();
-  for(const uid of engine.participants){
-   // CPUs are host-side agents. Never upload CPU hands to Firebase.
-   if(isCpuSeat(liveRoom,uid))continue;
-   await store.publishMatchPrivate(roomCode,matchId,uid,engine.privateSnapshot(uid));
-  }
+  // Independent private seat snapshots can be written in parallel.
+  // All must finish BEFORE the public revision goes live. This removes
+  // per-seat round trips on school Wi-Fi without ever exposing CPU hands.
+  await Promise.all(engine.participants
+   .filter(uid=>!isCpuSeat(liveRoom,uid))
+   .map(uid=>store.publishMatchPrivate(roomCode,matchId,uid,
+    engine.privateSnapshot(uid))));
   await store.publishMatchPublic(roomCode,matchId,engine.publicSnapshot());
  }
  async function start(){
