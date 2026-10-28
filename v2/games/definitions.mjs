@@ -3,6 +3,7 @@
 // instead of copying the CPU and online applications.
 import * as G from '../../games.mjs';
 import {createGameRegistry} from '../core/game-registry.mjs';
+import {daifugoStrength} from './card-ranks.mjs';
 import {babanukiRemoteCpu,shichinarabeRemoteCpu,daifugoRemoteCpu} from './remote-cpu.mjs';
 
 const cards=hand=>(hand||[]).map(c=>c?.joker?{joker:true}:{suit:c.suit,rank:c.rank});
@@ -81,6 +82,7 @@ const shinkei={
 };
 const daifugo={
  id:'daifugo',label:'大富豪',seats:4,boardKind:'field',interaction:'pick-multi',actions:['play','pass','rematch'],
+ sortRank:daifugoStrength,
  remoteCpuChoose:daifugoRemoteCpu,
  onlineReady:true,
  ui:{icon:'👑',tagline:'強い組み合わせで場を制そう',handOrder:'strength'},
