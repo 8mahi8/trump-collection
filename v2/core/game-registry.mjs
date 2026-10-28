@@ -21,7 +21,19 @@ export function createGameRegistry(initial=[]){
   if(def.remoteBoard&&typeof def.remoteBoard!=='function')throw Error('INVALID_REMOTE_BOARD_HOOK');
   if(def.remoteLegal&&typeof def.remoteLegal!=='function')throw Error('INVALID_REMOTE_LEGAL_HOOK');
   if(games.has(def.id))throw Error('DUPLICATE_GAME '+def.id);
-  const frozen=Object.freeze({...def,actions:Object.freeze([...def.actions])});
+  // Optional visual metadata for the shared lobby/table. Future games should
+  // add data here rather than introduce new game-ID branches in GameShell.
+  if(def.ui!==undefined){
+   if(!def.ui||typeof def.ui!=='object'||Array.isArray(def.ui))
+    throw Error('INVALID_GAME_PRESENTATION');
+   for(const key of ['icon','tagline'])
+    if(def.ui[key]!==undefined&&typeof def.ui[key]!=='string')
+     throw Error('INVALID_GAME_PRESENTATION_'+key);
+   if(def.ui.handOrder!==undefined&&!['strength','suit'].includes(def.ui.handOrder))
+    throw Error('INVALID_GAME_HAND_ORDER');
+  }
+  const frozen=Object.freeze({...def,actions:Object.freeze([...def.actions]),
+   ui:def.ui?Object.freeze({...def.ui}):undefined});
   games.set(def.id,frozen);
   return frozen;
  }
