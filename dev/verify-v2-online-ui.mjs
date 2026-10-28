@@ -192,6 +192,22 @@ try{
    if(picker.querySelectorAll('.v2-game-name').length!==4||
       picker.querySelectorAll('.v2-game-tagline').length!==4)
     throw Error('LOBBY_GAME_PRESENTATION_MISSING');
+   const pressed=[...picker.querySelectorAll('button[aria-pressed="true"]')];
+   if(pressed.length!==1||pressed[0].dataset.action!=='game-babanuki')
+    throw Error('LOBBY_SELECTED_GAME_NOT_ANNOUNCED');
+   const gameName=picker.querySelector('.v2-game-name');
+   const gameDesc=picker.querySelector('.v2-game-tagline');
+   if(parseFloat(getComputedStyle(gameName).fontSize)<13.5||
+      parseFloat(getComputedStyle(gameDesc).fontSize)<10.5)
+    throw Error('LOBBY_GAME_TEXT_TOO_SMALL');
+   const actionButtons=[...lobby.querySelectorAll('.v2-room-actions > button')];
+   if(actionButtons.length!==3||
+      actionButtons.map(b=>b.dataset.action).join(',')!=='ready,start,leave-room')
+    throw Error('LOBBY_CONTROLS_NOT_GROUPED');
+   const actionRects=actionButtons.map(b=>b.getBoundingClientRect());
+   if(actionRects.some(b=>b.height<43.5||b.width<95)||
+      Math.max(...actionRects.map(b=>b.top))-Math.min(...actionRects.map(b=>b.top))>2)
+    throw Error('LOBBY_TOUCH_TARGET_TOO_SMALL_OR_MISALIGNED');
    if(getComputedStyle(document.querySelector('.v2-explain')).display==='none')
     throw Error('NETWORK_STATUS_HIDDEN_ON_SMALL_IPAD');
    const exit=lobby.querySelector('button[data-action="leave-room"]')?.getBoundingClientRect();
