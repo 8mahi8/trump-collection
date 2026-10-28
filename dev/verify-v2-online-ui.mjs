@@ -550,6 +550,16 @@ try{
    if(actual.mode==='results')break;
    if(game==='babanuki'){
     if(!babanukiLayoutChecked){
+     const redundant=await player.f.locator('body').evaluate(()=>{
+      const actions=document.querySelector('.v2-actions');
+      return {actionChildren:actions.childElementCount,
+       actionDisplay:getComputedStyle(actions).display,
+       boardHint:document.querySelector('.v2-board-hint')?.textContent||''};
+     });
+     assert.equal(redundant.actionChildren,0,'Babanuki should have no redundant submit/flip row');
+     assert.equal(redundant.actionDisplay,'none','Babanuki empty action row must collapse');
+     assert.match(redundant.boardHint,/から1枚引こう/);
+
      for(const size of [
       {width:667,height:300},{width:667,height:375},{width:800,height:450}
      ]){
@@ -673,6 +683,20 @@ try{
  }
  await duoOwner.f.locator('button[data-action="start"]:not([disabled])').tap({timeout:18000});
  await Promise.all(duel.map(p=>p.f.locator('.v2-memory').waitFor({timeout:18000})));
+ for(const player of duel){
+  const memoryHint=await player.f.locator('body').evaluate(()=>{
+   const view=window.TRUMP_V2_ONLINE_LAB.view;
+   const actions=document.querySelector('.v2-actions');
+   return {myTurn:view?.isMyTurn,actionChildren:actions?.childElementCount,
+    actionDisplay:actions&&getComputedStyle(actions).display,
+    hint:document.querySelector('.v2-selection-help')?.textContent||''};
+  });
+  if(memoryHint.myTurn){
+   assert.equal(memoryHint.actionChildren,0,'Memory turn has no duplicate instruction row');
+   assert.equal(memoryHint.actionDisplay,'none','Memory board should gain action-row height');
+   assert.match(memoryHint.hint,/2枚/,'Memory keeps one useful instruction');
+  }
+ }
  await duoOwner.page.setViewportSize({width:667,height:375});
  const compactMemory=await duoOwner.f.locator('body').evaluate(()=>{
   const grid=document.querySelector('.v2-memory');
