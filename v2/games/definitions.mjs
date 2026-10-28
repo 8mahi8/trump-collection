@@ -60,7 +60,7 @@ const shichinarabe={
 const shinkei={
  id:'shinkei',label:'神経衰弱',seats:2,boardKind:'memory',interaction:'flip',actions:['flip','rematch'],
  onlineReady:true,
- ui:{icon:'🧠',tagline:'同じ数字を2枚見つけよう',handOrder:'suit'},
+ ui:{icon:'🧠',tagline:'同じ数字を2枚見つけよう',handOrder:'suit',resultUnit:'ペア'},
  createLocal:(seed,options={})=>G.createShinkei(seed,options.difficulty??1),
  localHand:()=>[],localCounts:()=>null,
  score:(state,seat)=>state.scores?.[seat]??0,
