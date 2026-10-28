@@ -1,3 +1,4 @@
+> **実画面での確定結果（2026-10-28）**：**[Actions #40640370464 SUCCESS](https://github.com/8mahi8/trump-collection/actions/runs/40640370464)**。Chromium/WebKit両方で `V2 CARD SELECTION FAST PATH PASS`（盤面DOM・手札DOM維持、フル再描画なし、スクロール位置維持）を観測し、4ゲーム連続試合完走。**[Foundation #40640524486 SUCCESS](https://github.com/8mahi8/trump-collection/actions/runs/40640524486)**：新規private同時送信とpublic最終公開を含む163項目合格。**[RTDB noAuth Emulator #40640430349 SUCCESS](https://github.com/8mahi8/trump-collection/actions/runs/40640430349)**：通信の互換性検証合格。実iPad改善の数値はまだ未計測。
 # トランプコレクションV2｜学校実機フィードバック・カード選択の高速化（2026-10-28）
 
 ## 学校からの新しい事実
