@@ -498,7 +498,7 @@ try{
    await duoOwner.page.setViewportSize({width:800,height:450});
   }
   let attempts=0,botTurns=0,humanMoves=0,lastRevision=-1;
-  let sevensLegalInputChecked=false;
+  let sevensLegalInputChecked=false,babanukiLayoutChecked=false;
   const start=Date.now();
   while(Date.now()-start<68000&&attempts<180){
    const current=await duoOwner.f.locator('body').evaluate(()=>{
@@ -533,6 +533,29 @@ try{
    }));
    if(actual.mode==='results')break;
    if(game==='babanuki'){
+    if(!babanukiLayoutChecked){
+     for(const size of [{width:667,height:375},{width:800,height:450}]){
+      await player.page.setViewportSize(size);
+      const drawLayout=await player.f.locator('body').evaluate(()=>{
+       const board=document.querySelector('.v2-board').getBoundingClientRect();
+       const row=document.querySelector('.v2-backrow');
+       const cards=[...row.querySelectorAll('button.v2-card')];
+       const rects=cards.map(c=>c.getBoundingClientRect());
+       return {count:cards.length,boardTop:board.top,boardBottom:board.bottom,
+        minTop:Math.min(...rects.map(r=>r.top)),
+        maxBottom:Math.max(...rects.map(r=>r.bottom)),
+        minWidth:Math.min(...rects.map(r=>r.width))};
+      });
+      await player.page.screenshot({path:resolve('dist/v2-screens',
+       'classic-babanuki-'+engine+'-'+size.width+'.png')});
+      assert.ok(drawLayout.count>0,'Babanuki should show selectable opponent cards');
+      assert.ok(drawLayout.minWidth>=43,'Babanuki card tap width too small '+JSON.stringify(drawLayout));
+      assert.ok(drawLayout.minTop>=drawLayout.boardTop-2&&
+       drawLayout.maxBottom<=drawLayout.boardBottom+2,
+       'Babanuki opponent cards are clipped '+JSON.stringify(drawLayout));
+     }
+     babanukiLayoutChecked=true;
+    }
     const choices=actual.view.legal.drawIndices;
     const index=choices[drawIndex(choices.length)];
     assert.ok(Number.isInteger(index), 'Babanuki human must have a legal draw index');
