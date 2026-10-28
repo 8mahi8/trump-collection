@@ -14,6 +14,7 @@ import {createRoomChat} from './ui/room-chat.mjs';
 import {gamePresentation} from './ui/game-presentation.mjs';
 import {projectMatchResults} from './ui/results-view.mjs';
 import {roomNotice,matchNotice} from './ui/room-notice.mjs';
+import {projectHeadToHead} from './ui/seat-selection.mjs';
 
 const $=id=>document.getElementById(id);
 const main=$('main'),notice=$('notice');
@@ -239,20 +240,37 @@ function renderLobby(snapshot){
   picker.append(b);
  }
  area.append(picker);
- // Participant selection depends on seat count, not on a particular game name.
- // The existing data-action stays stable for current browser automation.
+ // All two-seat games share the same four-person head-to-head lobby.
+ // Hosts choose the opponent; other members see who plays and who watches.
+ // Keep action IDs stable for existing iPad automation.
  if(snapshot.selectedGame&&GAME_REGISTRY.get(snapshot.selectedGame).seats===2&&
-  isHost&&snapshot.members.length>2){
-  area.append(create('p','v2-help','対戦する2人を選択（ほかの友達は待機）'));
-  for(const other of snapshot.members.filter(id=>id!==snapshot.hostId)){
-   const index=snapshot.members.indexOf(other);
-   const chosen=snapshot.participants.includes(other);
-   const pick=button((chosen?'✓ ':'')+'P'+(index+1)+' と対戦',
-    'memory-opponent-'+(index+1),
-    ()=>hostAction('setParticipants',{memberIds:[snapshot.hostId,other]}));
-   if(chosen)pick.classList.add('v2-active');
-   area.append(pick);
+  snapshot.members.length>2){
+  const lineup=projectHeadToHead(snapshot,{selfId:store.uid,isCpuSeat});
+  area.classList.add('v2-lobby-seats');
+  const section=create('section','v2-seat-section');
+  section.append(create('div','v2-seat-heading','👥 2人対戦の組み合わせ'));
+  const matchup=create('p','v2-seat-matchup','対戦：'+lineup.matchup);
+  section.append(matchup);
+  section.append(create('p','v2-seat-spectators',lineup.spectatorLine));
+  section.append(create('p','v2-seat-role',lineup.selfRole==='spectator'?
+   'あなたは観戦です（準備操作なし）':
+   lineup.selfRole==='player'?'あなたは対戦メンバーです':'参加確認中'));
+  if(isHost){
+   section.append(create('p','v2-seat-prompt','対戦相手を選択'));
+   const choices=create('div','v2-seat-picker');
+   for(const other of lineup.opponents){
+    const pick=button((other.selected?'✓ ':'')+other.label+' と対戦',
+     'memory-opponent-'+(snapshot.members.indexOf(other.id)+1),
+     ()=>hostAction('setParticipants',{memberIds:[snapshot.hostId,other.id]}));
+    pick.classList.add('v2-seat-option');
+    pick.setAttribute('aria-pressed',String(other.selected));
+    pick.setAttribute('aria-label',other.label+(other.selected?'：対戦相手に選択中':'：対戦相手に選ぶ'));
+    if(other.selected)pick.classList.add('v2-active');
+    choices.append(pick);
+   }
+   section.append(choices);
   }
+  area.append(section);
  }
  const controls=create('div','v2-room-actions');
  if(snapshot.selectedGame){
