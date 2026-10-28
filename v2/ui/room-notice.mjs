@@ -15,7 +15,7 @@ export function roomNotice(snapshot,{selfId=null,isHost=false,registry}={}){
  const humans=participants.filter(id=>members.includes(id));
  const readyHumans=humans.filter(id=>ready.includes(id));
  const count=readyHumans.length+'/'+humans.length+'人';
- if(!participants.includes(selfId))return room+' · '+spec.label+'を対戦中の友達がプレイします';
+ if(!participants.includes(selfId))return room+' · '+spec.label+' · 今回は観戦（準備不要）';
  if(!ready.includes(selfId))
   return room+' · '+spec.label+' · 準備完了を押そう';
  if(participants.length===spec.seats&&readyHumans.length===humans.length)
