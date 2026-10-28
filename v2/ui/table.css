@@ -350,3 +350,8 @@ button.v2-card{cursor:pointer}
   font-size:11px
  }
 }
+
+/* Draw/flip interactions have a tap-enabled board; don't reserve a phantom
+   submit row beneath a second copy of the same instruction. This returns
+   vertical space to the actual cards on short landscape iPad screens. */
+.v2-table .v2-actions:empty{display:none}
