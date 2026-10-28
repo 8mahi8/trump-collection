@@ -7,7 +7,7 @@ export function projectMatchResults({participants,members=[],selfId=null,ranks=n
   const score=scores?.[seat]??null;
   return {seat,id,
    name:id===selfId?'自分':isCpu(id)?'CPU'+(seat+1):
-    'P'+(members.indexOf(id)+1),
+    'P'+(members.includes(id)?members.indexOf(id)+1:seat+1),
    rank:Number.isFinite(rank)?rank:null,
    score:Number.isFinite(score)?score:null,
    isYou:id===selfId};
