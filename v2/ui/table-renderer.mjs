@@ -79,10 +79,11 @@ export function createTableRenderer(root,{onAction=()=>{},registry=GAME_REGISTRY
    }
   }
   const hand=document.createDocumentFragment();
-  const sorted=sortHandForGame(view.hand||[],view.game,{bySuit:sortBySuit});
+  const defaultSuit=view.game!=='daifugo';
+  const bySuit=defaultSuit!==sortBySuit;
+  const sorted=sortHandForGame(view.hand||[],view.game,{bySuit});
   const sortButton=$('v2-hand-tools').querySelector('[data-action="sort"]');
-  sortButton.textContent=(sortBySuit||view.game==='shichinarabe'||view.game==='babanuki')&&!sortBySuit?
-   'マーク順 ⇄ 強さ順':sortBySuit?'マーク順 ⇄ 強さ順':'強さ順 ⇄ マーク順';
+  sortButton.textContent=bySuit?'マーク順 ⇄':'強さ順 ⇄';
   sortButton.disabled=sorted.length<2;
   for(const c of sorted){
    const key=cardKey(c),canPlay=playable.has(key)&&view.isMyTurn;
