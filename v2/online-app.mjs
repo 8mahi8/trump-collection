@@ -219,8 +219,9 @@ function renderLobby(snapshot){
  }
  if(!snapshot.selectedGame)area.append(create('p','v2-help','ゲームを選択してください'));
  const picker=create('div','v2-game-picker');
+ const gameIcons={babanuki:'🃏',shichinarabe:'♠️',daifugo:'👑',shinkei:'🧠'};
  for(const spec of GAME_REGISTRY.list()){
-  const b=button(spec.label+(labGames.has(spec.id)?'':'（準備中）'),
+  const b=button((gameIcons[spec.id]||'🎴')+' '+spec.label+(labGames.has(spec.id)?'':'（準備中）'),
    'game-'+spec.id,()=>hostAction('selectGame',{gameId:spec.id}),
    !isHost||!labGames.has(spec.id));
   if(spec.id===snapshot.selectedGame)b.classList.add('v2-active');
