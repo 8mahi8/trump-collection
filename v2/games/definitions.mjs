@@ -98,7 +98,7 @@ const daifugo={
 
 
 const highcard={
- id:'highcard',label:'ハイカード勝負（試験）',seats:2,boardKind:'highcard',
+ id:'highcard',label:'ハイカード（試験）',seats:2,boardKind:'highcard',
  interaction:'flip',actions:['flip','rematch'],onlineReady:true,
  ui:{icon:'⚔️',tagline:'6回めくって強い数字を競う · 開発版',resultUnit:'点',
   turnHint:'自分の伏せ札を1枚タップ'},
