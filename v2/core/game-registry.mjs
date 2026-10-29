@@ -32,7 +32,7 @@ export function createGameRegistry(initial=[]){
   if(def.ui!==undefined){
    if(!def.ui||typeof def.ui!=='object'||Array.isArray(def.ui))
     throw Error('INVALID_GAME_PRESENTATION');
-   for(const key of ['icon','tagline','resultUnit'])
+   for(const key of ['icon','tagline','resultUnit','turnHint'])
     if(def.ui[key]!==undefined&&typeof def.ui[key]!=='string')
      throw Error('INVALID_GAME_PRESENTATION_'+key);
    if(def.ui.handOrder!==undefined&&!['strength','suit'].includes(def.ui.handOrder))
