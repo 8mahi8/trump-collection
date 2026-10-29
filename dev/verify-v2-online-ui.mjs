@@ -914,6 +914,88 @@ try{
  console.log('V2 MEMORY TWO HUMAN FULL UI PASS '+engine+' flipped='+memoryHumanFlips+
   ' durationMs='+(Date.now()-memoryStarted));
 
+ // Fifth plugin proof: actual online 2-human High Card match, not a fake
+ // registration test. The room host and Firebase REST guest are unchanged.
+ const highHost=await launch(),highGuest=await launch();
+ await highHost.f.locator('button[data-action="create-room"]').tap();
+ await highHost.f.locator('#shared-code').waitFor({timeout:18000});
+ const highCode=(await highHost.f.locator('#shared-code').textContent()).match(/[0-9]{5}/)?.[0];
+ await highGuest.f.locator('#room-code').fill(highCode);
+ await highGuest.f.locator('button[data-action="join-room"]').tap();
+ await highHost.f.locator('.v2-roster .v2-player').nth(1).waitFor({timeout:24000});
+ await highHost.f.locator('button[data-action="game-highcard"]').tap();
+ await Promise.all([highHost,highGuest].map(p=>
+  p.f.locator('button[data-action="ready"]').waitFor({timeout:18000})));
+ for(const p of [highHost,highGuest]){
+  await p.f.locator('button[data-action="ready"]').tap();
+  await p.f.locator('button[data-action="ready"]').filter({hasText:'準備を解除'})
+   .waitFor({timeout:18000});
+ }
+ await highHost.f.locator('button[data-action="start"]:not([disabled])').tap({timeout:18000});
+ await Promise.all([highHost,highGuest].map(p=>
+  p.f.locator('.v2-highcard').waitFor({timeout:18000})));
+ // Both public projections must hide the two shuffled hands.
+ for(const p of [highHost,highGuest]){
+  const data=await p.f.locator('body').evaluate(()=>{
+   const v=window.TRUMP_V2_ONLINE_LAB.view;
+   return {game:v?.game,count:v?.board?.tiles?.length,
+    hidden:v?.board?.tiles?.filter(t=>!t.flipped).every(t=>t.card===null)};
+  });
+  assert.deepEqual(data,{game:'highcard',count:12,hidden:true},
+   'HIGHCARD_HIDDEN_DECK_LEAK '+JSON.stringify(data));
+ }
+ for(const size of [{width:800,height:450},{width:667,height:375},{width:667,height:300}]){
+  await highHost.page.setViewportSize(size);
+  const layout=await highHost.f.locator('.v2-highcard').evaluate(el=>{
+   const rows=[...el.querySelectorAll('.v2-highcard-row')];
+   const cards=[...el.querySelectorAll('.v2-highcard-row .v2-card')];
+   const bounding=el.closest('.v2-board').getBoundingClientRect();
+   return {rows:rows.length,cards:cards.length,
+    minHeight:Math.min(...cards.map(e=>e.getBoundingClientRect().height)),
+    minLeft:Math.min(...cards.map(e=>e.getBoundingClientRect().left)),
+    maxRight:Math.max(...cards.map(e=>e.getBoundingClientRect().right)),
+    minTop:Math.min(...cards.map(e=>e.getBoundingClientRect().top)),
+    maxBottom:Math.max(...cards.map(e=>e.getBoundingClientRect().bottom)),
+    board:{left:bounding.left,right:bounding.right,top:bounding.top,bottom:bounding.bottom}};
+  });
+  await highHost.page.screenshot({path:resolve('dist/v2-screens',
+   'online-highcard-'+engine+'-'+size.width+'x'+size.height+'.png')});
+  assert.equal(layout.rows,2,'HIGHCARD_MUST_HAVE_TWO_PLAYER_ROWS');
+  assert.equal(layout.cards,12,'HIGHCARD_MUST_HAVE_TWELVE_TAPPABLE_CARDS');
+  assert.ok(layout.minHeight>=43.5&&layout.minLeft>=layout.board.left-2&&
+   layout.maxRight<=layout.board.right+2&&layout.minTop>=layout.board.top-2&&
+   layout.maxBottom<=layout.board.bottom+2,
+   'HIGHCARD_CARDS_CLIPPED '+JSON.stringify(layout));
+ }
+ await highHost.page.setViewportSize({width:800,height:450});
+ for(let turn=0;turn<12;turn++){
+  const player=turn%2===0?highHost:highGuest;
+  await player.f.locator('body').evaluate((_,params)=>new Promise((resolve,reject)=>{
+   const began=Date.now(),timer=setInterval(()=>{
+    const lab=window.TRUMP_V2_ONLINE_LAB,v=lab.view;
+    if(lab.mode==='match'&&v?.game==='highcard'&&v.isMyTurn&&
+     !lab.pending&&v.board.tiles.filter(t=>t.flipped).length===params.turn){
+     clearInterval(timer);resolve();
+    }else if(Date.now()-began>20000){clearInterval(timer);
+     reject(Error('HIGHCARD_TURN_TIMEOUT_'+params.turn+'_'+lab.mode));}
+   },90);
+  }),{turn});
+  await player.f.locator('.v2-highcard button[data-action="flip"]:not([disabled])')
+   .first().tap({timeout:11000});
+ }
+ await highHost.f.locator('button[data-action="back-lobby"]').waitFor({timeout:18000});
+ await highGuest.f.locator('button[data-action="back-lobby"]').waitFor({timeout:18000});
+ await highHost.f.locator('.v2-results-list .v2-result-player').first()
+  .waitFor({timeout:18000});
+ const highResult=await highHost.f.locator('body').evaluate(()=>{
+  const lab=window.TRUMP_V2_ONLINE_LAB;
+  return {game:lab.room?.match?.gameId,mode:lab.mode};
+ });
+ assert.equal(highResult.game,'highcard');
+ assert.equal(highResult.mode,'results');
+ console.log('V2 FIFTH HIGHCARD TWO HUMAN ONLINE PASS '+engine+
+  ' rounds=6 privacy=hidden cards=12 matches=finished');
+
  // In a four-person lobby selecting Memory requires choosing exactly two.
  const spectatorHost=await launch();
  await spectatorHost.f.locator('button[data-action="create-room"]').tap();
