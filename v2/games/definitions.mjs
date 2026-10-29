@@ -4,6 +4,7 @@
 import * as G from '../../games.mjs';
 import {createGameRegistry} from '../core/game-registry.mjs';
 import {daifugoStrength} from './card-ranks.mjs';
+import {createHighcard,flipHighcard,highcardPublic,highcardLegal,highcardRanks,highcardCpu} from './highcard-duel.mjs';
 import {babanukiRemoteCpu,shichinarabeRemoteCpu,daifugoRemoteCpu} from './remote-cpu.mjs';
 
 const cards=hand=>(hand||[]).map(c=>c?.joker?{joker:true}:{suit:c.suit,rank:c.rank});
@@ -95,7 +96,29 @@ const daifugo={
  remoteLegal:(pub,priv)=>({...legal(),playMoves:(priv.legalMoves||[]).map(m=>[...m]),canPass:!!pub.field})
 };
 
-export const BUILTIN_GAMES=Object.freeze([babanuki,shichinarabe,shinkei,daifugo]);
+
+const highcard={
+ id:'highcard',label:'ハイカード勝負（試験）',seats:2,boardKind:'highcard',
+ interaction:'flip',actions:['flip','rematch'],onlineReady:true,
+ ui:{icon:'⚔️',tagline:'6回めくって強い数字を競う · 開発版',resultUnit:'点',
+  turnHint:'自分の伏せ札を1枚タップ'},
+ createLocal:createHighcard,
+ localMove:(state,action)=>action?.type==='flip'&&flipHighcard(state,state.turn,action.index),
+ cpuChoose:highcardCpu,
+ localHand:()=>[],localCounts:()=>null,
+ ranks:highcardRanks,
+ scores:state=>[...state.scores],
+ score:(state,seat)=>state.scores[seat],
+ localBoard:state=>({kind:'highcard',...highcardPublic(state)}),
+ localLegal:(state,seat)=>({...legal(),flipIndices:highcardLegal(state,seat)}),
+ remoteBoard:state=>({kind:'highcard',turn:state.turn,
+  tiles:(state.tiles||[]).map(tile=>({...tile,card:tile.card?{...tile.card}:null})),
+  roundNumber:state.roundNumber||0,lastResult:state.lastResult||null,scores:[...(state.scores||[])]}),
+ remoteLegal:(pub,priv,seat)=>({...legal(),flipIndices:(pub.tiles||[])
+  .filter(tile=>tile.owner===seat&&!tile.flipped).map(tile=>tile.index)})
+};
+
+export const BUILTIN_GAMES=Object.freeze([babanuki,shichinarabe,shinkei,daifugo,highcard]);
 export const GAME_REGISTRY=createGameRegistry(BUILTIN_GAMES);
 export const GAME_SPECS=Object.freeze(Object.fromEntries(
  GAME_REGISTRY.list().map(({id,label,seats,boardKind,actions})=>[
