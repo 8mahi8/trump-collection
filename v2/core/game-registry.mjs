@@ -25,6 +25,12 @@ export function createGameRegistry(initial=[]){
   // add data here rather than introduce new game-ID branches in GameShell.
   if(def.onlineReady!==undefined&&typeof def.onlineReady!=='boolean')
    throw Error('INVALID_GAME_ONLINE_READY');
+  // School builds opt IN explicitly. A new online-capable experiment is never
+  // shipped to school just because its online emulator tests started passing.
+  if(def.schoolReady!==undefined&&typeof def.schoolReady!=='boolean')
+   throw Error('INVALID_GAME_SCHOOL_READY');
+  if(def.schoolReady===true&&def.onlineReady!==true)
+   throw Error('SCHOOL_REQUIRES_ONLINE_READY');
   if(def.remoteCpuChoose!==undefined&&typeof def.remoteCpuChoose!=='function')
    throw Error('INVALID_REMOTE_CPU_POLICY');
   if(def.sortRank!==undefined&&typeof def.sortRank!=='function')
