@@ -13,9 +13,9 @@ const sampleView=(changes={})=>({
 });
 test('Every built-in game declares identity and hand order without shell game-ID branches',()=>{
  const specs=GAME_REGISTRY.list();
- assert.equal(specs.length,4);
+ assert.equal(specs.length,5);
  const ids=specs.map(spec=>spec.id);
- assert.deepEqual(ids,['babanuki','shichinarabe','shinkei','daifugo']);
+ assert.deepEqual(ids,['babanuki','shichinarabe','shinkei','daifugo','highcard']);
  for(const spec of specs){
   const presentation=gamePresentation(spec);
   assert.ok(presentation.icon&&presentation.tagline);
@@ -25,7 +25,7 @@ test('Every built-in game declares identity and hand order without shell game-ID
  assert.equal(gamePresentation(GAME_REGISTRY.get('shichinarabe')).handOrder,'suit');
  assert.equal(gamePresentation(GAME_REGISTRY.get('shinkei')).resultUnit,'ペア');
  assert.ok(specs.every(spec=>spec.onlineReady===true),
-  'existing four fully integrated online games remain selectable');
+  'existing built-in online games remain selectable');
  assert.deepEqual(specs.filter(spec=>spec.onlineReady).map(spec=>spec.id),ids);
 });
 test('New games can omit presentation metadata without changing common UI code',()=>{
