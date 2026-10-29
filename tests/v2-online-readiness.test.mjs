@@ -12,8 +12,8 @@ const fifth=interaction=>({
  localHand:()=>[],localCounts:()=>null,
  remoteBoard:()=>({kind:'custom-board'}),remoteLegal:()=>({flipIndices:[0]})
 });
-test('Four existing games have all three playable layers',()=>{
- assert.deepEqual(onlineUiGames(),['babanuki','shichinarabe','shinkei','daifugo']);
+test('Five built-in games have all three playable layers',()=>{
+ assert.deepEqual(onlineUiGames(),['babanuki','shichinarabe','shinkei','daifugo','highcard']);
 });
 test('A fifth game stays hidden if its board surface is not implemented',()=>{
  const registry=createGameRegistry([fifth('flip')]);
