@@ -239,3 +239,22 @@
   background:#124532;box-shadow:0 -5px 11px #062b216b
  }
 }
+
+/* Five/six games: use a compact three-column picker on landscape iPads.
+   A two-column 5th tile created a third row and clipped the exit button at
+   667x300. The existing 44px footer must always remain usable. */
+@media(min-width:520px){
+ .v2-room-lobby .v2-game-picker{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  width:min(530px,100%);gap:5px
+ }
+}
+@media(min-width:520px) and (max-height:430px){
+ .v2-room-lobby .v2-game-picker .v2-menu-button{
+  min-height:44px;padding:4px 6px;gap:1px
+ }
+ .v2-room-lobby .v2-game-picker .v2-game-name{font-size:14px}
+ .v2-room-lobby .v2-game-picker .v2-game-tagline{
+  font-size:11px;line-height:1.1
+ }
+}
