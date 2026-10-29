@@ -12,6 +12,7 @@ export function gamePresentation(spec){
 }
 export function turnPrompt(view,spec,{selected=[],valid=false,combo=null}={}){
  if(view.phase!=='playing'||!view.isMyTurn)return '';
+ if(typeof spec.ui?.turnHint==='string'&&spec.ui.turnHint)return spec.ui.turnHint;
  const legal=view.legal||{};
  switch(spec.interaction){
   case 'pick-one':
