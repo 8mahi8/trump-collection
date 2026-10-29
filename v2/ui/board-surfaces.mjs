@@ -99,8 +99,38 @@ function memorySurface(view){
  }
  return box;
 }
+// Reuse the existing physical card face and 'flip' action contract, but
+// label each player's row. No opponent's hidden card is ever in the view.
+function highcardSurface(view){
+ const box=make('section','v2-highcard');
+ const board=view.board,round=board.roundNumber||0;
+ box.append(make('p','v2-highcard-round','ラウンド '+Math.min(round+1,6)+'/6 · Aが最強 · 同じ数字は引き分け'));
+ for(let seat=0;seat<2;seat++){
+  const row=make('div','v2-highcard-row');
+  row.append(make('span','v2-highcard-owner',(view.seat===seat?'自分':'P'+(seat+1))+'の札'));
+  for(const tile of board.tiles||[]){
+   if(tile.owner!==seat)continue;
+   const el=makeCardFace(tile.card,{back:!tile.card,button:true,small:true});
+   el.dataset.action='flip';el.dataset.index=tile.index;
+   const available=view.legal.flipIndices.includes(tile.index);
+   el.disabled=!view.isMyTurn||tile.flipped||!available;
+   el.setAttribute('aria-label',(view.seat===seat?'自分':'P'+(seat+1))+
+    'の'+(tile.flipped?'公開済み':'伏せ札')+' '+(tile.index%6+1));
+   if(tile.flipped)el.classList.add('v2-highcard-revealed');
+   row.append(el);
+  }
+  box.append(row);
+ }
+ const result=board.lastResult;
+ if(result){
+  box.append(make('p','v2-highcard-last',
+   '前回：'+(result.winner===null?'引き分け':'P'+(result.winner+1)+'が1点')+
+   ' · '+(board.scores||[]).join(' - ')));
+ }
+ return box;
+}
 export const DEFAULT_BOARD_SURFACES=Object.freeze({
- draw:drawSurface,seven:sevenSurface,field:fieldSurface,memory:memorySurface
+ draw:drawSurface,seven:sevenSurface,field:fieldSurface,memory:memorySurface,highcard:highcardSurface
 });
 export function createBoardSurface(view,surfaces=DEFAULT_BOARD_SURFACES){
  const fn=surfaces[view.board?.kind];
