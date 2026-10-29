@@ -23,9 +23,14 @@
 ## 検証の段階
 
 - [x] [Foundation #40836031606](https://github.com/8mahi8/trump-collection/actions/runs/40836031606) **211/211 PASS**。ゲーム作成、シード再現性、6ラウンド、合法タップ、非公開カード、対戦終了、1人＋CPU、2人でのhost Authorityを検証。
-- [ ] [オンライン総合 Chromium/WebKit #40836099774](https://github.com/8mahi8/trump-collection/actions/runs/40836099774)。2人が実Firebase Emulatorルームに入り、開発ゲームを選んで12回めくり、結果画面まで完走。公開Viewに隠しカードが無いことを再検査。800×450、667×375、667×300の各画面で12枚の表示・タップ領域が収まるかを判定。
+- [ ] [オンライン総合 Chromium/WebKit：修正後 #40836409636](https://github.com/8mahi8/trump-collection/actions/runs/40836409636)。2人が実Firebase Emulatorルームに入り、開発ゲームを選んで12回めくり、結果画面まで完走。公開Viewに隠しカードが無いことを再検査。800×450、667×375、667×300の各画面で12枚の表示・タップ領域が収まるかを判定。
 - [ ] 新しいオンライン総合のスクリーンショットを取得し、WebKit/Chromiumのレイアウトを目視。
 - [ ] 実学校iPad Safari × Google Sites埋め込みは未試験。**Google Sites公開版には掲載していない**。
+
+
+## 5本目の追加によって発見・修正した実際のレイアウト不具合
+
+最初のオンライン総合 [#40836099774](https://github.com/8mahi8/trump-collection/actions/runs/40836099774) はゲーム処理まで到達する前に **`LOBBY_EXIT_BUTTON_OFF_SCREEN`** で停止。5本目の選択カードが2列×3行になり、667×300のGoogle Sites型iframeで退出ボタンが欠けたことが原因。単にテストを緩めず、`v2/ui/online-shell.css` の横幅520px以上では選択を3列×2行にして、最大6ゲームまで同じ2行の配置を利用できるよう変更。5本目の表示名も短くして折返しを抑制。修正後のオンライン総合は [#40836409636](https://github.com/8mahi8/trump-collection/actions/runs/40836409636) で再試験。**この検査は「ゲームの追加時にUIが破綻しないか」を確認する重要な品質ゲートとして維持する。**
 
 ## 重要な設計上の制限
 
