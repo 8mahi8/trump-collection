@@ -359,3 +359,26 @@ button.v2-card{cursor:pointer}
    submit row beneath a second copy of the same instruction. This returns
    vertical space to the actual cards on short landscape iPad screens. */
 .v2-table .v2-actions:empty{display:none}
+
+/* Experimental High Card Duel: the two 6-card rows share the iPad landscape
+   board and always keep every actionable back fully within the viewport. */
+.v2-highcard{width:min(100%,550px);display:flex;flex-direction:column;
+ gap:5px;align-items:stretch;justify-content:center;padding:3px}
+.v2-highcard-round,.v2-highcard-last{font-size:12px;margin:0;text-align:center;
+ color:#ffedb0;font-weight:800}
+.v2-highcard-row{display:grid;grid-template-columns:76px repeat(6,minmax(0,1fr));
+ align-items:center;gap:5px;min-height:52px}
+.v2-highcard-owner{font-size:12px;color:#f4e7b0;text-align:right;white-space:nowrap}
+.v2-highcard-row .v2-card{width:100%;min-width:0;height:50px;
+ --tc-w:100%;font-size:13px}
+.v2-highcard-row button.v2-card:enabled{outline:2px solid #68dfff;
+ outline-offset:-2px}
+.v2-highcard-row .v2-highcard-revealed{opacity:.85}
+.v2-table[data-game="highcard"] .v2-hand-tools,
+.v2-table[data-game="highcard"] .v2-hand{display:none}
+@media(max-height:360px){
+ .v2-highcard{gap:2px;padding:1px}
+ .v2-highcard-row{min-height:44px;grid-template-columns:58px repeat(6,minmax(0,1fr));gap:3px}
+ .v2-highcard-row .v2-card{height:44px}
+ .v2-highcard-owner,.v2-highcard-round,.v2-highcard-last{font-size:10px}
+}
