@@ -17,7 +17,9 @@ export function validateV2DatabaseURL(input){
   throw Error('V2_DATABASE_URL_INVALID');
  return url.origin;
 }
-export async function buildV2OnlineLab({databaseURL=null}={}){
+export async function buildV2OnlineLab({databaseURL=null,schoolRelease=false}={}){
+ if(typeof schoolRelease!=='boolean')throw Error('INVALID_SCHOOL_RELEASE_MODE');
+ if(schoolRelease&&databaseURL===null)throw Error('SCHOOL_RELEASE_REQUIRES_DATABASE_URL');
  // Optional PUBLIC RTDB endpoint is injected before the game script.
  // The developer emulator's default no-config build remains unchanged.
  const config=databaseURL===null?'':('<script>window.TRUMP_V2_FIREBASE_CONFIG='+
@@ -25,6 +27,7 @@ export async function buildV2OnlineLab({databaseURL=null}={}){
   '</script>');
  const b=await build({entryPoints:[resolve(root,'v2/online-app.mjs')],bundle:true,
   format:'iife',platform:'browser',target:['safari15'],minify:true,
+  define:{__V2_SCHOOL_RELEASE__:String(schoolRelease)},
   write:false,logLevel:'silent'});
  if(b.outputFiles?.length!==1)throw Error('EXPECTED_ONE_JS_BUNDLE');
  const html=read('v2/online-lab.html')
@@ -44,6 +47,8 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  const args=process.argv.slice(2);
  const flag=arg=>{const i=args.indexOf(arg);return i>=0?args[i+1]:null};
  const endpoint=flag('--database-url'),out=flag('--out');
+ const schoolRelease=args.includes('--school');
+ if(schoolRelease&&(!endpoint||!out))throw Error('SCHOOL_RELEASE_REQUIRES_CONFIGURED_BUILD');
  try{
   if((endpoint===null)!==(out===null))throw Error('CONFIGURED_BUILD_REQUIRES_DATABASE_URL_AND_OUT');
   if(out&&!/^v2-room-first-sites-[a-zA-Z0-9_-]+\.html$/.test(basename(out)))
@@ -51,11 +56,12 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
   const dest=out?resolve(out):resolve(root,'dist/v2-room-first-online-lab.html');
   if(out&&(!dest.startsWith(resolve(root,'dist')+'/')||existsSync(dest)))
    throw Error('REFUSING_TO_OVERWRITE_OR_WRITE_OUTSIDE_DIST');
-  const html=await buildV2OnlineLab({databaseURL:endpoint});
+  const html=await buildV2OnlineLab({databaseURL:endpoint,schoolRelease});
   mkdirSync(dirname(dest),{recursive:true});
   writeFileSync(dest,html,{encoding:'utf8',flag:out?'wx':'w'});
   console.log('Generated '+dest+' length='+html.length+
-   (out?' (OFFLINE CONFIGURED DRAFT; NOT DEPLOYED)':' (developer emulator ONLY)'));
+   (out?(schoolRelease?' (FOUR-GAME SCHOOL TRIAL DRAFT; NOT DEPLOYED)':
+    ' (OFFLINE CONFIGURED DRAFT; NOT DEPLOYED)'):' (developer emulator ONLY)'));
   if(out)console.log('No Firebase Rules deployment or live database test occurred.');
  }catch(e){console.error('BUILD_BLOCKED:',e.message);process.exitCode=1;}
 }
