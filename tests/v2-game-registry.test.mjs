@@ -14,9 +14,9 @@ const custom=Object.freeze({
  remoteBoard:()=>({kind:'custom',value:'table'}),
  remoteLegal:()=>({drawIndices:[],playIds:[],playMoves:[],flipIndices:[],canPass:true})
 });
-test('all four games declare valid independent plugins with one common interface',()=>{
- assert.equal(BUILTIN_GAMES.length,4);
- assert.deepEqual(GAME_REGISTRY.list().map(g=>g.id),['babanuki','shichinarabe','shinkei','daifugo']);
+test('all five games declare valid independent plugins with one common interface',()=>{
+ assert.equal(BUILTIN_GAMES.length,5);
+ assert.deepEqual(GAME_REGISTRY.list().map(g=>g.id),['babanuki','shichinarabe','shinkei','daifugo','highcard']);
  for(const g of BUILTIN_GAMES){
   assert.deepEqual(Object.keys(GAME_SPECS[g.id]),['label','seats','boardKind','actions']);
   assert.equal(typeof g.localBoard,'function');
