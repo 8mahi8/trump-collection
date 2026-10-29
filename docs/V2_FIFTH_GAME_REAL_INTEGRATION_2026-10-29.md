@@ -23,14 +23,22 @@
 ## 検証の段階
 
 - [x] [Foundation #40836031606](https://github.com/8mahi8/trump-collection/actions/runs/40836031606) **211/211 PASS**。ゲーム作成、シード再現性、6ラウンド、合法タップ、非公開カード、対戦終了、1人＋CPU、2人でのhost Authorityを検証。
-- [ ] [オンライン総合 Chromium/WebKit：修正後 #40836409636](https://github.com/8mahi8/trump-collection/actions/runs/40836409636)。2人が実Firebase Emulatorルームに入り、開発ゲームを選んで12回めくり、結果画面まで完走。公開Viewに隠しカードが無いことを再検査。800×450、667×375、667×300の各画面で12枚の表示・タップ領域が収まるかを判定。
-- [ ] 新しいオンライン総合のスクリーンショットを取得し、WebKit/Chromiumのレイアウトを目視。
+- [x] [オンライン総合 Chromium/WebKit：最終 #40837166163](https://github.com/8mahi8/trump-collection/actions/runs/40837166163) **SUCCESS**。2人が実Firebase Emulatorルームに入り、開発ゲームを選んで12回めくり、結果画面まで完走。公開Viewに隠しカードが無いことを再検査。800×450、667×375、667×300の各画面で12枚の表示・タップ領域が収まるかを判定。
+- [x] CI artifact `12881083501` からChromium/WebKit 800×450・667×375・667×300の実スクリーンショットを取得して目視。両エンジンでP1・P2の12枚が見切れず44px以上の背面カード操作を確保している。
 - [ ] 実学校iPad Safari × Google Sites埋め込みは未試験。**Google Sites公開版には掲載していない**。
 
 
 ## 5本目の追加によって発見・修正した実際のレイアウト不具合
 
 最初のオンライン総合 [#40836099774](https://github.com/8mahi8/trump-collection/actions/runs/40836099774) はゲーム処理まで到達する前に **`LOBBY_EXIT_BUTTON_OFF_SCREEN`** で停止。5本目の選択カードが2列×3行になり、667×300のGoogle Sites型iframeで退出ボタンが欠けたことが原因。単にテストを緩めず、`v2/ui/online-shell.css` の横幅520px以上では選択を3列×2行にして、最大6ゲームまで同じ2行の配置を利用できるよう変更。5本目の表示名も短くして折返しを抑制。修正後のオンライン総合は [#40836409636](https://github.com/8mahi8/trump-collection/actions/runs/40836409636) で再試験。**この検査は「ゲームの追加時にUIが破綻しないか」を確認する重要な品質ゲートとして維持する。**
+
+## 統合後の最終判定（PASS）
+
+- **基盤 [#40836409697](https://github.com/8mahi8/trump-collection/actions/runs/40836409697)：211/211 PASS**。6ラウンドのルール・シード再現・CPU戦・対戦中の非公開カード・ホスト2人完走等。
+- **神経衰弱CPUブラウザ [#40836409728](https://github.com/8mahi8/trump-collection/actions/runs/40836409728)：SUCCESS**。
+- **Chromium＋WebKit 総合 [#40837166163](https://github.com/8mahi8/trump-collection/actions/runs/40837166163)：SUCCESS**。既存の大富豪・ババ抜き・七並べ・神経衰弱のオンライン対戦、双方向チャット、CPU補充、2人対戦/2人観戦を回帰確認。**新作ハイカードは両ブラウザで実Firebase Emulatorの2人入室→各6回タップ→12枚開示→結果画面まで完走**。「V2 FIFTH HIGHCARD TWO HUMAN ONLINE PASS ... rounds=6 privacy=hidden cards=12 matches=finished」の出力を確認。
+- **画面実物**：Actions artifact `12881083501` の `online-highcard-webkit-667x300.png`、`online-highcard-webkit-667x375.png`、`online-highcard-chromium-800x450.png` 等を実際に開き目視確認。カード12枚、現在ターン、点数と操作案内の視認性は良好。WebKit 667×300でもカード全体が収まっている。
+- 途中の [#40836409636](https://github.com/8mahi8/trump-collection/actions/runs/40836409636) は、新ゲームが結果画面まで到達していても、追加したテストが**ゲストにもホスト専用「ロビーに戻る」ボタンを要求する誤り**により失敗。実際はゲストは待機メッセージを表示する仕様。試験を正しい権限/操作契約に修正し、最終runで通過。ゲームのルール・既存通信・結果画面の操作仕様は変更していない。
 
 ## 重要な設計上の制限
 
