@@ -5,6 +5,7 @@
 import {GAME_REGISTRY} from '../games/definitions.mjs';
 import {createFourPlayerMatch} from './four-player-match.mjs';
 import {createTwoPlayerMemoryMatch} from './two-player-memory-match.mjs';
+import {createTwoPlayerHighcardMatch} from './two-player-highcard-match.mjs';
 
 export function createMatchEngineCatalog(initial=[],{registry=GAME_REGISTRY}={}){
  const engines=new Map();
@@ -38,5 +39,6 @@ export const DEFAULT_MATCH_ENGINES=createMatchEngineCatalog([
  {gameId:'babanuki',create:createFourPlayerMatch},
  {gameId:'shichinarabe',create:createFourPlayerMatch},
  {gameId:'daifugo',create:createFourPlayerMatch},
- {gameId:'shinkei',create:createTwoPlayerMemoryMatch}
+ {gameId:'shinkei',create:createTwoPlayerMemoryMatch},
+ {gameId:'highcard',create:createTwoPlayerHighcardMatch}
 ]);
