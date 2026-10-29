@@ -16,6 +16,7 @@ on:
       - 'dev/verify-v2-online-ui.mjs'
       - 'dev/verify-v2-chat-emulator.mjs'
       - 'dev/verify-v2-configured-sites-build.mjs'
+      - 'dev/verify-v2-school-embed.mjs'
       - 'dev/verify-v2-memory-cpu-ui.mjs'
       - 'firebase/trump-rooms-v2-friends-emulator.rules.json'
       - 'firebase.room-v2-friends-emulator.json'
@@ -49,12 +50,13 @@ jobs:
         run: |
           node v2/build/build-online-lab.mjs \
             --database-url https://mygame-df915-default-rtdb.firebaseio.com \
-            --out dist/v2-room-first-sites-school-trial.html
+            --out dist/v2-room-first-sites-school-trial.html \
+            --school
           test -s dist/v2-room-first-sites-school-trial.html
       - name: Build one HTML for Google Sites-style isolated lab
         run: node v2/build/build-online-lab.mjs
       - name: Four touch browsers and Firebase mock auth + actual RTDB emulator
-        run: npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.room-v2-friends-emulator.json --only database "node dev/verify-v2-chat-emulator.mjs && node dev/verify-v2-online-ui.mjs && TC_BROWSER_ENGINE=webkit node dev/verify-v2-online-ui.mjs && TC_SITES_CONFIGURED=1 node dev/verify-v2-memory-cpu-ui.mjs"
+        run: npx --yes firebase-tools@15.30.1 emulators:exec --project demo-trumpcards --config firebase.room-v2-friends-emulator.json --only database "node dev/verify-v2-chat-emulator.mjs && node dev/verify-v2-school-embed.mjs && TC_BROWSER_ENGINE=webkit node dev/verify-v2-school-embed.mjs && node dev/verify-v2-online-ui.mjs && TC_BROWSER_ENGINE=webkit node dev/verify-v2-online-ui.mjs && TC_SITES_CONFIGURED=1 node dev/verify-v2-memory-cpu-ui.mjs"
       - name: Upload isolated V2 preview for developer inspection only
         uses: actions/upload-artifact@v4
         if: always()
