@@ -1,0 +1,384 @@
+/* V2 display shell with the physical playing-card language of v1.5.x.
+   Strictly presentation only: no changes to game rules, Firebase or moves. */
+:root{color-scheme:dark;font-family:"Hiragino Sans",system-ui,-apple-system,sans-serif;
+ --tc-card-w:clamp(48px,7.7vw,64px);background:#0d4d2e;color:#f7faed}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;overflow:hidden}
+body{height:100vh;height:100dvh;background:radial-gradient(ellipse at 50% 38%,#1b8550,#0d4d2e 78%)}
+button{font:inherit;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+button:focus-visible{outline:3px solid #ffdc6b;outline-offset:2px}
+.v2-app{height:100%;display:flex;flex-direction:column;gap:5px;min-width:0;
+ padding:6px;max-width:1100px;margin:auto}
+.v2-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex:none}
+.v2-top h1{font-size:clamp(14px,2.8vw,19px);margin:0;text-shadow:0 2px 2px #082519}
+.v2-top button,.v2-play{background:#f4e5a7;border:0;border-radius:9px;
+ padding:6px 12px;color:#213524;font-weight:800;min-height:36px}
+.v2-explain{font-size:11px;color:#d0e5d8;margin:0;flex:none;min-height:12px}
+.v2-app main{min-height:0;flex:1;display:flex;flex-direction:column}
+.v2-table{height:100%;min-height:0;display:flex;flex-direction:column;gap:4px;
+ background:linear-gradient(150deg,#165c3d,#0d422f);border:1px solid #79a17f;
+ border-radius:12px;padding:5px;box-shadow:inset 0 2px 12px #062a1a55,0 3px 10px #001b1244}
+.v2-status{flex:none;font-size:clamp(12px,2vw,15px);font-weight:800;color:#ffedaa;text-align:center}
+.v2-players{display:flex;gap:5px;flex-wrap:wrap;align-items:center;justify-content:space-around;flex:none}
+.v2-player{display:inline-flex;align-items:center;gap:3px;font-size:11px;
+ background:#032c1b77;border:2px solid transparent;border-radius:9px;padding:2px 7px;
+ white-space:nowrap;min-height:28px}
+.v2-avatar{font-size:18px;line-height:1}.v2-player-info{font-variant-numeric:tabular-nums}
+.v2-you{background:#225f43}.v2-turn{border-color:#ffda67;background:#ffe08a20}
+.v2-board{flex:1;min-height:0;overflow:auto;display:grid;place-items:center;
+ background:radial-gradient(ellipse at center,#1b8650,#105237 68%,#0c392a);
+ border-radius:10px;padding:4px;box-shadow:inset 0 0 0 2px #ffffff09,inset 0 0 28px #082a2355}
+.v2-help{font-size:12px;text-align:center;color:#e5ebd9;margin:3px}
+.v2-board-hint{color:#ffe59a;text-shadow:0 1px 2px #103d2b}
+.v2-result-note{font-size:13px;color:#ffe077;text-align:center;font-weight:800}
+.v2-draw{max-width:100%;min-width:0;text-align:center}
+.v2-backrow{display:flex;justify-content:flex-start;align-items:center;max-width:100%;
+ overflow-x:auto;overflow-y:hidden;padding:10px 16px 6px 5px;min-height:70px;
+ -webkit-overflow-scrolling:touch}
+.v2-backrow .v2-card{margin-left:-14px;transition:transform .14s ease,filter .14s ease}
+.v2-backrow .v2-card:first-child{margin-left:0}
+.v2-backrow button.v2-card:active{transform:translateY(-9px);z-index:2}
+.v2-backrow button.v2-card{cursor:pointer}
+.v2-foot{flex:none;min-height:0;display:flex;flex-direction:column;gap:3px}
+.v2-hand-tools{display:flex;justify-content:center;align-items:center;
+ gap:7px;min-height:21px;flex:none}
+.v2-sort-button{background:#124e38;color:#f8e5a3;border:1px solid #87b89a;
+ padding:2px 7px;border-radius:7px;min-height:23px;font-size:11px;font-weight:750}
+.v2-sort-button:disabled{display:none}
+.v2-hand-label{font-size:11px;line-height:1.1;color:#e1eadb;text-align:center}
+.v2-hand-label:empty,.v2-hand:empty{display:none}
+.v2-hand{min-height:calc(var(--tc-card-w) * 1.47 + 16px);display:flex;
+ justify-content:center;align-items:flex-end;overflow-x:auto;overflow-y:hidden;
+ max-width:100%;padding:11px 4px 4px;-webkit-overflow-scrolling:touch}
+.v2-hand .v2-card{margin-left:-23px;transition:transform .16s ease,filter .16s ease}
+.v2-hand .v2-card:first-child{margin-left:0}
+.v2-hand .v2-card:hover:not(:disabled){transform:translateY(-5px)}
+.v2-hand .v2-card.v2-selected,.v2-hand .v2-card.v2-selected:hover{
+ transform:translateY(-9px) scale(1.045);z-index:2;outline:3px solid #ffd64f;
+ box-shadow:0 8px 15px #061c14aa,0 0 0 3px #ffd64f55}
+.v2-hand .v2-card.v2-legal:not(.v2-selected){outline:2px solid #68dfff;outline-offset:-2px}
+.v2-hand .v2-card.v2-dimmed:not(.v2-selected){filter:brightness(.65)}
+.v2-actions{display:flex;gap:7px;align-items:center;justify-content:center;flex:none;min-height:39px}
+.v2-action{background:#ffdb6c;color:#283019;border:0;border-radius:10px;
+ padding:7px 15px;min-height:37px;font-size:14px;font-weight:800;box-shadow:0 3px 0 #bb9238}
+.v2-action:disabled{opacity:.48;box-shadow:none}
+/* Real face design: corners, center pips, court and spade backs from v1.5.x. */
+.v2-card{--tc-w:var(--tc-card-w);position:relative;display:inline-block;
+ width:var(--tc-w);min-width:var(--tc-w);height:calc(var(--tc-w) * 1.44);
+ padding:0;flex:none;overflow:hidden;border-radius:8px;border:1px solid #dedfdc;
+ background:linear-gradient(155deg,#fff 57%,#f2ede5);color:#222b34;
+ box-shadow:0 1px 2px #0007,0 5px 9px #0005,inset 0 1px 0 #fff,inset 0 0 0 1px #00000012;
+ font-family:Georgia,"Hiragino Sans",serif;font-weight:800;font-size:calc(var(--tc-w) * .245);
+ vertical-align:middle;text-align:left}
+button.v2-card{cursor:pointer}
+.v2-card:disabled{cursor:default}
+.v2-card.v2-red{color:#d22f39}.v2-card.v2-joker{color:#793dbf}
+.v2-card-corner{position:absolute;display:flex;flex-direction:column;align-items:center;
+ font-size:.87em;line-height:1.02;letter-spacing:-.5px;z-index:1;text-shadow:0 0 2px white}
+.v2-corner-tl{top:4px;left:5px}
+.v2-corner-br{bottom:4px;right:5px;transform:rotate(180deg)}
+.v2-card-suit{font-size:.94em}
+.v2-card-pip{position:absolute;transform:translate(-50%,-50%);font-size:.86em;line-height:1}
+.v2-pip-flip{transform:translate(-50%,-50%) rotate(180deg)}
+.v2-card-ace{position:absolute;inset:0;display:grid;place-items:center;font-size:2.2em}
+.v2-card-faceart{position:absolute;inset:21% 23%;border:2px solid currentColor;
+ border-radius:6px;display:flex;flex-direction:column;align-items:center;
+ justify-content:center;background:#ffffff80;box-shadow:inset 0 0 0 2px #ffffff55}
+.v2-court-rank{font-size:2em;line-height:1}.v2-court-suit{font-size:1.16em;line-height:1.05}
+.v2-court-flip{transform:rotate(180deg)}
+.v2-card-joker{position:absolute;top:5px;left:5px;font-size:.75em;writing-mode:vertical-rl}
+.v2-card-joker-art{position:absolute;inset:0;display:grid;place-items:center;font-size:2.1em}
+.v2-card.v2-back{background:linear-gradient(145deg,#355e99,#21467d);border:2px solid #eaf0f5;color:#fff}
+.v2-back::before{content:'';position:absolute;inset:5px;border:1px solid #f1f5ffb9;
+ border-radius:4px;background:repeating-linear-gradient(45deg,#ffffff18 0 5px,transparent 5px 10px),
+ repeating-linear-gradient(-45deg,#ffffff18 0 5px,transparent 5px 10px)}
+.v2-back-symbol{position:absolute;inset:0;display:grid;place-items:center;
+ font-size:2em;color:#f3f6ffeb;text-shadow:0 1px 2px #061b37}
+.v2-card.v2-small{--tc-w:clamp(38px,5.6vw,49px)}
+.v2-card.v2-small .v2-card-center-suit{position:absolute;inset:0;display:grid;place-items:center;font-size:2.1em}
+.v2-card.v2-tiny{--tc-w:100%;width:100%;min-width:0;height:100%;
+ font-size:10px;border-radius:4px}
+.v2-card.v2-tiny .v2-card-corner{top:2px;left:2px;font-size:10px}
+.v2-card.v2-tiny .v2-card-center-suit{position:absolute;inset:0;display:grid;place-items:center;font-size:19px}
+/* Sevens: four suit rows of physical miniature cards, dashed open spaces. */
+.v2-seven{display:grid;gap:4px;width:min(100%,690px);max-width:100%;padding:3px 2px}
+.v2-seven-row{display:grid;grid-template-columns:25px repeat(13,minmax(0,1fr));gap:2px;min-width:0;align-items:stretch}
+.v2-suit-label{font-size:18px;font-weight:900;text-align:center;align-self:center}
+.v2-seven-cell{display:flex;align-items:center;justify-content:center;min-width:0;
+ height:clamp(29px,6.7vh,47px);border:1px dashed #ffffff72;border-radius:5px;
+ color:#d0eadc;font-size:11px;background:#11392544}
+.v2-seven-cell.v2-placed{border:0;background:transparent}
+.v2-seven-cell.v2-next{border:2px solid #ffdc61;color:#ffe079;background:#a080191e}
+/* Table field for Daifugo. */
+.v2-field{display:flex;flex-direction:column;align-items:center;gap:7px}
+.v2-field-row{display:flex;gap:0;justify-content:center;align-items:center;flex-wrap:wrap}
+.v2-field-row .v2-card{margin-left:-12px}
+.v2-field-row .v2-card:first-child{margin-left:0}
+/* Memory: 24 cards in a six-by-four compact arrangement. */
+.v2-memory{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;
+ max-width:425px;width:min(100%,425px);justify-content:center;padding:2px}
+.v2-memory .v2-card{--tc-w:100%;width:100%;min-width:0;height:clamp(42px,9.2vh,63px);font-size:clamp(12px,2.45vw,16px)}
+.v2-memory .v2-card .v2-card-corner{font-size:12px}
+.v2-memory .v2-taken{visibility:hidden}
+.v2-memory .v2-flipped{animation:v2-card-flip .22s ease-out}
+@keyframes v2-card-flip{from{transform:rotateY(80deg)}to{transform:rotateY(0)}}
+/* Home and room controls. */
+.v2-menu{flex:1;display:flex;flex-direction:column;gap:10px;justify-content:center;align-items:center}
+.v2-menu p{font-size:12px;color:#cce8d7}
+.v2-app .v2-menu-button{min-width:180px;font-weight:700;min-height:44px;
+ background:#ffdc78;color:#173522;border:0;border-radius:10px}
+@media(max-height:430px){
+ :root{--tc-card-w:47px}
+ .v2-app{padding:3px;gap:3px}
+ .v2-top button{min-height:31px;padding:4px 9px}
+ .v2-explain{display:none}
+ .v2-table{gap:3px;padding:4px}
+ .v2-players{gap:2px}
+ .v2-player{padding:1px 4px;font-size:10px;min-height:23px}
+ .v2-avatar{font-size:14px}
+ .v2-actions{min-height:34px}
+ .v2-action{min-height:34px;padding:5px 12px}
+ .v2-hand{min-height:calc(var(--tc-card-w) * 1.44 + 15px)}
+ .v2-hand .v2-card{margin-left:-19px}
+ .v2-backrow{min-height:60px;padding:5px}
+ .v2-backrow .v2-card{margin-left:-12px}
+ .v2-memory{gap:3px;max-width:310px}
+ .v2-memory .v2-card{height:44px}
+ .v2-seven-cell{height:33px}
+}
+
+/* V2 school iPad UI pass: compact turn hierarchy and selection feedback.
+   All updates on card taps reuse nodes; only state revisions redraw cards. */
+.v2-status{letter-spacing:.025em;padding:3px 8px;border-radius:8px;
+ background:#052c1e80;border:1px solid #d8f4c522}
+.v2-player{transition:border-color .12s ease,background-color .12s ease}
+.v2-turn{border-color:#ffe185;background:#f8d9662a;box-shadow:0 0 0 1px #d2a13a44}
+.v2-you{box-shadow:inset 0 0 0 1px #aff3cc55}
+.v2-hand-tools{justify-content:space-between;flex-wrap:nowrap;gap:5px}
+.v2-hand-label{flex:1;text-align:left;min-width:0;font-weight:650}
+.v2-sort-button,.v2-clear-button{white-space:nowrap;border-radius:7px;
+ min-height:30px;padding:4px 9px;font-size:11px;font-weight:800}
+.v2-clear-button{background:#234e39;border:1px solid #bcd6c3;color:#f7f8e8}
+.v2-clear-button[hidden]{display:none}
+.v2-selection-help{font-size:11px;color:#ffeb9d;text-align:center;
+ min-height:15px;line-height:1.3;font-weight:750}
+.v2-selection-help:empty{display:none}
+.v2-selection-help.v2-feedback-warn{color:#ffd2c3}
+.v2-hand{scrollbar-width:none}
+.v2-hand::-webkit-scrollbar{display:none}
+.v2-hand .v2-card.v2-extension:not(.v2-selected){outline:2px solid #bdeaa6;outline-offset:-2px}
+.v2-field{width:100%;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px}
+.v2-field-meta{display:flex;align-items:center;justify-content:center;gap:6px;
+ flex-wrap:wrap;font-size:12px}
+.v2-field-title{font-weight:900;color:#fff7d5;letter-spacing:.035em}
+.v2-field-chip{color:#e4f9ea;background:#062d228c;border:1px solid #d0f7db4d;
+ border-radius:99px;padding:3px 8px;font-weight:750}
+.v2-field-chip.v2-revolution{background:#893920bb;color:#fff4c5;border-color:#ffa54e}
+.v2-field-empty{padding:10px 18px;border:1px dashed #d9e5d97d;
+ border-radius:11px;color:#e5f5e6;font-size:12px}
+.v2-field-event{margin:0;color:#ffe8ae;font-size:12px;text-align:center;max-width:100%}
+.v2-field-row{min-height:45px}
+@media(max-height:430px){
+ .v2-status{padding:1px 5px}
+ .v2-selection-help{font-size:10px;min-height:12px}
+ .v2-sort-button,.v2-clear-button{min-height:27px;padding:2px 6px;font-size:10px}
+ .v2-field{gap:4px}
+ .v2-field-meta{font-size:10px;gap:3px}
+ .v2-field-chip{padding:1px 6px}
+ .v2-field-empty{padding:5px 10px;font-size:11px}
+ .v2-field-event{font-size:10px}
+ /* 8 columns x 3 rows fit the short iPad landscape viewport without
+    clipping the fourth row behind the hand/action controls. */
+ .v2-memory{grid-template-columns:repeat(8,minmax(0,1fr));max-width:390px;gap:3px}
+ .v2-memory .v2-card{height:43px}
+}
+@media(prefers-reduced-motion:reduce){
+ .v2-card,.v2-player{transition:none!important;animation:none!important}
+}
+
+/* Shared finishing layer (card/table/lobby). Designed around Apple iPad touch
+   guidance: recognizable primary action, non-color-only turn state and
+   reasonably exposed card edges. Horizontal scrolling beats tiny tap targets. */
+.v2-app{padding-left:max(6px,env(safe-area-inset-left));
+ padding-right:max(6px,env(safe-area-inset-right))}
+.v2-table{background:radial-gradient(ellipse at 50% 45%,#207349 0%,#115638 65%,#0d422f 100%);
+ border:1px solid #a1c2a48c}
+.v2-board{background:radial-gradient(ellipse at center,#267f50,#11533a 72%,#0b3b2b);
+ border:1px solid #c9eadb17}
+.v2-status{border-color:#d0e1bf55;color:#ffe9a0;font-size:clamp(12px,2vw,16px);
+ text-shadow:0 1px 2px #071c12}
+.v2-player{font-size:12px;min-height:30px}
+.v2-turn{border-color:#ffe083;background:#b6923838}
+.v2-player-info{font-weight:650}
+.v2-actions{gap:10px}
+.v2-action{min-height:44px;min-width:98px;padding:9px 18px}
+.v2-action:not(:disabled):active{transform:translateY(2px);box-shadow:0 1px 0 #b18b2a}
+.v2-hand,.v2-backrow{justify-content:flex-start;overscroll-behavior-x:contain;
+ -webkit-overflow-scrolling:touch;scroll-padding-inline:8px}
+.v2-hand{padding:12px 8px 7px}
+.v2-hand .v2-card{margin-left:-8px}
+.v2-hand .v2-card:first-child{margin-left:auto}
+.v2-hand .v2-card:last-child{margin-right:auto}
+.v2-backrow .v2-card{margin-left:-3px}
+.v2-backrow .v2-card:first-child{margin-left:auto}
+.v2-backrow .v2-card:last-child{margin-right:auto}
+.v2-card.v2-small{--tc-w:clamp(44px,5.6vw,49px)}
+.v2-hand .v2-card.v2-legal:not(.v2-selected){
+ outline:2px solid #9ceacf;outline-offset:-2px}
+.v2-hand .v2-card.v2-extension:not(.v2-selected){outline:3px solid #e0e89c;
+ outline-offset:-3px}
+.v2-hand .v2-card.v2-selected{outline:3px solid #ffd35e}
+.v2-sort-button:focus-visible,.v2-clear-button:focus-visible{
+ outline:3px solid #ffe18d;outline-offset:1px}
+@media(max-height:430px){
+ :root{--tc-card-w:48px}
+ .v2-explain{display:block;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;font-size:11px;min-height:13px}
+ .v2-app{gap:2px;padding-top:2px;padding-bottom:2px}
+ .v2-player{font-size:11px;min-height:24px}
+ .v2-action{min-height:40px;padding:7px 12px}
+ .v2-actions{min-height:40px}
+ .v2-hand .v2-card{margin-left:-4px}
+ .v2-backrow .v2-card{margin-left:-2px}
+ .v2-hand{padding:9px 6px 5px}
+ .v2-hand .v2-card:first-child{margin-left:auto}
+ .v2-backrow .v2-card:first-child{margin-left:auto}
+}
+
+/* Sevens: the border color means 'next open'; a filled luminous cell means
+   'your hand has a legal play'. These are deliberately distinct states. */
+.v2-seven{gap:3px}
+.v2-seven-info,.v2-seven-legend{text-align:center;font-weight:700;
+ color:#eff3df;font-size:11px;line-height:1.2}
+.v2-seven-legend{color:#fff0a4;margin:1px 0}
+.v2-seven-cell.v2-next:not(.v2-ready){background:#c6b5640d;
+ border:1px dashed #bdc19ba1;color:#c8d7c8}
+.v2-seven-cell.v2-ready{border:2px solid #ffdf69;background:#ffe08e40;
+ color:#fff8d1;font-weight:900;box-shadow:0 0 0 1px #e6c35c48}
+.v2-seven-cell.v2-ready::after{content:"";position:absolute}
+.v2-suit-label.v2-red{color:#ffb6af}
+@media(max-height:430px){
+ .v2-seven-info,.v2-seven-legend{display:none}
+ .v2-seven{gap:2px}
+}
+
+/* Draw-game iPad review, 667x375 / 800x450, Chromium:
+   Previously the last ~20px of selectable opponent backs was clipped because
+   the 97px draw surface sat in an 80px board. Draw games have no selectable
+   self-hand: show smaller self cards, giving the playable opponent row room. */
+.v2-table[data-game="babanuki"] .v2-hand .v2-card{--tc-w:39px}
+.v2-table[data-game="babanuki"] .v2-hand{min-height:0}
+.v2-table[data-game="babanuki"] .v2-selection-help{display:none}
+.v2-backrow{min-height:0;padding:2px 6px 1px}
+.v2-backrow .v2-card{--tc-w:44px}
+.v2-board{padding:2px}
+
+/* Google Sites iframe can be shorter than an iPad browser viewport.
+   A compact 44x44 opponent target remains tappable at 667x300 without
+   allowing the action row to cover the selectable cards. */
+@media(max-height:360px){
+ .v2-table[data-game="babanuki"] .v2-board-hint{display:none}
+ .v2-table[data-game="babanuki"] .v2-hand .v2-card{--tc-w:33px}
+ .v2-table[data-game="babanuki"] .v2-hand{padding:3px 4px;min-height:0}
+ .v2-table[data-game="babanuki"] .v2-backrow .v2-card{
+  height:44px;width:44px;min-width:44px}
+ .v2-table[data-game="babanuki"] .v2-backrow{padding:1px 2px}
+ .v2-table[data-game="babanuki"] .v2-player{min-height:20px}
+ .v2-table[data-game="babanuki"] .v2-status{padding:0 3px}
+}
+
+/* A Babanuki pair may be created mid-turn. Showing its badge below the
+   selectable backs made WebKit crop 'ペア成立！' at 667x375 even though all
+   cards themselves fitted. Keep it in the draw surface but out of the
+   vertical flow, so a pair cannot change the touch row's size. */
+.v2-draw{position:relative}
+.v2-draw .v2-result-note{
+ position:absolute;top:0;right:3px;z-index:2;pointer-events:none;
+ margin:0;padding:2px 6px;border-radius:6px;
+ border:1px solid #e9cf86aa;background:#174b34ec;
+ color:#ffe49c;font-size:11px;line-height:1.25;
+ text-shadow:0 1px 2px #072518
+}
+
+/* V2 real visual QA: 667x375 WebKit screenshot concealed ♣, despite all
+   52 cells existing. All suit rows now SHARE the actual remaining board
+   height. A user's turn needs play/pass buttons and a longer hint, so fixed
+   19/25/33px grid rows can still overflow in that state. */
+@media(max-height:500px){
+ .v2-table[data-game="shichinarabe"] .v2-seven-info,
+ .v2-table[data-game="shichinarabe"] .v2-seven-legend{display:none}
+ .v2-table[data-game="shichinarabe"] .v2-board{place-items:stretch}
+ .v2-table[data-game="shichinarabe"] .v2-seven{
+  width:100%;height:100%;min-height:0;
+  grid-template-rows:repeat(4,minmax(0,1fr));
+  gap:1px;padding:0 2px;align-content:stretch
+ }
+ .v2-table[data-game="shichinarabe"] .v2-seven-row{
+  min-height:0;gap:1px
+ }
+ .v2-table[data-game="shichinarabe"] .v2-seven-cell{
+  height:100%;min-height:0;overflow:hidden;
+  font-size:10px;border-radius:3px
+ }
+ .v2-table[data-game="shichinarabe"] .v2-suit-label{
+  font-size:15px;line-height:1;overflow:hidden
+ }
+ .v2-table[data-game="shichinarabe"] .v2-card.v2-tiny .v2-card-corner{
+  font-size:8px;top:1px;left:2px
+ }
+ .v2-table[data-game="shichinarabe"] .v2-card.v2-tiny .v2-card-center-suit{
+  font-size:14px
+ }
+}
+@media(max-height:360px){
+ /* 667x300: preserve sorting, primary play/pass, and all four suits.
+    The board is information, while the hand is the actual tap surface. */
+ .v2-table[data-game="shichinarabe"] .v2-hand .v2-card{
+  --tc-w:40px;height:44px
+ }
+ .v2-table[data-game="shichinarabe"] .v2-hand{
+  min-height:0;padding:1px 3px;height:46px
+ }
+ .v2-table[data-game="shichinarabe"] .v2-hand-tools{min-height:17px}
+ .v2-table[data-game="shichinarabe"] .v2-selection-help{
+  font-size:9px;min-height:11px
+ }
+ .v2-table[data-game="shichinarabe"] .v2-actions{min-height:32px}
+ .v2-table[data-game="shichinarabe"] .v2-action{
+  min-height:32px;padding:3px 10px
+ }
+ .v2-table[data-game="shichinarabe"] .v2-status{padding:0 3px}
+ .v2-table[data-game="shichinarabe"] .v2-player{min-height:20px}
+ .v2-table[data-game="shichinarabe"] .v2-seven-cell{font-size:9px}
+ .v2-table[data-game="shichinarabe"] .v2-suit-label{font-size:13px}
+ .v2-table[data-game="shichinarabe"] .v2-card.v2-tiny .v2-card-center-suit{
+  font-size:11px
+ }
+}
+
+/* Draw/flip interactions have a tap-enabled board; don't reserve a phantom
+   submit row beneath a second copy of the same instruction. This returns
+   vertical space to the actual cards on short landscape iPad screens. */
+.v2-table .v2-actions:empty{display:none}
+
+/* Experimental High Card Duel: the two 6-card rows share the iPad landscape
+   board and always keep every actionable back fully within the viewport. */
+.v2-highcard{width:min(100%,550px);display:flex;flex-direction:column;
+ gap:5px;align-items:stretch;justify-content:center;padding:3px}
+.v2-highcard-round,.v2-highcard-last{font-size:12px;margin:0;text-align:center;
+ color:#ffedb0;font-weight:800}
+.v2-highcard-row{display:grid;grid-template-columns:76px repeat(6,minmax(0,1fr));
+ align-items:center;gap:5px;min-height:52px}
+.v2-highcard-owner{font-size:12px;color:#f4e7b0;text-align:right;white-space:nowrap}
+.v2-highcard-row .v2-card{width:100%;min-width:0;height:50px;
+ --tc-w:100%;font-size:13px}
+.v2-highcard-row button.v2-card:enabled{outline:2px solid #68dfff;
+ outline-offset:-2px}
+.v2-highcard-row .v2-highcard-revealed{opacity:.85}
+.v2-table[data-game="highcard"] .v2-hand-tools,
+.v2-table[data-game="highcard"] .v2-hand{display:none}
+@media(max-height:360px){
+ .v2-highcard{gap:2px;padding:1px}
+ .v2-highcard-row{min-height:44px;grid-template-columns:58px repeat(6,minmax(0,1fr));gap:3px}
+ .v2-highcard-row .v2-card{height:44px}
+ .v2-highcard-owner,.v2-highcard-round,.v2-highcard-last{font-size:10px}
+}

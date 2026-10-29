@@ -1,0 +1,76 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "trumpRoomsV2": {
+      "$room": {
+        "lobby": {
+          ".read": true,
+          ".write": "newData.exists() && $room.matches(/^[0-9]{5}$/) && ((!data.exists() && newData.child('revision').val() === 0) || (data.exists() && newData.child('hostId').val() === data.child('hostId').val() && newData.child('revision').val() === data.child('revision').val() + 1))",
+          ".validate": "newData.hasChildren(['protocol','roomCode','hostId','phase','members','revision','matchSequence']) && newData.child('protocol').val() === 3 && newData.child('roomCode').val() === $room && newData.child('hostId').isString() && newData.child('revision').isNumber() && newData.child('matchSequence').isNumber() && newData.child('phase').isString()"
+        },
+        "requests": {
+          ".read": true,
+          "$uid": {
+            "$request": {
+              ".write": "root.child('trumpRoomsV2/' + $room + '/lobby').exists() && ((!data.exists() && newData.exists()) || !newData.exists())",
+              ".validate": "newData.hasChildren(['protocol','requestId','type','expectedRevision']) && newData.child('protocol').val() === 3 && newData.child('requestId').val() === $request && newData.child('type').isString() && newData.child('expectedRevision').isNumber()"
+            }
+          }
+        },
+        "receipts": {
+          ".read": true,
+          "$uid": {
+            "$request": {
+              ".write": "root.child('trumpRoomsV2/' + $room + '/lobby').exists() && newData.exists()",
+              ".validate": "newData.hasChildren(['ok','reason','revision']) && newData.child('ok').isBoolean() && newData.child('reason').isString() && newData.child('revision').isNumber()"
+            }
+          }
+        },
+        "matches": {
+          "$match": {
+            "public": {
+              ".read": true,
+              ".write": "root.child('trumpRoomsV2/' + $room + '/lobby/match/matchId').val() === $match && newData.exists()",
+              ".validate": "newData.hasChildren(['matchId','gameId','publicView']) && newData.child('matchId').val() === $match && newData.child('publicView/protocol').val() === 2"
+            },
+            "private": {
+              "$uid": {
+                ".read": true,
+                ".write": "root.child('trumpRoomsV2/' + $room + '/lobby/match/matchId').val() === $match && newData.exists()",
+                ".validate": "newData.hasChildren(['matchId','gameId','privateView']) && newData.child('matchId').val() === $match && newData.child('privateView/protocol').val() === 2"
+              }
+            },
+            "commands": {
+              ".read": true,
+              "$uid": {
+                "$request": {
+                  ".write": "root.child('trumpRoomsV2/' + $room + '/lobby/match/matchId').val() === $match && ((!data.exists() && newData.exists()) || !newData.exists())",
+                  ".validate": "newData.hasChildren(['protocol','matchId','requestId','actor','type','expectedRevision','round']) && newData.child('protocol').val() === 3 && newData.child('matchId').val() === $match && newData.child('requestId').val() === $request && newData.child('type').isString()"
+                }
+              }
+            },
+            "receipts": {
+              ".read": true,
+              "$uid": {
+                "$request": {
+                  ".write": "newData.exists() && root.child('trumpRoomsV2/' + $room + '/lobby/match/matchId').val() === $match",
+                  ".validate": "newData.hasChildren(['matchId','ok','reason','revision']) && newData.child('matchId').val() === $match && newData.child('ok').isBoolean() && newData.child('reason').isString()"
+                }
+              }
+            }
+          }
+        },
+        "chat": {
+          ".read": "root.child('trumpRoomsV2/' + $room + '/lobby').exists()",
+          "$uid": {
+            "$slot": {
+              ".write": "root.child('trumpRoomsV2/' + $room + '/lobby').exists() && newData.exists() && $slot.matches(/^[0-9]$/)",
+              ".validate": "newData.hasChildren(['actor','id','text','time']) && newData.child('actor').val() === $uid && newData.child('id').isString() && newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 120 && newData.child('time').isNumber()"
+            }
+          }
+        }
+      }
+    }
+  }
+}

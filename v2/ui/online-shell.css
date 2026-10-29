@@ -1,0 +1,260 @@
+/* One compact lobby; the game itself uses the CPU-shared table.css. */
+.v2-room-lobby{height:100%;min-height:0;background:#124532;border:1px solid #669b73;border-radius:12px;padding:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;overflow-y:auto}
+.v2-room-lobby h2{margin:0;font-size:clamp(15px,3vw,22px);letter-spacing:1px}
+.v2-room-lobby .v2-menu-button{min-width:168px;padding:6px 12px;min-height:34px}
+.v2-room-lobby .v2-roster{display:flex;gap:5px;flex-wrap:wrap;justify-content:center}
+.v2-room-lobby .v2-roster .v2-player{padding:4px 6px}
+.v2-room-lobby .v2-game-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;width:min(390px,100%)}
+.v2-room-lobby .v2-game-picker .v2-menu-button{min-width:0;width:100%}
+.v2-room-lobby .v2-active{outline:2px solid white}
+.v2-room-input{display:flex;gap:6px;justify-content:center;max-width:100%}
+.v2-room-input input{width:140px;max-width:35vw;background:#f8f9f4;color:#182922;border:0;border-radius:9px;min-height:42px;padding:7px;font-size:16px;text-align:center}
+.v2-menu h2{margin:0;font-size:clamp(17px,3vw,23px)}
+.v2-menu button:disabled,.v2-room-lobby button:disabled{opacity:.4;cursor:not-allowed}
+.v2-menu-button{touch-action:manipulation}
+@media(max-height:430px){
+ .v2-room-lobby{padding:4px;gap:3px;justify-content:flex-start}
+ .v2-room-lobby .v2-menu-button{min-height:30px}
+ .v2-menu{gap:6px}
+}
+/* Room chat: tiny on-demand overlay, no lost playfield space when closed. */
+.v2-chat-toggle{font-size:12px;font-weight:800;min-height:33px;white-space:nowrap;
+ background:#f4e5a7;color:#173522;border:0;border-radius:9px;padding:5px 9px}
+.v2-chat-panel{position:absolute;z-index:55;top:42px;right:6px;
+ width:min(330px,calc(100% - 12px));height:min(260px,70dvh);
+ display:flex;flex-direction:column;gap:5px;padding:10px;
+ color:#18301f;background:#fbfaf2;border:2px solid #619477;
+ border-radius:12px;box-shadow:0 5px 32px #061c15bb}
+.v2-chat-panel[hidden],.v2-chat-toggle[hidden]{display:none!important}
+.v2-chat-bar{display:flex;justify-content:space-between;align-items:center}
+.v2-chat-bar strong{font-size:14px}.v2-chat-close{border:0;border-radius:6px;
+ font-size:24px;font-weight:700;color:#253728;background:#edf3e8;min-width:34px;min-height:30px}
+.v2-chat-note{font-size:10px;color:#58635a}
+.v2-chat-history{flex:1;min-height:30px;overflow-y:auto;padding:6px 8px;
+ background:#f0f5ec;border:1px solid #d6e2d1;border-radius:8px;
+ overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.v2-chat-line{white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 4px;font-size:12px;line-height:1.3}
+.v2-chat-line b{color:#1b6040}
+.v2-chat-status{min-height:12px;font-size:10px;color:#b4443d}
+.v2-chat-form{display:flex;gap:6px;flex:none}
+.v2-chat-input{flex:1;min-width:0;background:white;color:#17251b;border:1px solid #809d84;
+ border-radius:7px;min-height:37px;font-size:16px;padding:5px 7px}
+.v2-chat-send{border:0;background:#ffde77;color:#18311d;border-radius:7px;
+ min-height:37px;padding:5px 10px;font-weight:800}
+@media(max-height:430px){
+ .v2-chat-panel{top:36px;height:min(235px,75dvh);padding:6px}
+ .v2-chat-toggle{font-size:11px;min-height:30px}
+}
+
+.v2-results-list{display:grid;gap:5px;width:min(300px,96%);max-height:55%;overflow-y:auto}
+.v2-result-player{font-size:13px;padding:5px 10px;
+ background:#154a33;border:1px solid #8db89d;border-radius:7px}
+.v2-result-you{border-color:#ffe179;background:#4a5a30;font-weight:800}
+
+/* Old collection-inspired game tiles, still 2x2 at 667px landscape. */
+.v2-room-lobby .v2-game-picker .v2-menu-button{
+ text-align:left;border:1px solid #d0e4ce;
+ background:linear-gradient(155deg,#fffef5,#dfeee1);
+ color:#173b28;font-size:clamp(12px,2.2vw,15px);
+ font-weight:850;letter-spacing:.02em;
+ box-shadow:0 2px 0 #08291f9c;
+}
+.v2-room-lobby .v2-game-picker .v2-menu-button.v2-active{
+ background:linear-gradient(145deg,#fff2b8,#f5d369);
+ outline:2px solid #ffecaa;outline-offset:1px;border-color:#e2b44c;
+}
+.v2-room-lobby .v2-game-picker .v2-menu-button:active:not(:disabled){
+ transform:translateY(1px);box-shadow:0 1px 0 #08291f9c;
+}
+.v2-chat-send,.v2-chat-close{touch-action:manipulation}
+@media(max-height:430px){
+ .v2-room-lobby .v2-game-picker .v2-menu-button{
+  min-height:30px;font-size:12px;padding:4px 7px;
+ }
+}
+
+/* Consistent game identity comes from the plugin's optional UI metadata. */
+.v2-room-lobby .v2-game-picker{width:min(440px,100%);gap:8px}
+.v2-room-lobby .v2-game-picker .v2-menu-button{
+ display:flex;flex-direction:column;justify-content:center;align-items:flex-start;
+ gap:2px;white-space:normal;line-height:1.15;min-height:52px;
+ padding:7px 10px;transition:background .12s ease,box-shadow .12s ease}
+.v2-game-name{font-size:clamp(12px,2.25vw,16px);font-weight:900}
+.v2-game-tagline{font-size:11px;color:#526557;font-weight:650;line-height:1.25}
+.v2-active .v2-game-tagline{color:#674f19}
+.v2-chat-toggle{min-height:38px}
+.v2-chat-send{min-height:42px}
+.v2-chat-input{min-height:42px}
+.v2-chat-close{min-height:34px}
+@media(max-height:430px){
+ .v2-room-lobby .v2-game-picker{gap:5px}
+ .v2-room-lobby .v2-game-picker .v2-menu-button{
+  min-height:43px;padding:5px 8px;gap:2px}
+ .v2-game-name{font-size:12px}
+ .v2-game-tagline{font-size:10px}
+ .v2-chat-toggle{min-height:32px}
+ .v2-chat-input,.v2-chat-send{min-height:37px}
+}
+
+/* Reusable results: rank is visible as text/emoji rather than color alone. */
+.v2-results-list{width:min(390px,96%);max-height:55%;overflow:auto;gap:7px}
+.v2-result-player{display:flex;align-items:center;gap:10px;min-height:42px;
+ padding:7px 12px;border:1px solid #9dcaaa;background:#145137;
+ box-shadow:0 2px 6px #051b155c}
+.v2-result-rank{width:29px;flex:none;text-align:center;font-weight:900;font-size:19px}
+.v2-result-name{font-size:14px;flex:1;min-width:0}
+.v2-result-score{font-size:12px;font-weight:800;color:#ffebae;white-space:nowrap}
+.v2-result-winner{border-color:#ffdf79;background:#5a562a}
+.v2-result-you{box-shadow:inset 0 0 0 1px #ffe999c2,0 2px 6px #051b155c}
+@media(max-height:430px){
+ .v2-results-list{gap:4px;max-height:48%}
+ .v2-result-player{min-height:34px;padding:4px 9px}
+ .v2-result-rank{font-size:15px}
+ .v2-result-name{font-size:12px}
+}
+
+/* 2026-10-29 lobby touch-target polish.
+   Three narrow stacked 30-34px controls wasted the available landscape
+   width and were hard to tap. Put ready/start/leave on one comfortably sized
+   row; preserve the existing action IDs and explicit disabled states. */
+.v2-room-lobby .v2-room-actions{
+ display:flex;flex-wrap:nowrap;justify-content:center;align-items:stretch;
+ gap:9px;width:min(510px,100%);flex:none
+}
+.v2-room-lobby .v2-room-actions>.v2-menu-button{
+ min-width:0;min-height:44px;flex:1 1 0;
+ padding:7px 11px;font-size:13px;line-height:1.15;
+ white-space:normal;text-align:center
+}
+.v2-room-lobby .v2-room-actions>.v2-leave-button{
+ background:#173b2e;color:#e6f2e1;border:1px solid #9cc6a9;
+ box-shadow:inset 0 1px 0 #ffffff1f
+}
+.v2-room-lobby .v2-room-actions>.v2-leave-button:active{
+ background:#244e3a
+}
+.v2-room-lobby .v2-game-picker .v2-menu-button{
+ min-height:54px
+}
+.v2-room-lobby .v2-game-picker .v2-game-name{
+ font-size:clamp(14px,2.25vw,16px)
+}
+.v2-room-lobby .v2-game-picker .v2-game-tagline{
+ font-size:12px;line-height:1.2
+}
+.v2-room-lobby .v2-game-picker .v2-menu-button:focus-visible,
+.v2-room-lobby .v2-room-actions>.v2-menu-button:focus-visible{
+ outline:3px solid #fff5b6;outline-offset:2px
+}
+/* A cramped Google Sites embed keeps tap targets and the game name before
+   supporting copy; the lobby itself remains vertically scrollable. */
+@media(max-height:430px){
+ .v2-room-lobby .v2-game-picker .v2-menu-button{
+  min-height:46px;padding:5px 8px
+ }
+ .v2-room-lobby .v2-game-picker .v2-game-name{font-size:14px}
+ .v2-room-lobby .v2-game-picker .v2-game-tagline{font-size:11px}
+ .v2-room-lobby .v2-room-actions{gap:7px}
+ .v2-room-lobby .v2-room-actions>.v2-menu-button{
+  min-height:44px;padding:5px 8px;font-size:12px
+ }
+}
+@media(max-width:400px){
+ .v2-room-lobby .v2-room-actions{gap:4px}
+ .v2-room-lobby .v2-room-actions>.v2-menu-button{
+  font-size:11px;padding:5px 3px
+ }
+}
+
+/* Small iPad reading pass: chat messages carry real conversation content,
+   so never shrink them to the size of a decorative caption. Send/input
+   are primary repeated actions and keep 44px finger-sized targets. */
+.v2-chat-line{font-size:14px;line-height:1.38}
+.v2-chat-note,.v2-chat-status{font-size:11px;line-height:1.25}
+.v2-chat-input,.v2-chat-send{min-height:44px}
+.v2-chat-send{font-size:14px}
+.v2-chat-close{min-height:40px;min-width:40px}
+@media(max-height:430px){
+ .v2-chat-line{font-size:13px;line-height:1.35}
+ .v2-chat-input,.v2-chat-send{min-height:44px}
+ .v2-chat-close{min-height:40px;min-width:40px}
+ .v2-result-name{font-size:14px}
+ .v2-result-score{font-size:13px}
+}
+
+/* 300px iframe: duplicate instructional subtitles are expendable;
+   the actual room code, member roster, game choices and 44px actions are not. */
+@media(max-height:330px){
+ .v2-room-lobby .v2-lobby-instruction,
+ .v2-room-lobby .v2-lobby-count{display:none}
+}
+
+/* All 2-seat plugins use this lineup panel; no special Memory rules here.
+   The host chooses one guest, and everyone can see players and spectators. */
+.v2-room-lobby .v2-seat-section{
+ display:flex;flex-direction:column;align-items:center;gap:3px;
+ width:min(520px,100%);flex:none;padding:5px 7px;
+ border:1px solid #9fbea86e;border-radius:10px;
+ background:#0c372bc9
+}
+.v2-seat-heading{font-size:13px;font-weight:850;color:#ffe8a8}
+.v2-seat-matchup{margin:0!important;font-size:15px!important;
+ font-weight:900;color:#fff5cd!important;letter-spacing:.025em;
+ line-height:1.2;text-align:center}
+.v2-seat-spectators,.v2-seat-role{
+ margin:0!important;font-size:12px!important;line-height:1.2;
+ color:#d2e8d7!important;text-align:center
+}
+.v2-seat-role{color:#fff0bb!important;font-weight:750}
+.v2-seat-prompt{font-size:12px!important;font-weight:800;
+ color:#f5e7c5!important;margin:1px 0 0!important}
+.v2-room-lobby .v2-seat-picker{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:8px;width:100%
+}
+.v2-room-lobby .v2-seat-picker .v2-menu-button{
+ width:100%;min-width:0;min-height:44px;padding:6px 5px;
+ font-size:13px;line-height:1.12;background:#e2f2df;
+ color:#1c3826;border:1px solid #afd5b1;border-radius:9px
+}
+.v2-room-lobby .v2-seat-picker .v2-menu-button.v2-active{
+ background:#ffe19b;color:#342814;border:2px solid #fff5a6;
+ outline:2px solid #e9c85a;outline-offset:0
+}
+.v2-room-lobby .v2-seat-picker .v2-menu-button:focus-visible{
+ outline:3px solid #fff5b6;outline-offset:2px
+}
+@media(max-height:430px){
+ .v2-room-lobby .v2-seat-section{gap:2px;padding:4px 6px}
+ .v2-seat-heading{font-size:12px}
+ .v2-seat-matchup{font-size:14px!important}
+ .v2-seat-spectators,.v2-seat-role{font-size:11px!important}
+ .v2-room-lobby .v2-seat-picker{gap:6px}
+ .v2-room-lobby .v2-seat-picker .v2-menu-button{
+  min-height:44px;padding:5px 4px;font-size:12px
+ }
+ .v2-lobby-seats .v2-room-actions{
+  position:sticky;bottom:0;z-index:3;
+  padding:4px 2px 2px;border-radius:8px;
+  background:#124532;box-shadow:0 -5px 11px #062b216b
+ }
+}
+
+/* Five/six games: use a compact three-column picker on landscape iPads.
+   A two-column 5th tile created a third row and clipped the exit button at
+   667x300. The existing 44px footer must always remain usable. */
+@media(min-width:520px){
+ .v2-room-lobby .v2-game-picker{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  width:min(530px,100%);gap:5px
+ }
+}
+@media(min-width:520px) and (max-height:430px){
+ .v2-room-lobby .v2-game-picker .v2-menu-button{
+  min-height:44px;padding:4px 6px;gap:1px
+ }
+ .v2-room-lobby .v2-game-picker .v2-game-name{font-size:14px}
+ .v2-room-lobby .v2-game-picker .v2-game-tagline{
+  font-size:11px;line-height:1.1
+ }
+}

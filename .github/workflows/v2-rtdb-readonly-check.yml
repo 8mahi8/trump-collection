@@ -1,0 +1,21 @@
+name: V2 Live Firebase Read Only Probe
+on:
+  push:
+    branches:
+      - refactor/unified-core-and-school-network-20261027
+    paths:
+      - '.github/workflows/v2-rtdb-readonly-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-readonly-check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify existing Firebase allows V2 anonymous REST reads and CORS
+        run: node dev/v2-real-rtdb-readonly-check.mjs
