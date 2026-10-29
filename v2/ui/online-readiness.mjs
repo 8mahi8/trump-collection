@@ -9,10 +9,11 @@ export const SUPPORTED_ONLINE_INTERACTIONS=Object.freeze([
  'draw','flip','pick-one','pick-multi'
 ]);
 export function onlineUiGames({registry=GAME_REGISTRY,
- engines=DEFAULT_MATCH_ENGINES,surfaces=DEFAULT_BOARD_SURFACES}={}){
+ engines=DEFAULT_MATCH_ENGINES,surfaces=DEFAULT_BOARD_SURFACES,
+ schoolOnly=false}={}){
  const supported=new Set(engines.listPlayable());
  return Object.freeze(registry.list().filter(spec=>
-  supported.has(spec.id)&&
+  supported.has(spec.id)&&(!schoolOnly||spec.schoolReady===true)&&
   SUPPORTED_ONLINE_INTERACTIONS.includes(spec.interaction)&&
   typeof surfaces[spec.boardKind]==='function').map(spec=>spec.id));
 }
