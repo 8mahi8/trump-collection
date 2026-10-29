@@ -984,7 +984,10 @@ try{
    .first().tap({timeout:11000});
  }
  await highHost.f.locator('button[data-action="back-lobby"]').waitFor({timeout:18000});
- await highGuest.f.locator('button[data-action="back-lobby"]').waitFor({timeout:18000});
+ await highGuest.f.locator('.v2-menu h2').filter({hasText:'ハイカード'})
+  .waitFor({timeout:18000});
+ assert.equal(await highGuest.f.locator('button[data-action="back-lobby"]').count(),0,
+  'Only the host can leave the results screen for all room participants');
  await highHost.f.locator('.v2-results-list .v2-result-player').first()
   .waitFor({timeout:18000});
  const highResult=await highHost.f.locator('body').evaluate(()=>{
