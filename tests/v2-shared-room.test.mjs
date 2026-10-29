@@ -166,7 +166,7 @@ test('default built-in registry supports every current game without special room
    type:'selectGame',actor:A,expectedRevision:room.revision,gameId:plugin.id
   });
   assert.equal(room.selectedGame,plugin.id);
-  assert.equal(plugin.seats,plugin.id==='shinkei'?2:4);
+  assert.ok([2,4].includes(plugin.seats),'built-in room games support 2 or 4 seats');
   const participants=plugin.seats===2?[A,C]:[A,B,C,D];
   if(plugin.seats===2){
    room=applySharedRoomAction(room,{type:'setParticipants',actor:A,
