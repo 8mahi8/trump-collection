@@ -193,10 +193,10 @@ try{
     getComputedStyle(lobby).overflowY!=='auto')
     throw Error('LOBBY_VERTICAL_SCROLL_UNAVAILABLE');
    const picker=lobby.querySelector('.v2-game-picker');
-   if(!picker||picker.querySelectorAll('button').length!==4)
-    throw Error('LOBBY_FOUR_GAME_PICKER_MISSING');
-   if(picker.querySelectorAll('.v2-game-name').length!==4||
-      picker.querySelectorAll('.v2-game-tagline').length!==4)
+   if(!picker||picker.querySelectorAll('button').length!==5)
+    throw Error('LOBBY_FIVE_GAME_PICKER_MISSING');
+   if(picker.querySelectorAll('.v2-game-name').length!==5||
+      picker.querySelectorAll('.v2-game-tagline').length!==5)
     throw Error('LOBBY_GAME_PRESENTATION_MISSING');
    if(innerHeight<=330&&
       ([...lobby.querySelectorAll('.v2-lobby-instruction,.v2-lobby-count')]
