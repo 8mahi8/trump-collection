@@ -34,8 +34,8 @@ node v2/build/build-online-lab.mjs \
 - [x] 既存4ゲームのルール・CPU/2人対戦・チャット/観戦・複数回のゲーム変更がChromium/WebKitのFirebase emulator上で完走（第5作も含む開発版最終 #40837166163）。
 - [x] 学校公開用の4ゲーム限定ビルドを追加し、開発版の第5作は残したまま表示対象を切替。
 - [x] `schoolReady` の明示フラグと不完全な公開指定の拒否。
-- [ ] 学校版単一HTMLを実際にビルドしてオフライン静的検証し、Chromium/WebKitでiframe表示・4本だけ選択可能かを確認。
-- [ ] 学校版HTMLのリアルな画面スクリーンショットを目視確認。
+- [x] 学校版単一HTMLのオフライン検証とChromium/WebKit iframe実画面確認が合格。
+- [x] 学校版HTMLのChromium/WebKit実スクリーンショットを取得（画面目視確認）。
 - [ ] 友達2人分の実iPad Safari + Google Sitesで、入室→対戦開始→1ゲーム完走を試す。
 - [ ] 本番Firebase Rules/接続設定に期限がないか、また学校ネットワークで通信できるかを実機で確認。
 
@@ -53,6 +53,13 @@ node v2/build/build-online-lab.mjs \
 - 第5作「ハイカード（試験）」、開発版専用のテスト機構。
 - GitHub main、Google Sites現行ページ、本番Firebase Rules/DB、Google Drive。
 - ユーザー自身の実機確認を経ていない段階では「学校で動作確認済み」と宣言しない。
+
+## 最終CI確認結果（2026-10-29）
+
+- **[オンライン統合 #40842083566](https://github.com/8mahi8/trump-collection/actions/runs/40842083566)：SUCCESS**。学内用4ゲーム限定HTMLを生成。Google Sites型sandboxで、**Chromium / WebKit の両方**が4本だけ表示・2人入室・神経衰弱開始を確認（`SCHOOL_FOUR_GAME_GOOGLE_SITES_EMBED_PASS`）。**Firebase全要求はローカル emulator に転送**、本番DBへの実送受信は0、Firebase Authentication呼出しも0。
+- 既存4ゲームのフル対戦・2人＋CPU補充・4人ロビー観戦・チャット・iPad幅の表示テストは同じrunでChromium/WebKitとも成功。開発専用の第5ゲームも開発版では完走。
+- ビルドした学校版HTMLは `v2-room-first-sites-school-trial.html`（130,196 bytes）。CSS/JavaScript内包、Firebase RTDB URLは既知の公開接続先。管理キーは含まない。
+- ブラウザCIで合格したことと、**学校端末から実Firebaseへアクセスできることは別**。学校内ネットワーク/iPadの現物試遊はまだ必要。
 
 ## CI成果物
 
