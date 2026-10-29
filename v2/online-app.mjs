@@ -21,7 +21,12 @@ const $=id=>document.getElementById(id);
 const main=$('main'),notice=$('notice');
 // Explicit readiness must be declared only after the game engine, online
 // authority, touch UI and Firebase paths pass their integration suite.
-const labGames=new Set(onlineUiGames());
+// Replaced at bundle time by the school packager. The developer lab keeps
+// all online-ready experiments, while the school file permits ONLY schoolReady.
+const schoolRelease=__V2_SCHOOL_RELEASE__;
+const labGames=new Set(onlineUiGames({schoolOnly:schoolRelease}));
+const displayedGames=GAME_REGISTRY.list().filter(spec=>
+ !schoolRelease||labGames.has(spec.id));
 const create=(tag,cls='',label='')=>{
  const x=document.createElement(tag);if(cls)x.className=cls;
  if(label)x.textContent=label;return x;
@@ -227,7 +232,7 @@ function renderLobby(snapshot){
  }
  if(!snapshot.selectedGame)area.append(create('p','v2-help','ゲームを選択してください'));
  const picker=create('div','v2-game-picker');
- for(const spec of GAME_REGISTRY.list()){
+ for(const spec of displayedGames){
   const visual=gamePresentation(spec);
   const b=button('', 'game-'+spec.id,()=>hostAction('selectGame',{gameId:spec.id}),
    !isHost||!labGames.has(spec.id));
