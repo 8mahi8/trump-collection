@@ -41,7 +41,7 @@ node v2/build/build-online-lab.mjs \
 
 ## 実機で確認すること
 
-1. 学校のGoogle Sitesの**非公開または限定ページ**にこのHTML全体を「埋め込みコード」で貼り付ける。画面は可能な範囲で広めに設定。GitHub Pagesを学校で使う必要はない。
+1. 学校のGoogle Sitesの**非公開または限定ページ**で「挿入→埋め込む→埋め込みコード」にこのHTML全体を貼り付ける。画面は広く設定し、可能なら**ページ→全ページ埋め込み**も検討。Google Sites公式ヘルプ：https://support.google.com/sites/answer/90569?hl=ja 。GitHub Pagesを学校で使う必要はない。
 2. iPad A：新しいルーム作成。iPad B：同じ5桁番号で参加。
 3. ロビーには4ゲームのみ表示され、試験ゲームが無いことを確認。
 4. 大富豪を選び双方で「準備完了」、CPU2人補充の状態で最後まで遊ぶ。戻ってババ抜き等に切替。
